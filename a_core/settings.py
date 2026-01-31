@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'allauth',
     'allauth.account',
+    'a_rtchat',
 
     # My apps
     'a_home',

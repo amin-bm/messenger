@@ -1,5 +1,6 @@
 from channels.generic.websocket import WebsocketConsumer
 from django.shortcuts import get_object_or_404
+from django.template import context
 from django.template.loader import render_to_string
 from asgiref.sync import async_to_sync
 import json
@@ -82,7 +83,11 @@ class ChatroomConsumer(WebsocketConsumer):
     
     def online_count_handler(self, event):
         online_count = event['online_count']
-        html = render_to_string("a_rtchat/partials/online_count.html", {'online_count': online_count})
+        context = {
+            'online_count': online_count,
+            'chat_group': self.chatroom,
+        }
+        html = render_to_string("a_rtchat/partials/online_count.html", context)
         self.send(text_data=html)
 
        

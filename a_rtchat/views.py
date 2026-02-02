@@ -131,3 +131,17 @@ def chatroom_delete_view(request, chatroom_name):
         return redirect('home')
     
     return render(request, 'a_rtchat/chatroom_delete.html', {'chat_group':chat_group})
+
+
+@login_required
+def chatroom_leave_view(request, chatroom_name):
+    chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
+    if request.user not in chat_group.members.all():
+        raise Http404()
+    
+    if request.method == 'POST':
+        chat_group.members.remove(request.user)
+        messages.success(request, 'You left the chatroom')
+        return redirect('home')
+    
+    

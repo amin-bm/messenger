@@ -10,4 +10,6 @@ urlpatterns = [
     path('chat/delete/<chatroom_name>', chatroom_delete_view, name='chatroom-delete'),
     path('chat/leave/<chatroom_name>', chatroom_leave_view, name='chatroom-leave'),
     path('chat/fileload/<chatroom_name>', chat_file_upload, name='chat-file-upload'),
+    path('chat/pin/<chatroom_name>', toggle_pin, name='chat-pin'),
+    path('chat/mute/<chatroom_name>', toggle_mute, name='chat-mute'),
 ]

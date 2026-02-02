@@ -1,55 +1,133 @@
-<div id="online-user-count">
+{# a_rtchat/partials/online_status.html #}
+
+{# 1) Tabs -> در header سایدبار (telegram.html) #}
+<div id="sidebar-tabs" hx-swap-oob="innerHTML">
+  <button type="button"
+          class="sidebar-tab rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100"
+          data-tab="chats">
+    Chats
+  </button>
+
+  <button type="button"
+          class="sidebar-tab rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 flex items-center gap-2"
+          data-tab="contacts">
+    Contacts
     {% if online_users %}
-    <span class="bg-red-500 rounded-lg pt-1 pb-2 px-2 text-white text-sm ml-4">
-        {{ online_users.count }} online
-    </span>
+      <span class="bg-red-500 text-white text-[11px] rounded-md px-1.5 py-0.5">
+        {{ online_users.count }}
+      </span>
     {% endif %}
+  </button>
 </div>
 
-<div id="online-in-chats">
-    {% if online_in_chats %}
+{# 2) Online indicators -> همون جاهایی که در telegram.html گذاشتی #}
+<div id="online-user-count" hx-swap-oob="outerHTML" class="hidden"></div>
+
+<div id="online-in-chats" hx-swap-oob="outerHTML" class="relative">
+  {% if online_in_chats %}
     <div class="green-dot absolute top-2 right-2 z-20"></div>
-    {% endif %}
+  {% endif %}
 </div>
 
+{# 3) Sidebar body -> فقط پنل‌ها (بدون tabs) #}
+<div id="sidebar-content" hx-swap-oob="innerHTML">
 
-<ul id="chats-list" class="hoverlist [&>li>a]:justify-end">
-    <li class="relative">
-        {% if public_chat_users %}
-        <div class="green-dot absolute top-2 left-1"></div>
-        {% else %}
-        <div class="graylight-dot absolute top-2 left-1"></div>
-        {% endif %}
-        <a href="{% url 'home' %}">Public Chat</a>
-    </li>
-    {% for chatroom in user.chat_groups.all %}
-    {% if chatroom.groupchat_name %}
-    <li class="relative">
-        {% if chatroom.users_online.all and user not in chatroom.users_online.all or chatroom.users_online.all > 1 %}
-        <div class="green-dot absolute top-2 left-1"></div>
-        {% else %}
-        <div class="graylight-dot absolute top-2 left-1"></div>
-        {% endif %}
-        <a class="leading-5 text-right" href="{% url 'chatroom' chatroom.group_name %}">
-            {{ chatroom.groupchat_name|slice:":30" }}
-        </a>
-    </li>
-    {% endif %}
-    {% endfor %}
-    {% for chatroom in user.chat_groups.all %}
-        {% if chatroom.is_private %}
-            {% for member in chatroom.members.all %}
-                {% if member != user %}
-                <li class="relative">
-                    {% if chatroom.users_online.all and user not in chatroom.users_online.all or chatroom.users_online.all > 1 %}
-                    <div class="green-dot absolute top-2 left-1"></div>
-                    {% else %}
-                    <div class="graylight-dot absolute top-2 left-1"></div>
-                    {% endif %}
-                    <a href="{% url 'chatroom' chatroom.group_name %}">{{ member.profile.name }}</a>
-                </li>
-                {% endif %}
-            {% endfor %}
-        {% endif %}
-    {% endfor %}
-</ul>
+  <!-- CHATS PANEL -->
+  <div id="tab-chats-panel" class="pt-2">
+    <ul id="chats-list" class="space-y-1 px-1">
+      {% for item in sidebar_items %}
+        <li>
+          <a href="{{ item.url }}"
+             data-chat-url="{{ item.url }}"
+             class="chat-item flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition relative">
+
+            <div class="relative shrink-0">
+              {% if item.avatar_url %}
+                <img class="h-10 w-10 rounded-full object-cover" src="{{ item.avatar_url }}">
+              {% else %}
+                <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600">
+                  {{ item.avatar_letter }}
+                </div>
+              {% endif %}
+
+              {% if item.is_online %}
+                <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-gray-50"></span>
+              {% else %}
+                <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
+              {% endif %}
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 truncate">{{ item.title }}</div>
+                  {% if item.is_muted %}<span class="text-[11px] text-gray-400">🔇</span>{% endif %}
+                  {% if item.is_pinned %}<span class="text-[11px] text-gray-400">📌</span>{% endif %}
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                  {% if item.last_time %}
+                    <div class="text-[11px] text-gray-500">{{ item.last_time|date:"H:i" }}</div>
+                  {% endif %}
+                  {% if item.unread_count and item.unread_count > 0 %}
+                    <div class="min-w-[22px] h-[18px] px-2 rounded-full bg-blue-600 text-white text-[11px] flex items-center justify-center">
+                      {{ item.unread_count }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="text-xs text-gray-500 truncate">
+                {% if item.last_text %}{{ item.last_text }}{% else %}{{ item.subtitle }}{% endif %}
+              </div>
+            </div>
+
+            {% if item.chatroom_name %}
+              <div class="absolute right-2 top-1/2 -translate-y-1/2 hidden group-actions gap-1">
+                <button type="button"
+                        class="px-2 py-1 text-[11px] rounded-lg bg-gray-100 hover:bg-gray-200"
+                        hx-post="{% url 'chat-pin' item.chatroom_name %}"
+                        hx-swap="none"
+                        title="Pin/Unpin">📌</button>
+                <button type="button"
+                        class="px-2 py-1 text-[11px] rounded-lg bg-gray-100 hover:bg-gray-200"
+                        hx-post="{% url 'chat-mute' item.chatroom_name %}"
+                        hx-swap="none"
+                        title="Mute/Unmute">🔇</button>
+              </div>
+            {% endif %}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- CONTACTS PANEL -->
+  <div id="tab-contacts-panel" class="pt-2 hidden">
+    <ul class="space-y-1 px-1">
+      {% for c in contacts %}
+        <li>
+          <a href="{{ c.url }}"
+             class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition">
+            <div class="relative shrink-0">
+              <img class="h-10 w-10 rounded-full object-cover" src="{{ c.avatar }}">
+              {% if c.is_online %}
+                <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-gray-50"></span>
+              {% else %}
+                <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
+              {% endif %}
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium text-gray-900 truncate">{{ c.name }}</div>
+              <div class="text-xs text-gray-500 truncate">@{{ c.username }}</div>
+            </div>
+          </a>
+        </li>
+      {% empty %}
+        <li class="px-3 py-2 text-sm text-gray-500">No contacts</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+</div>

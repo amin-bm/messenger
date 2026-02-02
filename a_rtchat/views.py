@@ -39,7 +39,8 @@ def chat_view(request, chatroom_name='public_chat'):
             message.save()
             context = {
                 'message': message,
-                'user' : request.user
+                'user' : request.user,
+                'chat_group': chat_group,
             }
             return render(request, 'a_rtchat/partials/chat_message_p.html', context)
 
@@ -168,5 +169,54 @@ def chat_file_upload(request, chatroom_name):
         async_to_sync(channel_layer.group_send)(
             chatroom_name, event
             )
+
+        async_to_sync(channel_layer.group_send)(
+            "online-status",
+            {"type": "online_status_handler"}
+        )
+
     
         return HttpResponse()
+
+
+
+@login_required
+def toggle_pin(request, chatroom_name):
+    chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
+
+    if chat_group.is_private and request.user not in chat_group.members.all():
+        raise Http404
+
+    state, _ = ChatState.objects.get_or_create(user=request.user, group=chat_group)
+    state.is_pinned = not state.is_pinned
+    state.save(update_fields=['is_pinned'])
+
+    # 🔥 Force sidebar refresh via WS
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "online-status",
+        {"type": "online_status_handler"}
+    )
+
+    return HttpResponse(status=204)
+
+
+@login_required
+def toggle_mute(request, chatroom_name):
+    chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
+
+    if chat_group.is_private and request.user not in chat_group.members.all():
+        raise Http404
+
+    state, _ = ChatState.objects.get_or_create(user=request.user, group=chat_group)
+    state.is_muted = not state.is_muted
+    state.save(update_fields=['is_muted'])
+
+    # 🔥 Force sidebar refresh via WS
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "online-status",
+        {"type": "online_status_handler"}
+    )
+
+    return HttpResponse(status=204)

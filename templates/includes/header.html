@@ -1,5 +1,5 @@
 {% load static %}
-<header class="flex items-center justify-between bg-gray-800 h-20 px-8 text-white sticky top-0 z-40">
+<header class="flex items-center justify-between bg-gray-800 h-14 px-6 text-white sticky top-0 z-40">
     <div class="flex items-center">
         <a class="flex items-center gap-2" href="/">
             <img class="h-6" src="{% static 'images/logo.svg' %}" alt="Logo"/>
@@ -10,19 +10,7 @@
     <nav class="block relative">
         <ul class="navitems flex items-center justify-center h-full">
             {% if request.user.is_authenticated %}
-            <li x-data="{ chatDropdownOpen: false }" class="relative">
-                <a @click="chatDropdownOpen = !chatDropdownOpen" @click.away="chatDropdownOpen = false" class="flex items-center gap-2 cursor-pointer select-none">
-                    <div id="online-in-chats"></div>
-                    Chat
-                    <img x-bind:class="chatDropdownOpen && 'rotate-180 duration-300'" class="w-4" src="https://img.icons8.com/small/32/ffffff/expand-arrow.png" alt="Dropdown" />
-                </a>
-                <div x-show="chatDropdownOpen" x-cloak class="absolute left-0 bg-white text-black shadow rounded-lg w-48 p-2 z-20"
-                x-transition:enter="duration-300 ease-out"
-                x-transition:enter-start="opacity-0 -translate-y-5 scale-90"
-                x-transition:enter-end="opacity-100 translate-y-0 scale-100">
-                    <ul id="chats-list"></ul>
-                </div>
-            </li>
+            
             <li x-data="{ dropdownOpen: false }" class="relative">
                 <a @click="dropdownOpen = !dropdownOpen" @click.away="dropdownOpen = false" class="cursor-pointer select-none">
                     <img class="h-8 w-8 rounded-full object-cover" src="{{ request.user.profile.avatar }}" alt="Avatar" />

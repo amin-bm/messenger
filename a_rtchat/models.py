@@ -7,7 +7,24 @@ from django.contrib.auth.models import User
 import shortuuid
 import os
 from PIL import Image
+from django.utils import timezone
 
+
+class ChatState(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_states')
+    group = models.ForeignKey('ChatGroup', on_delete=models.CASCADE, related_name='states')
+
+    last_read = models.DateTimeField(default=timezone.make_aware(timezone.datetime.min))
+    is_pinned = models.BooleanField(default=False)
+    is_muted = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('user', 'group')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.group.group_name}"
+
+        
 class ChatGroup(models.Model):
    group_name = models.CharField(max_length=128, unique=True, default=shortuuid.uuid)
    groupchat_name = models.CharField(max_length=128, null=True, blank=True)

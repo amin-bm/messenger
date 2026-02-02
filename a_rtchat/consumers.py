@@ -1,11 +1,17 @@
 from typing import Any
+from collections import defaultdict
 from channels.generic.websocket import WebsocketConsumer
 from django.shortcuts import get_object_or_404
-from django.template import context
 from django.template.loader import render_to_string
 from asgiref.sync import async_to_sync
 import json
-from .models import *
+
+from django.db.models import OuterRef, Subquery, Count, Value
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+
+from django.contrib.auth.models import User
+from .models import ChatGroup, GroupMessage, ChatState
 
 
 
@@ -20,33 +26,40 @@ class ChatroomConsumer(WebsocketConsumer):
             self.channel_name
         )
 
-
-        
         # Add user and update online users
         if self.user not in self.chatroom.users_online.all():
             self.chatroom.users_online.add(self.user)
             self.update_online_count()
-            
-      
-        
+
         self.accept()
+
+        # mark as read when user opens room
+        state, _ = ChatState.objects.get_or_create(user=self.user, group=self.chatroom)
+        state.last_read = timezone.now()
+        state.save(update_fields=['last_read'])
+
+        # ✅ refresh sidebar so unread becomes 0 immediately
+        async_to_sync(self.channel_layer.group_send)(
+            "online-status",
+            {"type": "online_status_handler"}
+        )
 
     def disconnect(self, close_code):
         async_to_sync(self.channel_layer.group_discard)(
             self.chatroom_name,
             self.channel_name
         )
-        
-        # Remove user and update online users
+
         if self.user in self.chatroom.users_online.all():
             self.chatroom.users_online.remove(self.user)
             self.update_online_count()
-    
 
     def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        body = text_data_json['body']
+        data = json.loads(text_data)
+        body = data.get('body', '').strip()
 
+        if not body:
+            return
 
         message = GroupMessage.objects.create(
             body=body,
@@ -54,18 +67,20 @@ class ChatroomConsumer(WebsocketConsumer):
             group=self.chatroom
         )
 
-        event = {
-            'type': 'message_handler',
-            'message_id': message.id,
-        }
-
         async_to_sync(self.channel_layer.group_send)(
-            self.chatroom_name, event
+            self.chatroom_name,
+            {"type": "message_handler", "message_id": message.id}
+        )
+
+        # ✅ refresh sidebar (last message + unread)
+        async_to_sync(self.channel_layer.group_send)(
+            "online-status",
+            {"type": "online_status_handler"}
         )
 
     def message_handler(self, event):
-        message_id = event['message_id']
-        message = GroupMessage.objects.get(id=message_id)
+        message = GroupMessage.objects.get(id=event['message_id'])
+
         context = {
             'message': message,
             'user': self.user,
@@ -74,20 +89,29 @@ class ChatroomConsumer(WebsocketConsumer):
         html = render_to_string("a_rtchat/partials/chat_message_p.html", context=context)
         self.send(text_data=html)
 
-    def update_online_count(self):
-        online_count = self.chatroom.users_online.count() -1
+        # ✅ If user is viewing this room, mark as read (for incoming msgs too)
+        state, _ = ChatState.objects.get_or_create(user=self.user, group=self.chatroom)
+        state.last_read = timezone.now()
+        state.save(update_fields=['last_read'])
 
-        event = {
-            'type': 'online_count_handler',
-            'online_count': online_count,
-         }
-        async_to_sync(self.channel_layer.group_send)(self.chatroom_name, event)
-    
+        # ✅ refresh sidebar so unread stays 0 while user is inside
+        async_to_sync(self.channel_layer.group_send)(
+            "online-status",
+            {"type": "online_status_handler"}
+        )
+
+    def update_online_count(self):
+        online_count = self.chatroom.users_online.count() - 1
+        async_to_sync(self.channel_layer.group_send)(
+            self.chatroom_name,
+            {"type": "online_count_handler", "online_count": online_count}
+        )
+
     def online_count_handler(self, event):
         online_count = event['online_count']
 
         chat_messages = ChatGroup.objects.get(group_name=self.chatroom_name).chat_messages.all()[:30]
-        author_ids = set[Any]([message.author.id for message in chat_messages])
+        author_ids = set([m.author_id for m in chat_messages])
         users = User.objects.filter(id__in=author_ids)
 
         context = {
@@ -119,7 +143,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
     def disconnect(self, close_code):
         if self.user in self.group.users_online.all():
             self.group.users_online.remove(self.user)
-            
+
         async_to_sync(self.channel_layer.group_discard)(
             self.group_name,
             self.channel_name
@@ -127,42 +151,197 @@ class OnlineStatusConsumer(WebsocketConsumer):
         self.online_status()
 
     def online_status(self):
-        event = {
-            'type': 'online_status_handler',
-         }
-        async_to_sync(self.channel_layer.group_send)(
-            self.group_name, event
-        )
+        event = {'type': 'online_status_handler'}
+        async_to_sync(self.channel_layer.group_send)(self.group_name, event)
 
     def online_status_handler(self, event):
+        # online users (global, except me)
         online_users = self.group.users_online.exclude(id=self.user.id)
-        public_chat_users = ChatGroup.objects.get(group_name='public_chat').users_online.exclude(id=self.user.id)
 
-        my_chats = self.user.chat_groups.all()
-        privet_chats_with_users = [chat for chat in my_chats.filter(is_private=True) if chat.users_online.exclude(id=self.user.id)]
-        group_chats_with_users = [chat for chat in my_chats.filter(groupchat_name__isnull=False) if chat.users_online.exclude(id=self.user.id)]
+        # public chat
+        public_chat = ChatGroup.objects.get(group_name='public_chat')
+        public_chat_online = public_chat.users_online.exclude(id=self.user.id).exists()
+        public_last = public_chat.chat_messages.order_by('-created').first()
 
-        if public_chat_users or privet_chats_with_users or group_chats_with_users:
-            online_in_chats = True
-        else:
-            online_in_chats = False
+        # last message subquery per chat
+        last_msg_qs = GroupMessage.objects.filter(group=OuterRef('pk')).order_by('-created')
+        # state subquery per chat (for pinned/muted/last_read)
+        state_qs = ChatState.objects.filter(user=self.user, group=OuterRef('pk'))
+
+        my_chats = (
+            self.user.chat_groups
+            .all()
+            .prefetch_related('members__profile', 'users_online')
+            .annotate(
+                last_body=Subquery(last_msg_qs.values('body')[:1]),
+                last_created=Subquery(last_msg_qs.values('created')[:1]),
+                last_file=Subquery(last_msg_qs.values('file')[:1]),
+
+                last_read=Subquery(state_qs.values('last_read')[:1]),
+                is_pinned=Coalesce(Subquery(state_qs.values('is_pinned')[:1]), Value(False)),
+                is_muted=Coalesce(Subquery(state_qs.values('is_muted')[:1]), Value(False)),
+            )
+        )
+
+        chat_ids = [c.id for c in my_chats]
+
+        # states in one query
+        states = {s.group_id: s for s in ChatState.objects.filter(user=self.user, group_id__in=chat_ids)}
+
+        # unread counts (bucket by last_read to avoid N+1)
+        unread_map = {cid: 0 for cid in chat_ids}
+        buckets = defaultdict(list)
+        min_dt = timezone.make_aware(timezone.datetime.min)
+
+        for cid in chat_ids:
+            lr = states.get(cid).last_read if cid in states else min_dt
+            buckets[lr].append(cid)
+
+        for lr, ids in buckets.items():
+            qs = (
+                GroupMessage.objects
+                .filter(group_id__in=ids, created__gt=lr)
+                .exclude(author_id=self.user.id)
+                .values('group_id')
+                .annotate(c=Count('id'))
+            )
+            for row in qs:
+                unread_map[row['group_id']] = row['c']
+
+        sidebar_items = []
+
+        # Public item
+        sidebar_items.append({
+            "kind": "public",
+            "title": "Public Chat",
+            "subtitle": "General",
+            "url": "/",
+            "chatroom_name": None,
+            "avatar_url": None,
+            "avatar_letter": "P",
+            "is_online": public_chat_online,
+            "is_pinned": False,
+            "is_muted": False,
+            "unread_count": 0,
+            "last_text": (
+                public_last.body if public_last and public_last.body
+                else ("📎 File" if public_last and public_last.file else "")
+            ),
+            "last_time": (public_last.created if public_last else None),
+        })
+
+        for chatroom in my_chats:
+            # online = someone else online
+            is_online = chatroom.users_online.exclude(id=self.user.id).exists()
+
+            last_text = ""
+            if chatroom.last_body:
+                last_text = chatroom.last_body
+            elif chatroom.last_file:
+                last_text = "📎 File"
+
+            last_time = chatroom.last_created
+            unread_count = unread_map.get(chatroom.id, 0)
+
+            is_pinned = bool(getattr(chatroom, "is_pinned", False))
+            is_muted = bool(getattr(chatroom, "is_muted", False))
+
+            if chatroom.is_private:
+                other = None
+                for m in chatroom.members.all():
+                    if m.id != self.user.id:
+                        other = m
+                        break
+                if not other:
+                    continue
+
+                sidebar_items.append({
+                    "kind": "private",
+                    "title": getattr(other.profile, "name", other.username),
+                    "subtitle": f"@{other.username}",
+                    "url": f"/chat/room/{chatroom.group_name}",
+                    "chatroom_name": chatroom.group_name,
+                    "avatar_url": getattr(other.profile, "avatar", None),
+                    "avatar_letter": other.username[:1].upper(),
+                    "is_online": is_online,
+                    "is_pinned": is_pinned,
+                    "is_muted": is_muted,
+                    "unread_count": unread_count,
+                    "last_text": last_text,
+                    "last_time": last_time,
+                })
+
+            elif chatroom.groupchat_name:
+                sidebar_items.append({
+                    "kind": "group",
+                    "title": chatroom.groupchat_name,
+                    "subtitle": "Group",
+                    "url": f"/chat/room/{chatroom.group_name}",
+                    "chatroom_name": chatroom.group_name,
+                    "avatar_url": None,
+                    "avatar_letter": chatroom.groupchat_name[:1].upper(),
+                    "is_online": is_online,
+                    "is_pinned": is_pinned,
+                    "is_muted": is_muted,
+                    "unread_count": unread_count,
+                    "last_text": last_text,
+                    "last_time": last_time,
+                })
+
+        # sort: pinned first, then by last_time desc
+        min_time = timezone.make_aware(timezone.datetime.min)
+        public_items = [i for i in sidebar_items if i["kind"] == "public"]
+        chat_items = [i for i in sidebar_items if i["kind"] != "public"]
+
+        def sort_key(item):
+            t = item["last_time"] or min_time
+            return (not item["is_pinned"], -t.timestamp())
+
+        chat_items.sort(key=sort_key)
+        sidebar_items = public_items + chat_items
+
+        online_in_chats = any(i["is_online"] for i in sidebar_items)
+
+        # ---------- Contacts (unique users from my chats) ----------
+        contact_ids = set()
+        for chatroom in my_chats:
+            for m in chatroom.members.all():
+                if m.id != self.user.id:
+                    contact_ids.add(m.id)
+
+        contact_users = (
+            User.objects
+            .filter(id__in=contact_ids)
+            .select_related('profile')
+        )
+
+        global_online_ids = set(self.group.users_online.values_list('id', flat=True))
+
+        contacts = []
+        for u in contact_users:
+            contacts.append({
+                "username": u.username,
+                "name": getattr(u.profile, "name", u.username),
+                "avatar": getattr(u.profile, "avatar", ""),
+                "is_online": (u.id in global_online_ids),
+                "url": f"/chat/{u.username}",
+            })
+
+        contacts.sort(key=lambda x: (not x["is_online"], x["name"].lower()))
 
         context = {
-            'online_users': online_users,
-            'online_in_chats': online_in_chats,
-            'public_chat_users': public_chat_users,
-            # 'privet_chats_with_users': privet_chats_with_users,
-            # 'group_chats_with_users': group_chats_with_users,
-            'user': self.user,
+            "online_users": online_users,
+            "online_in_chats": online_in_chats,
+            "user": self.user,
+            "sidebar_items": sidebar_items,
+            "contacts": contacts,
         }
+
         html = render_to_string("a_rtchat/partials/online_status.html", context=context)
         self.send(text_data=html)
+
+
         
-
-
-
-   
-      
 
 
        

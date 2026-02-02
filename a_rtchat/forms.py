@@ -9,7 +9,7 @@ class ChatmessageCreateForm(ModelForm):
         model = GroupMessage
         fields = ('body',)
         widgets = {
-            'body': forms.TextInput(attrs={'placeholder': 'Add message...', 'class': 'p-4 text-black', 'maxlength': '300', 'autofocus': True}),
+            'body': forms.TextInput(attrs={'placeholder': 'Add message...', 'class': 'p-4 text-black', 'maxlength': '300', 'autofocus': True, 'autocomplete': 'off'}),
         }
 
 

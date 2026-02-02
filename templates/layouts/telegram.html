@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block layout %}
+<content class="block w-full">
+  <!-- ارتفاع کل صفحه منهای هدر -->
+  <div class="mx-auto max-w-6xl px-4 py-4">
+    <div class="flex h-[calc(100vh-4.5rem)] overflow-hidden rounded-2xl bg-white shadow-2xl">
+
+      <!-- Sidebar (لیست چت‌ها) -->
+      <aside class="w-[320px] shrink-0 border-r bg-gray-50 flex flex-col">
+        <!-- Header سایدبار -->
+        <div class="flex items-center gap-3 border-b px-4 py-3">
+        <div class="text-sm font-semibold text-gray-800">Chats</div>
+
+        <!-- Tabs container (WS will fill this) -->
+        <div id="sidebar-tabs" class="ml-auto flex gap-2"></div>
+        </div>
+
+        <!-- اگر هنوز جای آنلاین داری -->
+        <div id="online-user-count" class="hidden"></div>
+        <div id="online-in-chats" class="relative"></div>
+
+
+        <!-- Search (اختیاری) -->
+        <div class="p-3">
+          <input
+            type="text"
+            placeholder="Search"
+            class="w-full rounded-xl bg-white px-4 py-2 text-sm border"
+          />
+        </div>
+
+        <!-- لیست چت‌ها: همون آی‌دی قبلی برای سازگاری با کد شما -->
+        <nav class="flex-1 overflow-y-auto px-2 pb-3">
+            <div id="sidebar-content"></div>
+        </nav>
+      </aside>
+
+      <!-- Main chat panel -->
+      <main class="flex-1 bg-slate-100">
+        <!-- اینجا محتوای صفحه چت فعلی شما میاد -->
+        <div class="h-full">
+          {% block content %}{% endblock %}
+        </div>
+      </main>
+
+    </div>
+  </div>
+</content>
+{% endblock %}

@@ -1,94 +1,116 @@
-{% extends 'layouts/blank.html' %}
+{% extends "layouts/telegram.html" %}
 
-{% block content %} 
+{% block content %}
 
-<wrapper class="block max-w-2xl mx-auto my-10 px-6">
-    {% if chat_group.groupchat_name %}
-    <div class="flex justify-between">
-    <h2>{{ chat_group.groupchat_name }}</h2>
-    {% if user == chat_group.admin %}
-    <a href="{% url 'edit-chatroom' chat_group.group_name %}">
-        <div class="p-2 bg-gray-200 hover:bg-blue-600 rounded-lg group">
-            <svg class="fill-gray-500 group-hover:fill-white" width="16" height="16">
-                <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"></path>
-            </svg>
+<div class="flex h-full flex-col">
+
+  <!-- Chat header (Telegram-like) -->
+  <div class="flex items-center justify-between border-b bg-white px-4 py-3">
+    <div class="flex items-center gap-3 min-w-0">
+      {% if other_user %}
+        <div class="relative">
+          <div id="online-icon" class="gray-dot absolute -bottom-1 -right-1"></div>
+          <img class="w-10 h-10 rounded-full object-cover" src="{{ other_user.profile.avatar }}">
         </div>
-    </a>
-    {% endif %}
-    </div>
-    {% endif %}
-    <div id="chat_window" class="h-[45rem] flex flex-col bg-gray-800 rounded-2xl shadow-2xl relative p-1">
-        <div class="flex justify-center text-emerald-400 bg-gray-800 p-2 sticky top-0 z-10">
-            {% if other_user %}
-            <div id="online-icon" class="gray-dot absolute top-2 left-2"></div>
-            <a href="{% url 'profile' other_user.username %}">
-                <div class="flex items-center gap-2 p-4 sticky top-0 z-10">
-                    <img class="w-10 h-10 rounded-full" src="{{ other_user.profile.avatar }}" >
-                    <div>
-                        <div class="text-white font-bold">{{ other_user.profile.name }}</div>
-                        <div class="text-sm text-gray-400">{{ other_user.username }}</div>
-                    </div>
-                </div>
-            </a>
-            {% elif chat_group.groupchat_name %}
-            <ul id="groupchat-members" class="flex gap-4">
-                {% for member in chat_group.members.all %}
-                <li>
-                    <a href="{% url 'profile' member.username %}" class="flex flex-col text-gray-400 items-center justify-center w-20 gap-2">
-                        <img class="w-14 h-14 rounded-full object-cover" src="{{ member.profile.avatar }}" />
-                        {{ member.profile.name|slice:":10" }}  
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <div id="online-icon"></div>
+
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-gray-900 truncate">
+            {{ other_user.profile.name }}
+          </div>
+          <div class="text-xs text-gray-500 truncate">
+            @{{ other_user.username }}
+          </div>
+        </div>
+
+      {% else %}
+        <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
+
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-gray-900 truncate">
+            {{ chat_group.groupchat_name|default:"Public chat" }}
+          </div>
+          <div class="text-xs text-gray-500">
             <span id="online-count" class="pr-1"></span>online
-            {% endif %}
+          </div>
         </div>
-        <div id='chat_container' class="overflow-y-auto grow">
-            <ul id='chat_messages' class="flex flex-col justify-end gap-2 p-4">
-                {% for message in chat_messages reversed %}
-                {% include 'a_rtchat/chat_message.html' %}
-                {% endfor %}
-            </ul>
-        </div>
-        <div class="sticky bottom-0 z-10 p-2 bg-gray-800">
-            <div class="flex flex-col gap-4 items-center rounded-xl px-2 py-2">
-                <form id="chat_message_form" class="w-full"
-                    hx-ext="ws"
-                    ws-connect="/ws/chatroom/{{ chatroom_name }}/"
-                    ws-send
-                    _="on htmx:wsAfterSend reset() me">
-                    {% csrf_token %}
-                    {{ form }}
-                </form>
-                <form id="chat_file_form" enctype="multipart/form-data" class="flex items-center w-full" 
-                    hx-post="{% url 'chat-file-upload' chat_group.group_name %}"
-                    hx-target="#chat_messages"
-                    hx-swap="beforeend"
-                    _="on htmx:beforeSend reset() me">
-                    {% csrf_token %}
-                    <input type="file" name="file" id="id_file" class="!bg-transparent text-gray-400">
-                    <button type="submit" class="whitespace-nowrap !text-sm !py-3 !px-4 h-fit">Send</button>
-                </form>
-            </div>
-        </div>
+      {% endif %}
     </div>
-    {% if chat_group.members.exists %}
-       {% include 'a_rtchat/partials/modal_chat_leave.html' %}
-    {% endif %}
-</wrapper>
+
+    <!-- actions -->
+    <div class="flex items-center gap-2">
+      {% if chat_group.groupchat_name and user == chat_group.admin %}
+        <a href="{% url 'edit-chatroom' chat_group.group_name %}"
+           class="p-2 rounded-lg bg-gray-100 hover:bg-blue-600 group">
+          <svg class="fill-gray-500 group-hover:fill-white" width="16" height="16">
+            <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"></path>
+          </svg>
+        </a>
+      {% endif %}
+
+      {# اگر modal leave داری، دکمه‌اش رو همینجا بذار (اختیاری) #}
+    </div>
+  </div>
+
+  <!-- Messages area -->
+  <div id="chat_container" class="flex-1 overflow-y-auto p-4 bg-slate-100">
+    <ul id="chat_messages" class="flex flex-col gap-2">
+      {% for message in chat_messages reversed %}
+        {% include 'a_rtchat/chat_message.html' %}
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Composer -->
+  <div class="border-t bg-white p-3">
+    <div class="flex flex-col gap-3">
+
+      <form id="chat_message_form"
+            class="w-full"
+            hx-ext="ws"
+            ws-connect="/ws/chatroom/{{ chatroom_name }}/"
+            ws-send
+            _="on htmx:wsAfterSend reset() me">
+        {% csrf_token %}
+        {{ form }}
+      </form>
+
+      <form id="chat_file_form"
+            enctype="multipart/form-data"
+            class="flex items-center gap-3"
+            hx-post="{% url 'chat-file-upload' chat_group.group_name %}"
+            hx-target="#chat_messages"
+            hx-swap="beforeend"
+            _="on htmx:beforeSend reset() me">
+        {% csrf_token %}
+
+        <input type="file" name="file" id="id_file"
+               class="text-sm text-gray-600">
+        <button type="submit"
+                class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+          Send
+        </button>
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+{% if chat_group.members.exists %}
+  {% include 'a_rtchat/partials/modal_chat_leave.html' %}
+{% endif %}
+
 {% endblock %}
 
 {% block javascript %}
 <script>
-    function scrollToBottom(time=0) {
-        setTimeout(() => {
-            const container = document.getElementById('chat_container');
-            container.scrollTop = container.scrollHeight;
-        }, time);
-    }
-    scrollToBottom();
+  function scrollToBottom(time=0) {
+    setTimeout(() => {
+      const container = document.getElementById('chat_container');
+      if (!container) return;
+      container.scrollTop = container.scrollHeight;
+    }, time);
+  }
+  scrollToBottom();
 </script>
 {% endblock %}

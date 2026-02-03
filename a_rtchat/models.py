@@ -8,6 +8,8 @@ import shortuuid
 import os
 from PIL import Image
 from django.utils import timezone
+import mimetypes
+from django.utils.functional import cached_property
 
 
 class ChatState(models.Model):
@@ -43,6 +45,7 @@ class GroupMessage(models.Model):
    file = models.FileField(null=True, blank=True, upload_to='files/')
    created = models.DateTimeField(auto_now_add=True)
 
+   
    @property
    def filename(self):
       if self.file:
@@ -62,13 +65,21 @@ class GroupMessage(models.Model):
 
    @property
    def is_image(self):
-      try:
-         image = Image.open(self.file)
-         image.verify()
-         return True
-      except:
+      if not self.file:
          return False
-      
+      try:
+         self.file.open('rb')
+         img = Image.open(self.file)
+         img.verify()
+         return True
+      except Exception:
+         return False
+      finally:
+         try:
+               self.file.close()
+         except Exception:
+               pass
+         
 
    
     

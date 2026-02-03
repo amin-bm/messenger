@@ -233,6 +233,53 @@
     window.addEventListener('popstate', refreshSidebarUI);
   </script>
 
+<div id="img-modal"
+     class="fixed inset-0 hidden z-[9999] bg-black/70 p-4 items-center justify-center">
+  <img id="img-modal-src"
+       class="max-h-[90vh] max-w-[90vw] rounded-2xl shadow-2xl"
+       alt="Preview" />
+</div>
+
+  <script>
+  (function () {
+    const modal = document.getElementById('img-modal');
+    const modalImg = document.getElementById('img-modal-src');
+
+    function openModal(src) {
+      modalImg.src = src;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      modalImg.src = '';
+      document.body.style.overflow = '';
+    }
+
+    // کلیک روی هر عکس پیام (حتی پیام‌هایی که بعداً با HTMX اضافه می‌شوند)
+    document.addEventListener('click', (e) => {
+      const img = e.target.closest('img[data-zoom-src]');
+      if (!img) return;
+      openModal(img.dataset.zoomSrc);
+    });
+
+    // کلیک روی پس‌زمینه مودال => بستن
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    // ESC => بستن
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+    });
+  })();
+</script>
+
+
+
   {% block javascript %}{% endblock %}
 </body>
 </html>

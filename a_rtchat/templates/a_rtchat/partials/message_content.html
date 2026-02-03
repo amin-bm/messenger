@@ -1,9 +1,20 @@
 {% if message.body %}
-    <span>{{ message.body }}</span>
-{% elif message.file %}
-    {% if message.is_image %}
-        <img class="max-w-72 min-w-8" src="{{ message.file.url }}">
-    {% else %}
-       &#x1F4CE; <a class="cursor-pointer italic hover:underline" href="{{ message.file.url }}" download>{{ message.filename }}</a>
-    {% endif %}
+  {{ message.body|linebreaksbr }}
+{% endif %}
+
+{% if message.file %}
+  {% if message.is_image %}
+    <img
+      src="{{ message.file.url }}"
+      data-zoom-src="{{ message.file.url }}"
+      alt="{{ message.filename }}"
+      class="mt-2 max-h-64 w-auto rounded-xl object-cover cursor-zoom-in select-none"
+      loading="lazy"
+    />
+  {% else %}
+    <a href="{{ message.file.url }}" download
+       class="mt-2 inline-flex items-center gap-2 text-sm text-blue-600 hover:underline">
+      📎 {{ message.filename }}
+    </a>
+  {% endif %}
 {% endif %}

@@ -1,5 +1,7 @@
 from django.urls import path
 from .views import *
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('', chat_view, name='home'),
@@ -12,4 +14,4 @@ urlpatterns = [
     path('chat/fileload/<chatroom_name>', chat_file_upload, name='chat-file-upload'),
     path('chat/pin/<chatroom_name>', toggle_pin, name='chat-pin'),
     path('chat/mute/<chatroom_name>', toggle_mute, name='chat-mute'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -67,6 +67,65 @@
     /* Sidebar items base style (safe even if structure changes) */
     #chats-list a.chat-item { @apply rounded-xl; }
 
+    /* wrapper شبیه کپسول */
+    .tabs-pill{
+      display: inline-flex;
+      gap: 4px;
+      padding: 4px;
+      border-radius: 14px;
+      background: #f1f5f9;          /* slate-100 */
+      border: 1px solid #e2e8f0;     /* slate-200 */
+    }
+
+/* دکمه‌ها */
+.sidebar-tab{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #64748b;               /* slate-500 */
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+.sidebar-tab:hover{
+  background: rgba(15, 23, 42, 0.06);  /* slate-900/6% */
+  color: #0f172a;                      /* slate-900 */
+}
+
+.sidebar-tab:focus{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); /* blue ring */
+}
+
+/* حالت فعال */
+.sidebar-tab.active{
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+
+/* badge مینیمال */
+.tab-badge{
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(37, 99, 235, 0.12); /* blue-600/12% */
+  color: #1d4ed8;                      /* blue-700 */
+}
+
     
   </style>
 </head>

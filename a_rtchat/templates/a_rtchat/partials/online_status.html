@@ -1,33 +1,33 @@
 {# a_rtchat/partials/online_status.html #}
 
 {# 1) Tabs -> در header سایدبار (telegram.html) #}
-<div id="sidebar-tabs" hx-swap-oob="innerHTML">
-  <button type="button"
-          class="sidebar-tab rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100"
-          data-tab="chats">
-    Chats
-  </button>
+<div id="sidebar-tabs" hx-swap-oob="innerHTML" class="ml-auto">
+  <div class="tabs-pill">
+    <button type="button"
+            class="sidebar-tab active"
+            data-tab="chats">
+      Chats
+    </button>
 
-  <button type="button"
-          class="sidebar-tab rounded-lg px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 flex items-center gap-2"
-          data-tab="contacts">
-    Contacts
-    {% if online_users %}
-      <span class="bg-red-500 text-white text-[11px] rounded-md px-1.5 py-0.5">
-        {{ online_users.count }}
-      </span>
-    {% endif %}
-  </button>
+    <button type="button"
+            class="sidebar-tab"
+            data-tab="contacts">
+      Contacts
+      {% if online_users %}
+        <span class="tab-badge">{{ online_users.count }}</span>
+      {% endif %}
+    </button>
+  </div>
 </div>
 
 {# 2) Online indicators -> همون جاهایی که در telegram.html گذاشتی #}
 <div id="online-user-count" hx-swap-oob="outerHTML" class="hidden"></div>
 
-<div id="online-in-chats" hx-swap-oob="outerHTML" class="relative">
+<!-- <div id="online-in-chats" hx-swap-oob="outerHTML" class="relative">
   {% if online_in_chats %}
-    <div class="green-dot absolute top-2 right-2 z-20"></div>
+    <div class="green-dot absolute top-5 right-2 z-20"></div>
   {% endif %}
-</div>
+</div> -->
 
 {# 3) Sidebar body -> فقط پنل‌ها (بدون tabs) #}
 <div id="sidebar-content" hx-swap-oob="innerHTML">
@@ -50,11 +50,11 @@
                 </div>
               {% endif %}
 
-              {% if item.is_online %}
+              <!-- {% if item.is_online %}
                 <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-gray-50"></span>
               {% else %}
                 <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
-              {% endif %}
+              {% endif %} -->
             </div>
 
             <div class="min-w-0 flex-1">

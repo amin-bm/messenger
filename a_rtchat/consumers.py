@@ -317,16 +317,10 @@ class OnlineStatusConsumer(WebsocketConsumer):
 
         online_in_chats = any(i["is_online"] for i in sidebar_items)
 
-        # ---------- Contacts (unique users from my chats) ----------
-        contact_ids = set()
-        for chatroom in my_chats:
-            for m in chatroom.members.all():
-                if m.id != self.user.id:
-                    contact_ids.add(m.id)
-
+        # ---------- Contacts (all users except me) ----------
         contact_users = (
             User.objects
-            .filter(id__in=contact_ids)
+            .exclude(id=self.user.id)
             .select_related('profile')
         )
 

@@ -12,6 +12,24 @@ from .forms import *
 
 @login_required
 def chat_view(request, chatroom_name='public_chat'):
+    if request.path == '/':
+        my_groups_qs = request.user.chat_groups.all()
+        if not my_groups_qs.exists():
+            return render(request, 'layouts/telegram.html')
+        last_state = (
+            ChatState.objects
+            .filter(user=request.user, group__in=my_groups_qs)
+            .select_related('group')
+            .order_by('-last_read')
+            .first()
+        )
+        if last_state and last_state.group_id:
+            chatroom_name = last_state.group.group_name
+        else:
+            last_group = my_groups_qs.order_by('-id').first()
+            if last_group:
+                chatroom_name = last_group.group_name
+
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
     chat_messages = chat_group.chat_messages.all()[:30]
     form = ChatmessageCreateForm()
@@ -132,16 +150,9 @@ def chatroom_edit_view(request, chatroom_name):
             return redirect('chatroom', chatroom_name)
 
     member_ids = set(chat_group.members.values_list('id', flat=True))
-    contact_ids = set()
-    my_chatrooms = request.user.chat_groups.all().prefetch_related('members')
-    for chatroom in my_chatrooms:
-        for m in chatroom.members.all():
-            if m.id != request.user.id:
-                contact_ids.add(m.id)
-
     add_candidates = (
         User.objects
-        .filter(id__in=contact_ids)
+        .exclude(id=request.user.id)
         .exclude(id__in=member_ids)
         .select_related('profile')
         .order_by('username')

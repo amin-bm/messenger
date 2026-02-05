@@ -159,6 +159,9 @@
     }, time);
   }
   scrollToBottom();
+  if (window.location.pathname === '/' && window.matchMedia('(min-width: 768px)').matches) {
+    window.location.replace('/chat/room/{{ chatroom_name }}');
+  }
 
   function openGroupMembersModal() {
     const modal = document.getElementById('group-members-modal');

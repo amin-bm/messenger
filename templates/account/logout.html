@@ -1,0 +1,15 @@
+{% extends 'layouts/box.html' %}
+{% load i18n %}
+
+{% block mobile_title %}{% trans "Log out" %}{% endblock %}
+
+{% block content %}
+<h1 class="mb-2">{% trans "Log out" %}</h1>
+<p class="text-gray-500 mb-6">{% trans "Are you sure you want to log out?" %}</p>
+
+<form method="post" action="{% url 'account_logout' %}">
+  {% csrf_token %}
+  <button type="submit" class="button">{% trans "Log out" %}</button>
+  <a href="/" onclick="return goToLastChatOrHome(event)" class="ml-3 text-sm font-medium text-gray-500 hover:text-gray-900">{% trans "Cancel" %}</a>
+</form>
+{% endblock %}

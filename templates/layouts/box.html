@@ -1,12 +1,35 @@
 {% extends 'base.html' %}
 
 {% block layout %}
-<content class="block max-w-3xl mx-auto md:p-12">
-    <div class="bg-white rounded-2xl md:drop-shadow-2xl shadow-black w-full p-8">
+<content class="block w-full">
+    <div class="mx-auto max-w-3xl px-0 md:px-12 py-0 md:py-12">
+        <div class="flex h-[100dvh] md:h-auto flex-col bg-white md:rounded-2xl md:drop-shadow-2xl shadow-black w-full overflow-hidden">
+            <div class="md:hidden flex items-center justify-between border-b bg-white px-4 py-3">
+                <a href="/" onclick="return goToLastChatOrHome(event)" class="-ml-2 p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </a>
+                <div class="min-w-0 px-3 text-sm font-semibold text-gray-900 truncate">
+                    {% block mobile_title %}{% endblock %}
+                </div>
+                <a href="/" onclick="return goToLastChatOrHome(event)" class="text-sm font-medium text-gray-500 hover:text-gray-900">Cancel</a>
+            </div>
 
-    {% block content %} 
-    {% endblock %}
+            <div class="hidden md:flex items-center justify-between border-b bg-white px-8 py-5">
+                <a href="/" onclick="return goToLastChatOrHome(event)" class="-ml-2 p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </a>
+                <a href="/" onclick="return goToLastChatOrHome(event)" class="text-sm font-medium text-gray-500 hover:text-gray-900">Cancel</a>
+            </div>
 
+            <div class="flex-1 overflow-y-auto p-6 md:p-8">
+                {% block content %}
+                {% endblock %}
+            </div>
+        </div>
     </div>
 </content>
 {% endblock %}

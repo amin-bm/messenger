@@ -11,27 +11,27 @@ h3 { @apply text-lg font-bold; }
 p  { @apply mb-4; }
 
 .button {
-  @apply bg-indigo-600 text-white font-bold rounded-lg shadow-lg transition-all cursor-pointer px-6 py-4 inline-block;
+  @apply inline-flex items-center justify-center bg-gray-800 text-white font-semibold rounded-xl shadow-sm transition cursor-pointer px-4 py-2 text-sm;
 }
-.button:hover { @apply bg-indigo-700; }
+.button:hover { @apply bg-gray-700; }
 .button:active { @apply scale-95; }
 
 .button.alert { @apply bg-red-700; }
 .button.alert:hover { @apply bg-red-600; }
 
 .button-red { @apply !bg-red-500 hover:!bg-red-600; }
-.button-gray { @apply !bg-gray-300 hover:!bg-[#c3c9d0]; }
+.button-gray { @apply !bg-gray-200 hover:!bg-gray-300 !text-gray-900; }
 
 .navitems>li>a { @apply flex items-center gap-2 h-12 px-4 hover:bg-[rgba(31,41,55,0.3)] rounded-lg; }
 
 .hoverlist>* { @apply hover:bg-gray-100 rounded-md transition duration-150; }
 .hoverlist>*>a { @apply flex items-center p-2; }
 
-.highlight { @apply !bg-indigo-100; }
+.highlight { @apply !bg-gray-200; }
 
 /* این یکی رو اصلاح کن */
 .allauth .content a { @apply underline underline-offset-2; }
-.allauth .content a:hover { @apply text-indigo-500; }
+.allauth .content a:hover { @apply text-gray-900; }
 
 label { @apply hidden; }
 input[type=file] { @apply bg-white pl-0; }

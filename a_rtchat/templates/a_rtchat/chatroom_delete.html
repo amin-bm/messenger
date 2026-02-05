@@ -5,7 +5,7 @@
     <p>Are you sure you want to delete the "{{ chat_group.group_name }} chatroom"?</p>
     <form method="post">
         {% csrf_token %}
-        <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-md">Yes, Delete</button>
+        <button type="submit" class="button button-red">Yes, Delete</button>
         <a class="button button-gray ml-1" href="{{ request.META.HTTP_REFERER }}">Cancel</a>
     </form>
 {% endblock %}

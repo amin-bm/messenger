@@ -1,5 +1,7 @@
 {% extends 'layouts/box.html' %}
 
+{% block mobile_title %}Edit profile{% endblock %}
+
 {% block content %}
 
 {% if onboarding %}
@@ -20,9 +22,9 @@
     {{ form.as_p }}
     <button type="submit" class="button">Submit</button>
     {% if onboarding %}
-    <a class="button button-gray ml-1" href="{% url 'home' %}">Skip</a>
+    <a class="ml-3 text-sm font-medium text-gray-500 hover:text-gray-900" href="{% url 'home' %}">Skip</a>
     {% else %}
-    <a class="button button-gray ml-1" href="{{ request.META.HTTP_REFERER }}">Cancel</a>
+    <a class="ml-3 text-sm font-medium text-gray-500 hover:text-gray-900" href="/">Cancel</a>
     {% endif %}
 </form>
 

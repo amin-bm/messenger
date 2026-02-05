@@ -1,8 +1,10 @@
 {% extends 'layouts/box.html' %}
 
+{% block mobile_title %}Settings{% endblock %}
+
 {% block content %}
 
-<h1 class="mb-8">Account Settings</h1>
+<h1 class="mb-6">Account Settings</h1>
 
 <table class="w-full text-sm text-left text-gray-500">
     <tbody>
@@ -14,7 +16,7 @@
                 {% if user.email %}{{ user.email }}{% else %}No Email{% endif %}
             </td>
             <td class="pt-4 pb-1 pl-4">
-                <a id="email-edit" class="cursor-pointer font-medium text-blue-600 hover:underline"
+                <a id="email-edit" class="cursor-pointer font-medium text-gray-700 hover:text-gray-900 hover:underline"
                     hx-get="{% url 'profile-emailchange' %}"
                     hx-target="#email-address"
                     hx-swap="innerHTML" >
@@ -33,7 +35,7 @@
                 {% endif %}
             </td>
             <td class="pb-4 pl-4">
-                <a href="{% url 'profile-emailverify' %}" class="font-medium text-blue-600 hover:underline">
+                <a href="{% url 'profile-emailverify' %}" class="font-medium text-gray-700 hover:text-gray-900 hover:underline">
                     {% if not user.emailaddress_set.first.verified %}Verify{% endif %}
                 </a>
             </td>
@@ -47,7 +49,7 @@
                 {{ user.username }}
             </td>
             <td class="py-4 pl-4">
-                <a id="username-edit" class="cursor-pointer font-medium text-blue-600 hover:underline"
+                <a id="username-edit" class="cursor-pointer font-medium text-gray-700 hover:text-gray-900 hover:underline"
                     hx-get="{% url 'profile-usernamechange' %}"
                     hx-target="#username"
                     hx-swap="innerHTML" >

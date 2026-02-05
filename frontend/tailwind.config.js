@@ -3,6 +3,7 @@ module.exports = {
   content: [
     "../templates/**/*.html",
     "../**/templates/**/*.html",
+    "../**/*.html",
     "../static/**/*.js",
     "../**/*.py",
   ],
@@ -10,4 +11,4 @@ module.exports = {
     extend: {},
   },
   plugins: [],
-}
+};

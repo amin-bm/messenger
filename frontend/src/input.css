@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles */
+[x-cloak]{ display:none !important; }
+
+h1 { @apply text-4xl font-bold mb-4; }
+h2 { @apply text-xl font-bold mb-2; }
+h3 { @apply text-lg font-bold; }
+p  { @apply mb-4; }
+
+.button, button, [type='submit'], [type='button'] {
+  @apply bg-indigo-600 text-white font-bold rounded-lg shadow-lg transition-all cursor-pointer;
+}
+.button, button a, [type='submit'], [type='button'] {
+  @apply px-6 py-4 inline-block;
+}
+.button:hover, button:hover, [type='submit']:hover, [type='button']:hover { @apply bg-indigo-700; }
+.button:active, button:active, [type='submit']:active, [type='button']:active { @apply scale-95; }
+
+.button.alert, button.alert { @apply bg-red-700; }
+.button.alert:hover, button.alert:hover { @apply bg-red-600; }
+
+.button-red { @apply !bg-red-500 hover:!bg-red-600; }
+.button-gray { @apply !bg-gray-300 hover:!bg-[#c3c9d0]; }
+
+.navitems>li>a { @apply flex items-center gap-2 h-12 px-4 hover:bg-[rgba(31,41,55,0.3)] rounded-lg; }
+
+.hoverlist>* { @apply hover:bg-gray-100 rounded-md transition duration-150; }
+.hoverlist>*>a { @apply flex items-center p-2; }
+
+.highlight { @apply !bg-indigo-100; }
+
+/* این یکی رو اصلاح کن */
+.allauth .content a { @apply underline underline-offset-2; }
+.allauth .content a:hover { @apply text-indigo-500; }
+
+label { @apply hidden; }
+input[type=file] { @apply bg-white pl-0; }
+.textarea, textarea, input { @apply w-full rounded-lg py-4 px-5 bg-gray-100; }
+.errorlist li { @apply p-1 pl-4 border-l-red-500 border-l-4 border-solid mb-2 text-red-500; }
+
+.alert-info { @apply bg-sky-500; }
+.alert-success { @apply bg-green-500; }
+.alert-warning { @apply bg-red-500; }
+.alert-danger { @apply bg-red-500; }
+
+.gray-dot { @apply rounded-full bg-gray-500 p-1.5; }
+.green-dot { @apply rounded-full bg-green-500 p-1.5; }
+.graylight-dot { @apply rounded-full bg-gray-300 p-1.5; }
+
+#chats-list a.chat-item { @apply rounded-xl; }
+
+/* CSS خام هم می‌تونه همینجا بمونه */
+.tabs-pill{
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.sidebar-tab{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+.sidebar-tab:hover{ background: rgba(15, 23, 42, 0.06); color:#0f172a; }
+.sidebar-tab:focus{ outline:none; box-shadow:0 0 0 3px rgba(59,130,246,.25); }
+
+.sidebar-tab.active{
+  background:#fff;
+  color:#0f172a;
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
+}
+
+.tab-badge{
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}

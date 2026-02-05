@@ -10,17 +10,14 @@ h2 { @apply text-xl font-bold mb-2; }
 h3 { @apply text-lg font-bold; }
 p  { @apply mb-4; }
 
-.button, button, [type='submit'], [type='button'] {
-  @apply bg-indigo-600 text-white font-bold rounded-lg shadow-lg transition-all cursor-pointer;
+.button {
+  @apply bg-indigo-600 text-white font-bold rounded-lg shadow-lg transition-all cursor-pointer px-6 py-4 inline-block;
 }
-.button, button a, [type='submit'], [type='button'] {
-  @apply px-6 py-4 inline-block;
-}
-.button:hover, button:hover, [type='submit']:hover, [type='button']:hover { @apply bg-indigo-700; }
-.button:active, button:active, [type='submit']:active, [type='button']:active { @apply scale-95; }
+.button:hover { @apply bg-indigo-700; }
+.button:active { @apply scale-95; }
 
-.button.alert, button.alert { @apply bg-red-700; }
-.button.alert:hover, button.alert:hover { @apply bg-red-600; }
+.button.alert { @apply bg-red-700; }
+.button.alert:hover { @apply bg-red-600; }
 
 .button-red { @apply !bg-red-500 hover:!bg-red-600; }
 .button-gray { @apply !bg-gray-300 hover:!bg-[#c3c9d0]; }

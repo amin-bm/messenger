@@ -85,14 +85,16 @@
             {% if item.chatroom_name %}
               <div class="absolute right-2 top-1/2 -translate-y-1/2 hidden group-actions gap-1">
                 <button type="button"
-                        class="px-2 py-1 text-[11px] rounded-lg bg-gray-100 hover:bg-gray-200"
+                        class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0"
                         hx-post="{% url 'chat-pin' item.chatroom_name %}"
                         hx-swap="none"
+                        onclick="event.preventDefault(); event.stopPropagation();"
                         title="Pin/Unpin">📌</button>
                 <button type="button"
-                        class="px-2 py-1 text-[11px] rounded-lg bg-gray-100 hover:bg-gray-200"
+                        class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0"
                         hx-post="{% url 'chat-mute' item.chatroom_name %}"
                         hx-swap="none"
+                        onclick="event.preventDefault(); event.stopPropagation();"
                         title="Mute/Unmute">🔇</button>
               </div>
             {% endif %}

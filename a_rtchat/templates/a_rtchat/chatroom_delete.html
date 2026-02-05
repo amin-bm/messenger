@@ -6,6 +6,6 @@
     <form method="post">
         {% csrf_token %}
         <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-md">Yes, Delete</button>
-        <a class="button" button-gray ml-1 href="{{ request.META.HTTP_REFERER }}">Cancel</a>
+        <a class="button button-gray ml-1" href="{{ request.META.HTTP_REFERER }}">Cancel</a>
     </form>
 {% endblock %}

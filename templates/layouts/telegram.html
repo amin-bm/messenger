@@ -8,7 +8,7 @@
     <div class="flex h-[100dvh] md:h-[calc(100dvh-2rem)] overflow-hidden md:rounded-2xl bg-white md:shadow-2xl">
 
       <!-- Sidebar (لیست چت‌ها) -->
-      <aside class="w-full md:w-[320px] shrink-0 border-b md:border-b-0 md:border-r bg-gray-50 flex flex-col">
+      <aside id="tg-sidebar" class="{% if '/chat/room/' in request.path %}hidden md:flex{% else %}flex{% endif %} w-full md:w-[320px] shrink-0 border-b md:border-b-0 md:border-r bg-gray-50 flex-col">
         <!-- Header سایدبار -->
         <div class="flex items-center gap-3 border-b px-4 py-3">
         <nav class="block relative">
@@ -64,7 +64,7 @@
       </aside>
 
       <!-- Main chat panel -->
-      <main class="flex-1 bg-slate-100 min-w-0">
+      <main id="tg-main" class="{% if '/chat/room/' in request.path %}block{% else %}hidden md:block{% endif %} flex-1 bg-slate-100 min-w-0">
         <!-- اینجا محتوای صفحه چت فعلی شما میاد -->
         <div class="h-full">
           {% block content %}{% endblock %}

@@ -109,6 +109,8 @@
       setSidebarTab(tab);
 
       highlightActiveChat();
+
+      updateMobileLayout();
     }
 
     document.addEventListener('DOMContentLoaded', refreshSidebarUI);
@@ -116,6 +118,39 @@
     document.body.addEventListener('htmx:afterSettle', refreshSidebarUI);
     document.body.addEventListener('htmx:wsAfterMessage', refreshSidebarUI);
     window.addEventListener('popstate', refreshSidebarUI);
+    window.addEventListener('resize', refreshSidebarUI);
+
+    function updateMobileLayout() {
+      const sidebar = document.getElementById('tg-sidebar');
+      const main = document.getElementById('tg-main');
+      if (!sidebar || !main) return;
+      const backBtn = document.getElementById('tg-back-btn');
+
+      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      if (!isMobile) {
+        sidebar.classList.remove('hidden');
+        main.classList.remove('hidden');
+        if (backBtn) backBtn.classList.add('hidden');
+        return;
+      }
+
+      const path = window.location.pathname || '';
+      const inChat = path.startsWith('/chat/room/');
+
+      if (inChat) {
+        sidebar.classList.add('hidden');
+        main.classList.remove('hidden');
+        if (backBtn) backBtn.classList.remove('hidden');
+      } else {
+        sidebar.classList.remove('hidden');
+        main.classList.add('hidden');
+        if (backBtn) backBtn.classList.add('hidden');
+      }
+    }
+
+    function telegramBack() {
+      window.location.href = '/';
+    }
   </script>
 
   <div id="img-modal" class="fixed inset-0 hidden z-[9999] bg-black/70 p-4 items-center justify-center">

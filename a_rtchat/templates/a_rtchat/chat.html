@@ -7,6 +7,11 @@
   <!-- Chat header (Telegram-like) -->
   <div class="flex items-center justify-between border-b bg-white px-4 py-3">
     <div class="flex items-center gap-3 min-w-0">
+      <button id="tg-back-btn" type="button" class="hidden -ml-2 !p-2 !rounded-lg !bg-transparent !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0" onclick="telegramBack()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
+      </button>
       {% if other_user %}
         <div class="relative">
           <div id="online-icon" class="gray-dot absolute -bottom-1 -right-1"></div>
@@ -40,8 +45,8 @@
     <div class="flex items-center gap-2">
       {% if chat_group.groupchat_name and user == chat_group.admin %}
         <a href="{% url 'edit-chatroom' chat_group.group_name %}"
-           class="p-2 rounded-lg bg-gray-100 hover:bg-blue-600 group">
-          <svg class="fill-gray-500 group-hover:fill-white" width="16" height="16">
+           class="p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-0 group">
+          <svg class="fill-gray-500 group-hover:fill-gray-900" width="16" height="16">
             <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"></path>
           </svg>
         </a>

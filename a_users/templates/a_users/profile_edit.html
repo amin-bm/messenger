@@ -18,7 +18,7 @@
 <form method="POST" enctype="multipart/form-data">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit" >Submit</button>
+    <button type="submit" class="button">Submit</button>
     {% if onboarding %}
     <a class="button button-gray ml-1" href="{% url 'home' %}">Skip</a>
     {% else %}

@@ -28,16 +28,29 @@
         </div>
 
       {% else %}
-        <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
-
-        <div class="min-w-0">
-          <div class="text-sm font-semibold text-gray-900 truncate">
-            {{ chat_group.groupchat_name|default:"Public chat" }}
+        {% if chat_group.groupchat_name %}
+          <button id="group-members-trigger" type="button" class="flex items-center gap-3 min-w-0 text-left">
+            <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
+            <div class="min-w-0">
+              <div class="text-sm font-semibold text-gray-900 truncate">
+                {{ chat_group.groupchat_name }}
+              </div>
+              <div class="text-xs text-gray-500">
+                <span id="online-count" class="pr-1"></span>online
+              </div>
+            </div>
+          </button>
+        {% else %}
+          <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-gray-900 truncate">
+              Public chat
+            </div>
+            <div class="text-xs text-gray-500">
+              <span id="online-count" class="pr-1"></span>online
+            </div>
           </div>
-          <div class="text-xs text-gray-500">
-            <span id="online-count" class="pr-1"></span>online
-          </div>
-        </div>
+        {% endif %}
       {% endif %}
     </div>
 
@@ -101,6 +114,35 @@
 
 </div>
 
+{% if chat_group.groupchat_name %}
+  <div id="group-members-modal" class="fixed inset-0 z-50 hidden">
+    <div id="group-members-backdrop" class="absolute inset-0 bg-black/40"></div>
+    <div class="relative mx-auto mt-16 w-[92%] max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
+      <div class="flex items-center justify-between border-b px-4 py-3">
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-gray-900 truncate">{{ chat_group.groupchat_name }}</div>
+          <div class="text-xs text-gray-500">{{ chat_group.members.count }} members</div>
+        </div>
+        <button id="group-members-close" type="button" class="rounded-lg px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900">✕</button>
+      </div>
+      <div class="max-h-[70vh] overflow-y-auto p-2">
+        {% for member in chat_group.members.all %}
+          <div class="flex items-center gap-3 rounded-xl px-3 py-2">
+            <img class="h-10 w-10 rounded-full object-cover" src="{{ member.profile.avatar }}">
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium text-gray-900 truncate">{{ member.profile.name }}</div>
+              <div class="text-xs text-gray-500 truncate">@{{ member.username }}</div>
+            </div>
+            {% if chat_group.admin_id == member.id %}
+              <div class="text-xs font-semibold text-blue-600">Admin</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
 {% if chat_group.members.exists %}
   {% include 'a_rtchat/partials/modal_chat_leave.html' %}
 {% endif %}
@@ -117,5 +159,31 @@
     }, time);
   }
   scrollToBottom();
+
+  function openGroupMembersModal() {
+    const modal = document.getElementById('group-members-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+  }
+
+  function closeGroupMembersModal() {
+    const modal = document.getElementById('group-members-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const trigger = document.getElementById('group-members-trigger');
+    const closeBtn = document.getElementById('group-members-close');
+    const backdrop = document.getElementById('group-members-backdrop');
+
+    if (trigger) trigger.addEventListener('click', openGroupMembersModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeGroupMembersModal);
+    if (backdrop) backdrop.addEventListener('click', closeGroupMembersModal);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeGroupMembersModal();
+    });
+  });
 </script>
 {% endblock %}

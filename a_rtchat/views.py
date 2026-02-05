@@ -26,8 +26,10 @@ def chat_view(request, chatroom_name='public_chat'):
                 break
 
     if chat_group.groupchat_name:
-        if request.user not in chat_group.members.all():
+        if request.user == chat_group.admin and request.user not in chat_group.members.all():
             chat_group.members.add(request.user)
+        if request.user not in chat_group.members.all():
+            raise Http404
 
 
     if request.htmx:
@@ -112,13 +114,43 @@ def chatroom_edit_view(request, chatroom_name):
             remove_members = request.POST.getlist('remove_members')
             for member_id in remove_members:
                 member = User.objects.get(id=member_id)
+                if chat_group.admin_id and member.id == chat_group.admin_id:
+                    continue
                 chat_group.members.remove(member)
+
+            add_members = request.POST.getlist('add_members')
+            for member_id in add_members:
+                member = User.objects.get(id=member_id)
+                chat_group.members.add(member)
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                "online-status",
+                {"type": "online_status_handler"}
+            )
 
             return redirect('chatroom', chatroom_name)
 
+    member_ids = set(chat_group.members.values_list('id', flat=True))
+    contact_ids = set()
+    my_chatrooms = request.user.chat_groups.all().prefetch_related('members')
+    for chatroom in my_chatrooms:
+        for m in chatroom.members.all():
+            if m.id != request.user.id:
+                contact_ids.add(m.id)
+
+    add_candidates = (
+        User.objects
+        .filter(id__in=contact_ids)
+        .exclude(id__in=member_ids)
+        .select_related('profile')
+        .order_by('username')
+    )
+
     context = {
         'form' : form,
-        'chat_group' : chat_group
+        'chat_group' : chat_group,
+        'add_candidates': add_candidates,
     }
     return render(request, 'a_rtchat/chatroom_edit.html', context)
 

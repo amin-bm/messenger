@@ -9,6 +9,27 @@
     {{ form }}
 
     <div class="my-4">
+    <h2>Add Members</h2>
+    {% for u in add_candidates %}
+    <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2 py-2">
+            <img class="w-14 h-14 rounded-full object-cover" src="{{ u.profile.avatar }}" />
+            <div>
+                <span class="font-bold">{{ u.profile.name }}</span>
+                <span class="text-sm font-light text-gray-600">@{{ u.username }}</span>
+            </div>
+        </div>
+
+        <div class="inline-block pr-4">
+            <input type="checkbox" name="add_members" value="{{ u.id }}" class="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-0" />
+        </div>
+    </div>
+    {% empty %}
+    <div class="py-2 text-sm text-gray-500">No contacts to add</div>
+    {% endfor %}
+    </div>
+
+    <div class="my-4">
     <h2>Members</h2>
     {% for member in chat_group.members.all %}
     <div class="flex justify-between items-center">

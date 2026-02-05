@@ -43,7 +43,7 @@ def chat_view(request, chatroom_name='public_chat'):
                 other_user = member
                 break
 
-    if chat_group.groupchat_name:
+    if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
         if request.user == chat_group.admin and request.user not in chat_group.members.all():
             chat_group.members.add(request.user)
         if request.user not in chat_group.members.all():

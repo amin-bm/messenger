@@ -25,7 +25,7 @@ class ChatroomConsumer(WebsocketConsumer):
             self.close()
             return
 
-        if self.chatroom.groupchat_name:
+        if self.chatroom.groupchat_name and self.chatroom.group_name != 'public_chat':
             if self.user == self.chatroom.admin and self.user not in self.chatroom.members.all():
                 self.chatroom.members.add(self.user)
             if self.user not in self.chatroom.members.all():
@@ -225,19 +225,20 @@ class OnlineStatusConsumer(WebsocketConsumer):
 
         sidebar_items = []
 
-        # Public item
+        public_state = states.get(public_chat.id)
+        public_unread_count = unread_map.get(public_chat.id, 0)
         sidebar_items.append({
             "kind": "public",
-            "title": "Public Chat",
+            "title": (public_chat.groupchat_name or "Public Chat"),
             "subtitle": "General",
-            "url": "/",
-            "chatroom_name": None,
+            "url": "/chat/room/public_chat",
+            "chatroom_name": "public_chat",
             "avatar_url": None,
-            "avatar_letter": "P",
+            "avatar_letter": (public_chat.groupchat_name[:1].upper() if public_chat.groupchat_name else "P"),
             "is_online": public_chat_online,
-            "is_pinned": False,
-            "is_muted": False,
-            "unread_count": 0,
+            "is_pinned": bool(getattr(public_state, "is_pinned", False)),
+            "is_muted": bool(getattr(public_state, "is_muted", False)),
+            "unread_count": public_unread_count,
             "last_text": (
                 public_last.body if public_last and public_last.body
                 else ("📎 File" if public_last and public_last.file else "")
@@ -286,7 +287,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
                     "last_time": last_time,
                 })
 
-            elif chatroom.groupchat_name:
+            elif chatroom.groupchat_name and chatroom.group_name != 'public_chat':
                 sidebar_items.append({
                     "kind": "group",
                     "title": chatroom.groupchat_name,

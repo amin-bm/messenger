@@ -56,6 +56,13 @@ def chat_view(request, chatroom_name='public_chat'):
             message = form.save(commit=False)
             message.group = chat_group
             message.author = request.user
+            reply_to_id = (request.POST.get('reply_to') or '').strip()
+            if reply_to_id.isdigit():
+                message.reply_to = (
+                    GroupMessage.objects
+                    .filter(group=chat_group, id=int(reply_to_id))
+                    .first()
+                )
             message.save()
             context = {
                 'message': message,
@@ -198,10 +205,19 @@ def chat_file_upload(request, chatroom_name):
     
     if request.htmx and request.FILES:
         file = request.FILES['file']
+        reply_to_id = (request.POST.get('reply_to') or '').strip()
+        reply_to = None
+        if reply_to_id.isdigit():
+            reply_to = (
+                GroupMessage.objects
+                .filter(group=chat_group, id=int(reply_to_id))
+                .first()
+            )
         message = GroupMessage.objects.create(
             file = file,
             group = chat_group,
-            author = request.user
+            author = request.user,
+            reply_to=reply_to,
         )
         channel_layer = get_channel_layer()
         event_type = "message_handler"

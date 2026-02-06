@@ -72,14 +72,24 @@ class ChatroomConsumer(WebsocketConsumer):
     def receive(self, text_data):
         data = json.loads(text_data)
         body = data.get('body', '').strip()
+        reply_to_id = str(data.get('reply_to') or '').strip()
 
         if not body:
             return
+        
+        reply_to = None
+        if reply_to_id.isdigit():
+            reply_to = (
+                GroupMessage.objects
+                .filter(group=self.chatroom, id=int(reply_to_id))
+                .first()
+            )
 
         message = GroupMessage.objects.create(
             body=body,
             author=self.user,
-            group=self.chatroom
+            group=self.chatroom,
+            reply_to=reply_to,
         )
 
         async_to_sync(self.channel_layer.group_send)(

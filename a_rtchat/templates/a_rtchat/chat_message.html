@@ -7,7 +7,7 @@
       </svg>
     </button>
 
-    <div class="pl-7 pr-7 pb-3 text-sm leading-relaxed">
+    <div class="pl-7 pr-7 pb-3 text-sm leading-relaxed" dir="auto" style="unicode-bidi: plaintext; text-align: start;">
       {% if message.reply_to %}
         <button type="button" data-reply-action="jump" data-reply-jump-id="{{ message.reply_to.id }}" class="mb-1 inline-block max-w-full text-left rounded-lg bg-black/5 px-2 py-1 border-l-2 border-blue-400">
           <div class="text-[10px] font-semibold text-gray-700 truncate">
@@ -53,7 +53,7 @@
         </div>
       {% endif %}
 
-      <div class="pr-7 pb-3 text-sm leading-relaxed">
+      <div class="pr-7 pb-3 text-sm leading-relaxed" dir="auto" style="unicode-bidi: plaintext; text-align: start;">
         {% if message.reply_to %}
           <button type="button" data-reply-action="jump" data-reply-jump-id="{{ message.reply_to.id }}" class="mb-1 inline-block max-w-full text-left rounded-lg bg-black/5 px-2 py-1 border-l-2 border-blue-400">
             <div class="text-[10px] font-semibold text-gray-700 truncate">

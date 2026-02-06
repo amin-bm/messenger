@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.http import Http404
 from django.template import context
 from django.utils import timezone
+from django.core.files.base import File
 from django.utils.text import slugify
 from django.db.models import Q
 from .models import *
@@ -363,6 +364,104 @@ def chat_message_delete(request, message_id):
 
     return HttpResponse(status=204)
 
+
+
+@login_required
+def chat_message_forward(request, message_id):
+    message = get_object_or_404(GroupMessage, id=message_id)
+    chat_group = message.group
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    if chat_group.is_private and request.user not in chat_group.members.all():
+        raise Http404
+
+    if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
+        if request.user == chat_group.admin and request.user not in chat_group.members.all():
+            chat_group.members.add(request.user)
+        if request.user not in chat_group.members.all():
+            raise Http404
+
+    target_identifier = (request.POST.get("target") or "").strip()
+    if not target_identifier:
+        return HttpResponse(status=400)
+
+    try:
+        target_group = get_chat_group_by_identifier(target_identifier)
+    except Http404:
+        other_user = User.objects.filter(username=target_identifier).first()
+        if not other_user or other_user.id == request.user.id:
+            raise
+
+        target_group = (
+            ChatGroup.objects.filter(is_private=True)
+            .filter(members=request.user)
+            .filter(members=other_user)
+            .distinct()
+            .first()
+        )
+
+        if not target_group:
+            target_group = ChatGroup.objects.create(is_private=True)
+            target_group.members.add(other_user, request.user)
+
+        if not target_group.group_slug or target_group.group_slug == target_group.group_name:
+            usernames = sorted([request.user.username, other_user.username])
+            base = slugify(f"dm-{'-'.join(usernames)}")
+            base = (base or "").strip() or target_group.group_name
+            base = base[:160]
+
+            candidate = base
+            while ChatGroup.objects.filter(group_slug=candidate).exclude(pk=target_group.pk).exists():
+                suffix = shortuuid.uuid()[:8]
+                cut = 160 - (len(suffix) + 1)
+                candidate = f"{base[:cut]}-{suffix}"
+
+            target_group.group_slug = candidate
+            target_group.save(update_fields=["group_slug"])
+
+    if target_group.is_private and request.user not in target_group.members.all():
+        raise Http404
+
+    if target_group.groupchat_name and target_group.group_name != 'public_chat':
+        if request.user == target_group.admin and request.user not in target_group.members.all():
+            target_group.members.add(request.user)
+        if request.user not in target_group.members.all():
+            raise Http404
+
+    forwarded = GroupMessage.objects.create(
+        group=target_group,
+        author=request.user,
+        body=message.body,
+        forwarded_from=message.author,
+    )
+
+    if message.file:
+        try:
+            message.file.open("rb")
+            try:
+                message.file.seek(0)
+            except Exception:
+                pass
+            forwarded.file.save(message.filename or "file", File(message.file), save=True)
+        finally:
+            try:
+                message.file.close()
+            except Exception:
+                pass
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        target_group.group_name,
+        {"type": "message_handler", "message_id": forwarded.id},
+    )
+    async_to_sync(channel_layer.group_send)(
+        "online-status",
+        {"type": "online_status_handler"},
+    )
+
+    return HttpResponse(status=204)
 
 
 @login_required

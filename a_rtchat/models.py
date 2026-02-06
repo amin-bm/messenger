@@ -71,6 +71,7 @@ class GroupMessage(models.Model):
    group = models.ForeignKey(ChatGroup, related_name='chat_messages', on_delete=models.CASCADE)
    author = models.ForeignKey(User, on_delete=models.CASCADE)
    reply_to = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.SET_NULL)
+   forwarded_from = models.ForeignKey(User, null=True, blank=True, related_name='forwarded_messages', on_delete=models.SET_NULL)
    body = models.CharField(max_length=2000, null=True, blank=True)
    file = models.FileField(null=True, blank=True, upload_to='files/')
    created = models.DateTimeField(auto_now_add=True)

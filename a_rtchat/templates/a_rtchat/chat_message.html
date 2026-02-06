@@ -1,6 +1,6 @@
 {% if message.author == user %}
 <li id="msg-{{ message.id }}"{% if oob %} hx-swap-oob="outerHTML"{% endif %} data-message-id="{{ message.id }}" data-message-author="شما" data-message-body="{% if message.body %}{{ message.body }}{% endif %}" data-message-preview="{% if message.body %}{{ message.body|truncatechars:80 }}{% elif message.file %}{{ message.filename|default:''|truncatechars:80 }}{% endif %}" class="flex justify-end mb-2">
-  <div class="group bg-[#dbeafe] text-gray-900 rounded-2xl px-4 py-2 {% if message.is_audio %}w-72 sm:w-80 md:w-96 max-w-[92%]{% else %}max-w-[65%]{% endif %} shadow-sm relative">
+  <div class="group bg-[#dbeafe] text-gray-900 rounded-2xl px-4 py-2 {% if message.is_audio %}w-72 sm:w-80 md:w-96 max-w-[92%]{% else %}max-w-[85%]{% endif %} shadow-sm relative">
     <button type="button" data-reply-action="set" data-reply-id="{{ message.id }}" class="absolute top-1 left-1 h-5 w-5 rounded-md bg-white/90 text-slate-700 shadow-sm ring-1 ring-black/5 opacity-80 transition hover:bg-white hover:opacity-100">
       <svg class="mx-auto" width="13" height="13" viewBox="0 0 24 24" fill="none">
         <path d="M9 10V6L3 12l6 6v-4h6a6 6 0 0 1 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -30,7 +30,7 @@
           </div>
         </button>
       {% endif %}
-      <div data-message-body-container>
+      <div data-message-body-container class="break-words [overflow-wrap:anywhere] min-w-0">
         {% include 'a_rtchat/partials/message_content.html' %}
       </div>
     </div>
@@ -49,7 +49,7 @@
       <img class="w-8 h-8 rounded-full object-cover" src="{{ message.author.profile.avatar }}">
     </a>
 
-    <div class="group bg-white text-gray-900 rounded-2xl px-4 py-2 {% if message.is_audio %}w-72 sm:w-80 md:w-96 max-w-[92%]{% else %}max-w-[65%]{% endif %} shadow-sm relative">
+    <div class="group bg-white text-gray-900 rounded-2xl px-4 py-2 {% if message.is_audio %}w-72 sm:w-80 md:w-96 max-w-[92%]{% else %}max-w-[85%]{% endif %} shadow-sm relative">
       <button type="button" data-reply-action="set" data-reply-id="{{ message.id }}" class="absolute top-1 right-1 h-5 w-5 rounded-md bg-slate-100/95 text-slate-700 shadow-sm ring-1 ring-black/5 opacity-80 transition hover:bg-slate-50 hover:opacity-100">
         <svg class="mx-auto" width="13" height="13" viewBox="0 0 24 24" fill="none">
           <path d="M9 10V6L3 12l6 6v-4h6a6 6 0 0 1 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -78,7 +78,7 @@
             </div>
           </button>
         {% endif %}
-        <div data-message-body-container>
+        <div data-message-body-container class="break-words [overflow-wrap:anywhere] min-w-0">
           {% include 'a_rtchat/partials/message_content.html' %}
         </div>
       </div>

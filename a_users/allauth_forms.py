@@ -1,8 +1,11 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.contrib.auth.validators import UnicodeUsernameValidator
 
 from allauth.account.forms import SignupForm
 from allauth.account.forms import LoginForm
+from allauth.account.adapter import get_adapter
+from allauth.account import app_settings as allauth_app_settings
 
 from .models import Profile
 
@@ -53,11 +56,19 @@ class PhoneSignupForm(SignupForm):
         super().__init__(*args, **kwargs)
         username = self.fields.get("username")
         if username:
-            username.label = "نام کاربری"
+            username.label = "نام کاربری (انگلیسی)"
             _apply_widget_attrs(
                 username,
-                {"class": _INPUT_CLASS, "placeholder": "نام کاربری", "dir": "auto", "autocomplete": "username"},
+                {"class": _INPUT_CLASS, "placeholder": "amin_moghaddam", "dir": "ltr", "autocomplete": "username"},
             )
+            username.error_messages = {
+                **getattr(username, "error_messages", {}),
+                "required": "نام کاربری الزامی است.",
+                "unique": "این نام کاربری قبلاً استفاده شده است.",
+            }
+            for validator in getattr(username, "validators", []):
+                if isinstance(validator, UnicodeUsernameValidator):
+                    validator.message = "نام کاربری معتبر نیست. فقط حروف انگلیسی، عدد و کاراکترهای @/./+/-/_ مجاز است."
 
         phone = self.fields.get("phone")
         if phone:
@@ -76,6 +87,41 @@ class PhoneSignupForm(SignupForm):
         if password2:
             password2.label = "تکرار رمز عبور"
             _apply_widget_attrs(password2, {"class": _INPUT_CLASS, "placeholder": "تکرار رمز عبور"})
+
+    def clean_username(self):
+        value = (self.cleaned_data.get("username") or "").strip()
+        if not value and not self._signup_fields["username"]["required"]:
+            return value
+        try:
+            return get_adapter().clean_username(value)
+        except forms.ValidationError as e:
+            translated = []
+            for msg in e.messages:
+                if "Enter a valid username." in msg or "@/./+/-/_" in msg:
+                    translated.append("نام کاربری معتبر نیست. فقط حروف انگلیسی، عدد و کاراکترهای @/./+/-/_ مجاز است.")
+                elif "username_taken" in msg or "already in use" in msg or "already exists" in msg or "taken" in msg:
+                    translated.append("این نام کاربری قبلاً استفاده شده است.")
+                else:
+                    translated.append(msg)
+            raise forms.ValidationError(translated)
+
+    def clean(self):
+        cleaned_data = super(SignupForm, self).clean()
+
+        password = cleaned_data.get("password1")
+        min_length = int(getattr(allauth_app_settings, "PASSWORD_MIN_LENGTH", 0) or 0)
+        if password and min_length and len(password) < min_length:
+            self.add_error("password1", f"رمز عبور خیلی کوتاه است. باید حداقل {min_length} کاراکتر باشد.")
+
+        if (
+            "password2" in self._signup_fields
+            and cleaned_data.get("password1")
+            and cleaned_data.get("password2")
+            and cleaned_data["password1"] != cleaned_data["password2"]
+        ):
+            self.add_error("password2", "رمز عبور و تکرار آن یکسان نیست.")
+
+        return cleaned_data
 
     def clean_phone(self):
         phone = normalize_phone(self.cleaned_data.get("phone", ""))
@@ -103,10 +149,10 @@ class PhoneLoginForm(LoginForm):
         super().__init__(*args, **kwargs)
         login = self.fields.get("login")
         if login:
-            login.label = "نام کاربری"
+            login.label = "نام کاربری (انگلیسی)"
             _apply_widget_attrs(
                 login,
-                {"class": _INPUT_CLASS, "placeholder": "نام کاربری", "dir": "auto", "autocomplete": "username"},
+                {"class": _INPUT_CLASS, "placeholder": "amin_moghaddam", "dir": "ltr", "autocomplete": "username"},
             )
 
         password = self.fields.get("password")

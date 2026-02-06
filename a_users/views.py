@@ -57,7 +57,7 @@ def profile_emailchange(request):
             # Check if the email already exists
             email = form.cleaned_data['email']
             if User.objects.filter(email=email).exclude(id=request.user.id).exists():
-                messages.warning(request, f'{email} is already in use.')
+                messages.warning(request, 'این ایمیل قبلاً استفاده شده است.')
                 return redirect('profile-settings')
             
             form.save() 
@@ -70,7 +70,7 @@ def profile_emailchange(request):
             
             return redirect('profile-settings')
         else:
-            messages.warning(request, 'Email not valid or already in use')
+            messages.warning(request, 'ایمیل معتبر نیست یا قبلاً استفاده شده است.')
             return redirect('profile-settings')
         
     return redirect('profile-settings')
@@ -87,10 +87,10 @@ def profile_usernamechange(request):
         
         if form.is_valid():
             form.save()
-            messages.success(request, 'Username updated successfully.')
+            messages.success(request, 'نام کاربری با موفقیت به‌روزرسانی شد.')
             return redirect('profile-settings')
         else:
-            messages.warning(request, 'Username not valid or already in use')
+            messages.warning(request, 'نام کاربری معتبر نیست یا قبلاً استفاده شده است.')
             return redirect('profile-settings')
     
     return redirect('profile-settings')    
@@ -108,7 +108,7 @@ def profile_delete_view(request):
     if request.method == "POST":
         logout(request)
         user.delete()
-        messages.success(request, 'Account deleted, what a pity')
+        messages.success(request, 'حساب کاربری حذف شد.')
         return redirect('home')
     
     return render(request, 'a_users/profile_delete.html')

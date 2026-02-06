@@ -8,6 +8,7 @@ import shortuuid
 import os
 from PIL import Image
 from django.utils import timezone
+import datetime
 import mimetypes
 from django.utils.functional import cached_property
 from django.utils.text import slugify
@@ -21,7 +22,7 @@ class ChatState(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_states')
     group = models.ForeignKey('ChatGroup', on_delete=models.CASCADE, related_name='states')
 
-    last_read = models.DateTimeField(default=timezone.make_aware(timezone.datetime.min))
+    last_read = models.DateTimeField(default=timezone.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc))
     is_pinned = models.BooleanField(default=False)
     is_muted = models.BooleanField(default=False)
 

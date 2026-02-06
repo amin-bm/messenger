@@ -5,30 +5,156 @@
     {% trans "Login" %}
 {% endblock head_title %}
 {% block content %}
-    <h1>Login</h1>
-    <p>
-        If you have not created an account yet, then please
-    <a href="{% url 'account_signup' %}?next={% url 'profile-onboarding' %}">sign up</a> first.
-    </p>
-    {% url 'account_login' as login_url %}
-    {% element form form=form method="post" action=login_url tags="entrance,login" %}
-        {% slot body %}
-            {% csrf_token %}
-            {% element fields form=form unlabeled=True %}
-            {% endelement %}
-            {% if redirect_field_value %}
-                <input type="hidden"
-                       name="{{ redirect_field_name }}"
-                       value="{{ redirect_field_value }}" />
+    <div dir="rtl" class="max-w-md mx-auto">
+        <h1 class="mb-2 text-center text-2xl font-bold text-gray-900">ورود</h1>
+        <p class="text-gray-500 mb-6 text-center">
+            اگر حساب ندارید،
+            <a class="text-blue-600 hover:underline" href="{% url 'account_signup' %}?next={% url 'profile-onboarding' %}">ثبت‌نام</a>
+            کنید.
+        </p>
+
+        <div class="mb-6 flex gap-2 rounded-xl bg-gray-100 p-1">
+            <button type="button" id="tab-password" class="flex-1 rounded-lg px-3 py-2 text-sm font-medium bg-white shadow">
+                یوزر و پسورد
+            </button>
+            <button type="button" id="tab-otp" class="flex-1 rounded-lg px-3 py-2 text-sm font-medium text-gray-600">
+                شماره موبایل و کد
+            </button>
+        </div>
+
+        <div id="panel-password">
+            {% url 'account_login' as login_url %}
+            <form method="post" action="{{ login_url }}" class="space-y-4">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                <div class="space-y-1">
+                    <label class="block text-sm font-medium text-gray-700" for="{{ form.login.id_for_label }}">{{ form.login.label }}</label>
+                    {{ form.login }}
+                    {% if form.login.errors %}
+                        <div class="text-sm text-red-600">{{ form.login.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-sm font-medium text-gray-700" for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <div class="text-sm text-red-600">{{ form.password.errors }}</div>
+                    {% endif %}
+                </div>
+
+                {% if form.remember %}
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        {{ form.remember }}
+                        <span>{{ form.remember.label }}</span>
+                    </label>
+                {% endif %}
+
+                {% if redirect_field_value %}
+                    <input type="hidden"
+                           name="{{ redirect_field_name }}"
+                           value="{{ redirect_field_value }}" />
+                {% endif %}
+                <button type="submit" class="button w-full">ورود</button>
+            </form>
+        </div>
+
+        <div id="panel-otp" class="hidden">
+            {% if request.session.otp_login_phone or request.GET.otp == 'verify' %}
+                <form method="post" action="{% url 'otp-login-verify' %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                        کد برای شماره
+                        <span class="font-semibold text-gray-900" dir="ltr">{{ request.session.otp_login_phone }}</span>
+                        ارسال شد.
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-700">کد یکبار مصرف</label>
+                        <input type="text"
+                               name="otp"
+                               inputmode="numeric"
+                               dir="ltr"
+                               autocomplete="one-time-code"
+                               placeholder="------"
+                               class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                    </div>
+                    {% if redirect_field_value %}
+                        <input type="hidden"
+                               name="{{ redirect_field_name }}"
+                               value="{{ redirect_field_value }}" />
+                    {% endif %}
+                    <button type="submit" class="button w-full">ورود</button>
+                </form>
+                <div class="mt-3 flex items-center justify-between text-sm">
+                    <a class="text-gray-600 hover:text-gray-900" href="{% url 'otp-login-reset' %}">تغییر شماره</a>
+                    <form method="post" action="{% url 'otp-login-start' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="phone" value="{{ request.session.otp_login_phone }}" />
+                        {% if redirect_field_value %}
+                            <input type="hidden"
+                                   name="{{ redirect_field_name }}"
+                                   value="{{ redirect_field_value }}" />
+                        {% endif %}
+                        <button type="submit" class="text-blue-600 hover:underline">ارسال مجدد</button>
+                    </form>
+                </div>
+            {% else %}
+                <form method="post" action="{% url 'otp-login-start' %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-700">شماره موبایل</label>
+                        <input type="text"
+                               name="phone"
+                               inputmode="tel"
+                               dir="ltr"
+                               autocomplete="tel"
+                               placeholder="09xxxxxxxxx"
+                               class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                    </div>
+                    {% if redirect_field_value %}
+                        <input type="hidden"
+                               name="{{ redirect_field_name }}"
+                               value="{{ redirect_field_value }}" />
+                    {% endif %}
+                    <button type="submit" class="button w-full">ارسال کد یکبار مصرف</button>
+                </form>
             {% endif %}
-        {% endslot %}
-        {% slot actions %}
-            {% element button type="submit" tags="prominent,login" %}
-                {% trans "Sign In" %}
-            {% endelement %}
-        {% endslot %}
-    {% endelement %}
-    {% if SOCIALACCOUNT_ENABLED %}
-        {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
-    {% endif %}
+        </div>
+
 {% endblock content %}
+
+{% block javascript %}
+<script>
+  (function () {
+    const tabPassword = document.getElementById('tab-password');
+    const tabOtp = document.getElementById('tab-otp');
+    const panelPassword = document.getElementById('panel-password');
+    const panelOtp = document.getElementById('panel-otp');
+    if (!tabPassword || !tabOtp || !panelPassword || !panelOtp) return;
+
+    function setActive(tab) {
+      const isOtp = tab === 'otp';
+      panelPassword.classList.toggle('hidden', isOtp);
+      panelOtp.classList.toggle('hidden', !isOtp);
+      tabPassword.classList.toggle('bg-white', !isOtp);
+      tabPassword.classList.toggle('shadow', !isOtp);
+      tabPassword.classList.toggle('text-gray-600', isOtp);
+      tabOtp.classList.toggle('bg-white', isOtp);
+      tabOtp.classList.toggle('shadow', isOtp);
+      tabOtp.classList.toggle('text-gray-600', !isOtp);
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const initial = (params.get('otp') === 'verify') ? 'otp' : 'password';
+    setActive(initial);
+
+    tabPassword.addEventListener('click', () => setActive('password'));
+    tabOtp.addEventListener('click', () => setActive('otp'));
+  })();
+</script>
+{% endblock javascript %}

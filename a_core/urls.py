@@ -23,6 +23,7 @@ from a_home.views import *
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/otp/', include('a_users.otp_urls')),
     path('accounts/', include('allauth.urls')),
     path('', include('a_rtchat.urls')),
     path('profile/', include('a_users.urls')),

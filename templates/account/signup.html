@@ -4,33 +4,66 @@
     {% trans "Signup" %}
 {% endblock head_title %}
 {% block content %}
-    {% element h1 %}
-        {% trans "Sign Up" %}
-    {% endelement %}
-    {% setvar link %}
-        <a href="{{ login_url }}">
-        {% endsetvar %}
-        {% setvar end_link %}
-        </a>
-    {% endsetvar %}
-    {% element p %}
-        {% blocktranslate %}Already have an account? Then please {{ link }}sign in{{ end_link }}.{% endblocktranslate %}
-    {% endelement %}
+    <div dir="rtl" class="max-w-md mx-auto">
+        <h1 class="mb-2 text-center text-2xl font-bold text-gray-900">ثبت‌نام</h1>
+        <p class="text-gray-500 mb-6 text-center">
+            قبلاً حساب ساخته‌اید؟
+            <a class="text-blue-600 hover:underline" href="{% url 'account_login' %}?next={% url 'profile-onboarding' %}">ورود</a>
+            کنید.
+        </p>
     {% if not SOCIALACCOUNT_ONLY %}
         {% url 'account_signup' as action_url %}
-        {% element form form=form method="post" action=action_url tags="entrance,signup" %}
-            {% slot body %}
+        <form method="post" action="{{ action_url }}" class="space-y-4">
                 {% csrf_token %}
-                {% element fields form=form unlabeled=True %}
-                {% endelement %}
+                {% if form.non_field_errors %}
+                    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+
+                {% if form.username %}
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-700" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <div class="text-sm text-red-600">{{ form.username.errors }}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if form.phone %}
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-700" for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <div class="text-sm text-red-600">{{ form.phone.errors }}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if form.password1 %}
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-700" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                            <div class="text-sm text-red-600">{{ form.password1.errors }}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                {% if form.password2 %}
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-700" for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <div class="text-sm text-red-600">{{ form.password2.errors }}</div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
                 {{ redirect_field }}
-            {% endslot %}
-            {% slot actions %}
-                {% element button tags="prominent,signup" type="submit" %}
-                    {% trans "Sign Up" %}
-                {% endelement %}
-            {% endslot %}
-        {% endelement %}
+                <button type="submit" class="button w-full">ثبت‌نام</button>
+        </form>
     {% endif %}
     {% if PASSKEY_SIGNUP_ENABLED %}
         {% element hr %}
@@ -42,4 +75,5 @@
     {% if SOCIALACCOUNT_ENABLED %}
         {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
     {% endif %}
+    </div>
 {% endblock content %}

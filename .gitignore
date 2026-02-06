@@ -5,4 +5,5 @@ frontend/node_modules/
 __pycache__/
 db.sqlite3
 .env
+a_core/local_settings.py
 .DS_Store

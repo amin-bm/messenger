@@ -183,3 +183,13 @@ EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
 
 ACCOUNT_LOGIN_METHODS = {'username'}
 ACCOUNT_SIGNUP_FIELDS = ['username*', 'password1*', 'password2*']
+ACCOUNT_PHONE_VERIFICATION_ENABLED = False
+ACCOUNT_FORMS = {
+    "signup": "a_users.allauth_forms.PhoneSignupForm",
+    "login": "a_users.allauth_forms.PhoneLoginForm",
+}
+
+try:
+    from .local_settings import *  # noqa: F403
+except Exception:
+    pass

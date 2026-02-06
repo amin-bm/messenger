@@ -8,11 +8,21 @@ from django.http import HttpResponse
 from django.http import Http404
 from django.template import context
 from django.utils import timezone
+from django.utils.text import slugify
+from django.db.models import Q
 from .models import *
 from .forms import *
 
+
+def get_chat_group_by_identifier(chatroom_identifier):
+    return get_object_or_404(
+        ChatGroup,
+        Q(group_slug=chatroom_identifier) | Q(group_name=chatroom_identifier),
+    )
+
+
 @login_required
-def chat_view(request, chatroom_name='public_chat'):
+def chat_view(request, chatroom_identifier='public_chat'):
     if request.path == '/':
         my_groups_qs = request.user.chat_groups.all()
         if not my_groups_qs.exists():
@@ -25,13 +35,17 @@ def chat_view(request, chatroom_name='public_chat'):
             .first()
         )
         if last_state and last_state.group_id:
-            chatroom_name = last_state.group.group_name
+            chat_group = last_state.group
         else:
             last_group = my_groups_qs.order_by('-id').first()
             if last_group:
-                chatroom_name = last_group.group_name
+                chat_group = last_group
+            else:
+                chat_group = get_chat_group_by_identifier('public_chat')
+    else:
+        chat_group = get_chat_group_by_identifier(chatroom_identifier)
 
-    chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
+    chatroom_identifier = chat_group.group_slug or chat_group.group_name
     chat_messages = chat_group.chat_messages.all()[:30]
     form = ChatmessageCreateForm()
 
@@ -76,7 +90,8 @@ def chat_view(request, chatroom_name='public_chat'):
         'chat_messages': chat_messages,
         'form': form,
         'other_user': other_user,
-        'chatroom_name': chatroom_name,
+        'chatroom_identifier': chatroom_identifier,
+        'chatroom_ws_name': chat_group.group_name,
         'chat_group': chat_group,
     }
 
@@ -102,7 +117,22 @@ def get_or_create_chatroom(request, username):
         chatroom = ChatGroup.objects.create(is_private=True)
         chatroom.members.add(other_user, request.user)
    
-    return redirect('chatroom', chatroom.group_name)
+    if not chatroom.group_slug or chatroom.group_slug == chatroom.group_name:
+        usernames = sorted([request.user.username, other_user.username])
+        base = slugify(f"dm-{'-'.join(usernames)}")
+        base = (base or "").strip() or chatroom.group_name
+        base = base[:160]
+
+        candidate = base
+        while ChatGroup.objects.filter(group_slug=candidate).exclude(pk=chatroom.pk).exists():
+            suffix = shortuuid.uuid()[:8]
+            cut = 160 - (len(suffix) + 1)
+            candidate = f"{base[:cut]}-{suffix}"
+
+        chatroom.group_slug = candidate
+        chatroom.save(update_fields=["group_slug"])
+
+    return redirect('chatroom', chatroom.group_slug or chatroom.group_name)
 
 
 @login_required
@@ -116,7 +146,7 @@ def create_groupchat(request):
             new_groupchat.admin = request.user
             new_groupchat.save()
             new_groupchat.members.add(request.user)
-            return redirect('chatroom', new_groupchat.group_name)
+            return redirect('chatroom', new_groupchat.group_slug or new_groupchat.group_name)
 
     context = {
         'form': form,

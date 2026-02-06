@@ -89,22 +89,47 @@
             ws-send
             _="on htmx:wsAfterSend reset() me">
         {% csrf_token %}
-        {{ form }}
+        <div class="flex items-center gap-2 rounded-full bg-gray-100 border border-gray-200 px-3 py-1.5 focus-within:bg-white focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-200">
+          <button id="file_pick_btn" type="button" class="text-gray-500 hover:text-gray-700" aria-label="Attach file">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M21.44 11.05 12 20.5a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.19 9.19a2 2 0 1 1-2.83-2.83l8.49-8.49" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+
+          <div class="flex-1 min-w-0">
+            {{ form.body }}
+          </div>
+
+          <div class="flex items-center gap-3 text-gray-500">
+            <button id="emoji_btn" type="button" class="hover:text-gray-700" aria-label="Emoji">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M8.5 10a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM15.5 10a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" fill="currentColor"/>
+                <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+
+            <button id="voice_record_btn" type="button" class="hover:text-gray-700" aria-label="Record voice">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v4a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path d="M8 21h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+
+            <button id="voice_stop_btn" type="button" class="hidden hover:text-gray-700" aria-label="Stop recording">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <rect x="7" y="7" width="10" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
       </form>
 
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <button id="voice_record_btn" type="button"
-                  class="rounded-xl bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">
-            🎤
-          </button>
-          <button id="voice_stop_btn" type="button"
-                  class="hidden rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
-            ⏹
-          </button>
-          <span id="voice_timer" class="hidden text-xs text-gray-500">00:00</span>
-          <span id="voice_error" class="text-xs text-red-600"></span>
-        </div>
+      <div class="flex items-center gap-2 px-3">
+        <span id="voice_timer" class="hidden text-xs text-gray-500">00:00</span>
+        <span id="voice_error" class="text-xs text-red-600"></span>
       </div>
 
       <div id="voice_preview" class="hidden rounded-2xl bg-slate-50 px-3 py-2">
@@ -123,7 +148,7 @@
 
       <form id="chat_file_form"
             enctype="multipart/form-data"
-            class="flex items-center gap-3"
+            class="sr-only"
             hx-post="{% url 'chat-file-upload' chat_group.group_name %}"
             hx-target="#chat_messages"
             hx-swap="beforeend"
@@ -131,11 +156,7 @@
         {% csrf_token %}
 
         <input type="file" name="file" id="id_file"
-               class="text-sm text-gray-600">
-        <button type="submit"
-                class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-          Send
-        </button>
+               class="sr-only">
       </form>
 
     </div>
@@ -219,6 +240,99 @@
   });
 
   (function () {
+    function formatDuration(seconds) {
+      if (!Number.isFinite(seconds) || seconds <= 0) return "0:00";
+      const s = Math.floor(seconds);
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${m}:${String(r).padStart(2, "0")}`;
+    }
+
+    function initAudioMessages(root) {
+      const scope = root || document;
+      const blocks = scope.querySelectorAll(".js-audio-msg");
+      blocks.forEach((block) => {
+        if (block.dataset.bound === "1") return;
+        block.dataset.bound = "1";
+
+        const audio = block.querySelector(".js-audio");
+        const toggle = block.querySelector(".js-audio-toggle");
+        const iconPlay = block.querySelector(".js-audio-icon-play");
+        const iconPause = block.querySelector(".js-audio-icon-pause");
+        const seek = block.querySelector(".js-audio-seek");
+        const progress = block.querySelector(".js-audio-progress");
+        const durationEl = block.querySelector(".js-audio-duration");
+
+        if (!audio || !toggle || !iconPlay || !iconPause || !seek || !progress || !durationEl) return;
+
+        const src = block.dataset.audioSrc || "";
+        if (src && !audio.src) audio.src = src;
+
+        function setPlayingUI(isPlaying) {
+          if (isPlaying) {
+            iconPlay.classList.add("hidden");
+            iconPause.classList.remove("hidden");
+          } else {
+            iconPlay.classList.remove("hidden");
+            iconPause.classList.add("hidden");
+          }
+        }
+
+        function updateProgress() {
+          const d = audio.duration;
+          const t = audio.currentTime;
+          if (!Number.isFinite(d) || d <= 0) {
+            progress.style.width = "0%";
+            return;
+          }
+          progress.style.width = `${Math.min(100, Math.max(0, (t / d) * 100))}%`;
+        }
+
+        function pauseAllOtherAudios() {
+          document.querySelectorAll(".js-audio-msg .js-audio").forEach((a) => {
+            if (a !== audio) a.pause();
+          });
+        }
+
+        audio.addEventListener("loadedmetadata", () => {
+          durationEl.textContent = formatDuration(audio.duration);
+          updateProgress();
+        });
+
+        audio.addEventListener("timeupdate", updateProgress);
+        audio.addEventListener("play", () => {
+          pauseAllOtherAudios();
+          setPlayingUI(true);
+        });
+        audio.addEventListener("pause", () => setPlayingUI(false));
+        audio.addEventListener("ended", () => {
+          setPlayingUI(false);
+          updateProgress();
+        });
+
+        toggle.addEventListener("click", () => {
+          if (audio.paused) audio.play();
+          else audio.pause();
+        });
+
+        seek.addEventListener("click", (e) => {
+          const rect = seek.getBoundingClientRect();
+          if (!rect.width) return;
+          const ratio = (e.clientX - rect.left) / rect.width;
+          const d = audio.duration;
+          if (!Number.isFinite(d) || d <= 0) return;
+          audio.currentTime = Math.max(0, Math.min(d, d * ratio));
+          updateProgress();
+        });
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => initAudioMessages(document));
+    document.body.addEventListener("htmx:afterSwap", (e) => initAudioMessages(e.target));
+    document.body.addEventListener("htmx:wsAfterMessage", () => initAudioMessages(document));
+  })();
+
+  (function () {
     const recordBtn = document.getElementById('voice_record_btn');
     const stopBtn = document.getElementById('voice_stop_btn');
     const timerEl = document.getElementById('voice_timer');
@@ -228,6 +342,8 @@
     const sendBtn = document.getElementById('voice_send_btn');
     const cancelBtn = document.getElementById('voice_cancel_btn');
     const fileForm = document.getElementById('chat_file_form');
+    const fileBtn = document.getElementById('file_pick_btn');
+    const fileInput = document.getElementById('id_file');
 
     if (!recordBtn || !stopBtn || !timerEl || !errorEl || !previewEl || !audioEl || !sendBtn || !cancelBtn || !fileForm) return;
 
@@ -412,6 +528,13 @@
     stopBtn.addEventListener("click", stopRecording);
     cancelBtn.addEventListener("click", resetPreview);
     sendBtn.addEventListener("click", sendVoice);
+
+    if (fileBtn && fileInput) {
+      fileBtn.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files && fileInput.files.length) fileForm.requestSubmit();
+      });
+    }
   })();
 </script>
 {% endblock %}

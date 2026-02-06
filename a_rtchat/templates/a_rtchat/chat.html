@@ -78,6 +78,38 @@
     </ul>
   </div>
 
+  <div id="message_action_menu" class="fixed z-[60] hidden min-w-[128px] overflow-hidden rounded-md bg-white shadow-lg ring-1 ring-black/10">
+    <div class="p-0.5">
+      <button type="button" data-menu-action="reply" class="w-full rounded-lg px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100">
+        <span class="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600">
+            <path d="M9 10V6L3 12l6 6v-4h6a6 6 0 0 1 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <span>Reply</span>
+        </span>
+      </button>
+      <button type="button" data-menu-action="edit" class="hidden w-full rounded-lg px-2 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100">
+        <span class="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600">
+            <path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <span>Edit</span>
+        </span>
+      </button>
+      <button type="button" data-menu-action="delete" class="hidden w-full rounded-lg px-2 py-1.5 text-left text-sm text-red-600 hover:bg-red-50">
+        <span class="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-red-600">
+            <path d="M3 6h18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M8 6V4h8v2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M6 6l1 16h10l1-16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <span>Delete</span>
+        </span>
+      </button>
+    </div>
+  </div>
+
   <!-- Composer -->
   <div class="border-t bg-white p-3">
     <div class="flex flex-col gap-3">
@@ -309,15 +341,14 @@
       return csrfInput ? (csrfInput.value || "") : "";
     }
 
-    function openEditFromButton(editBtn) {
-      const messageEl = editBtn.closest('li[data-message-id]');
+    function openEditFromMessageEl(messageEl) {
       if (!messageEl) return;
       if (messageEl.dataset.editing === "1") return;
 
       const container = messageEl.querySelector("[data-message-body-container]");
       if (!container) return;
 
-      const editUrl = editBtn.getAttribute("data-edit-url") || "";
+      const editUrl = messageEl.getAttribute("data-edit-url") || "";
       const csrf = getCsrfToken();
       if (!editUrl || !csrf) return;
 
@@ -437,12 +468,11 @@
       });
     }
 
-    async function deleteMessageFromButton(deleteBtn) {
-      const messageEl = deleteBtn.closest('li[data-message-id]');
+    async function deleteMessageFromMessageEl(messageEl) {
       if (!messageEl) return;
       if (messageEl.dataset.deleting === "1") return;
 
-      const deleteUrl = deleteBtn.getAttribute("data-delete-url") || "";
+      const deleteUrl = messageEl.getAttribute("data-delete-url") || "";
       const csrf = getCsrfToken();
       const messageId = messageEl.getAttribute("data-message-id") || "";
       if (!deleteUrl || !csrf || !messageId) return;
@@ -450,7 +480,6 @@
       if (!window.confirm("پیام حذف شود؟")) return;
 
       messageEl.dataset.deleting = "1";
-      deleteBtn.disabled = true;
 
       try {
         const formData = new FormData();
@@ -467,7 +496,6 @@
         });
 
         if (!res.ok) {
-          deleteBtn.disabled = false;
           delete messageEl.dataset.deleting;
           return;
         }
@@ -476,36 +504,141 @@
         const current = document.getElementById(`msg-${messageId}`);
         if (current) current.remove();
       } catch (e) {
-        deleteBtn.disabled = false;
         delete messageEl.dataset.deleting;
         return;
       }
     }
 
+    const menu = document.getElementById("message_action_menu");
+    let menuMessageEl = null;
+
+    function closeMessageMenu() {
+      if (!menu) return;
+      menu.classList.add("hidden");
+      menu.style.left = "";
+      menu.style.top = "";
+      menuMessageEl = null;
+    }
+
+    function positionMenu(x, y) {
+      if (!menu) return;
+      const margin = 8;
+      const vw = window.innerWidth || 0;
+      const vh = window.innerHeight || 0;
+      const rect = menu.getBoundingClientRect();
+      let left = x;
+      let top = y;
+
+      if (left + rect.width + margin > vw) left = Math.max(margin, vw - rect.width - margin);
+      if (top + rect.height + margin > vh) top = Math.max(margin, vh - rect.height - margin);
+      if (left < margin) left = margin;
+      if (top < margin) top = margin;
+
+      menu.style.left = `${left}px`;
+      menu.style.top = `${top}px`;
+    }
+
+    function openMessageMenu(messageEl, x, y) {
+      if (!menu || !messageEl) return;
+
+      const btnReply = menu.querySelector('[data-menu-action="reply"]');
+      const btnEdit = menu.querySelector('[data-menu-action="edit"]');
+      const btnDelete = menu.querySelector('[data-menu-action="delete"]');
+
+      const canEdit = Boolean(messageEl.getAttribute("data-edit-url"));
+      const canDelete = Boolean(messageEl.getAttribute("data-delete-url"));
+
+      if (btnEdit) btnEdit.classList.toggle("hidden", !canEdit);
+      if (btnDelete) btnDelete.classList.toggle("hidden", !canDelete);
+
+      menuMessageEl = messageEl;
+      menu.classList.remove("hidden");
+      positionMenu(x, y);
+    }
+
+    if (menu) {
+      menu.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-menu-action]");
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!menuMessageEl) return;
+
+        const action = btn.getAttribute("data-menu-action");
+        if (action === "reply") {
+          setReplyFromMessageEl(menuMessageEl);
+          closeMessageMenu();
+          return;
+        }
+        if (action === "edit") {
+          openEditFromMessageEl(menuMessageEl);
+          closeMessageMenu();
+          return;
+        }
+        if (action === "delete") {
+          deleteMessageFromMessageEl(menuMessageEl);
+          closeMessageMenu();
+          return;
+        }
+      });
+    }
+
+    document.addEventListener("contextmenu", (e) => {
+      const messageEl = e.target.closest('li[data-message-id]');
+      if (!messageEl) return;
+      e.preventDefault();
+      openMessageMenu(messageEl, e.clientX, e.clientY);
+    });
+
+    (function bindLongPress() {
+      const container = document.getElementById("chat_container");
+      const list = document.getElementById("chat_messages");
+      if (!container || !list) return;
+
+      let timer = null;
+      let startX = 0;
+      let startY = 0;
+      let targetMessage = null;
+
+      function clear() {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        targetMessage = null;
+      }
+
+      list.addEventListener("touchstart", (e) => {
+        if (!e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const messageEl = e.target.closest('li[data-message-id]');
+        if (!messageEl) return;
+
+        startX = touch.clientX;
+        startY = touch.clientY;
+        targetMessage = messageEl;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          if (!targetMessage) return;
+          openMessageMenu(targetMessage, startX, startY);
+        }, 550);
+      }, { passive: true });
+
+      list.addEventListener("touchmove", (e) => {
+        if (!timer || !e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const dx = Math.abs((touch.clientX || 0) - startX);
+        const dy = Math.abs((touch.clientY || 0) - startY);
+        if (dx > 12 || dy > 12) clear();
+      }, { passive: true });
+
+      list.addEventListener("touchend", clear, { passive: true });
+      list.addEventListener("touchcancel", clear, { passive: true });
+      container.addEventListener("scroll", closeMessageMenu, { passive: true });
+    })();
+
     document.addEventListener("click", (e) => {
-      const deleteBtn = e.target.closest('button[data-message-action="delete"]');
-      if (deleteBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        deleteMessageFromButton(deleteBtn);
-        return;
-      }
-
-      const editBtn = e.target.closest('button[data-message-action="edit"]');
-      if (editBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        openEditFromButton(editBtn);
-        return;
-      }
-
-      const setBtn = e.target.closest('button[data-reply-action="set"]');
-      if (setBtn) {
-        const id = setBtn.getAttribute("data-reply-id") || "";
-        const safeId = (window.CSS && typeof window.CSS.escape === "function") ? window.CSS.escape(id) : id.replace(/"/g, '\\"');
-        const messageEl = id ? document.querySelector(`[data-message-id="${safeId}"]`) : null;
-        setReplyFromMessageEl(messageEl);
-        return;
+      if (menu && !menu.classList.contains("hidden")) {
+        const insideMenu = e.target.closest("#message_action_menu");
+        if (!insideMenu) closeMessageMenu();
       }
 
       const jumpBtn = e.target.closest('button[data-reply-action="jump"]');
@@ -518,6 +651,11 @@
         setTimeout(() => el.classList.remove("ring-2", "ring-blue-400", "rounded-2xl"), 900);
       }
     });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeMessageMenu();
+    });
+    window.addEventListener("resize", closeMessageMenu);
 
     form.addEventListener("htmx:wsAfterSend", clearReply);
     form.addEventListener("htmx:wsAfterSend", () => setTimeout(resetBodyToInitialSize, 0));

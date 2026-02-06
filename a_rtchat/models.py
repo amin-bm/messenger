@@ -45,6 +45,7 @@ class GroupMessage(models.Model):
    body = models.CharField(max_length=2000, null=True, blank=True)
    file = models.FileField(null=True, blank=True, upload_to='files/')
    created = models.DateTimeField(auto_now_add=True)
+   edited = models.DateTimeField(null=True, blank=True)
 
    
    @property

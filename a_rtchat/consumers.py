@@ -125,6 +125,18 @@ class ChatroomConsumer(WebsocketConsumer):
             {"type": "online_status_handler"}
         )
 
+    def message_edited_handler(self, event):
+        message = GroupMessage.objects.get(id=event['message_id'])
+
+        context = {
+            'message': message,
+            'user': self.user,
+            'chat_group': self.chatroom,
+            'oob': True,
+        }
+        html = render_to_string("a_rtchat/chat_message.html", context=context)
+        self.send(text_data=html)
+
     def update_online_count(self):
         online_count = self.chatroom.users_online.count() - 1
         async_to_sync(self.channel_layer.group_send)(

@@ -7,6 +7,7 @@ from asgiref.sync import async_to_sync
 from django.http import HttpResponse
 from django.http import Http404
 from django.template import context
+from django.utils import timezone
 from .models import *
 from .forms import *
 
@@ -236,6 +237,55 @@ def chat_file_upload(request, chatroom_name):
 
     
         return HttpResponse()
+
+@login_required
+def chat_message_edit(request, message_id):
+    message = get_object_or_404(GroupMessage, id=message_id)
+    chat_group = message.group
+
+    if message.author_id != request.user.id:
+        raise Http404
+
+    if chat_group.is_private and request.user not in chat_group.members.all():
+        raise Http404
+
+    if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
+        if request.user == chat_group.admin and request.user not in chat_group.members.all():
+            chat_group.members.add(request.user)
+        if request.user not in chat_group.members.all():
+            raise Http404
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    if message.file:
+        return HttpResponse(status=400)
+
+    body = (request.POST.get("body") or "").strip()
+    if not body:
+        return HttpResponse(status=400)
+
+    if body != (message.body or ""):
+        message.body = body
+        message.edited = timezone.now()
+        message.save(update_fields=["body", "edited"])
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            chat_group.group_name,
+            {"type": "message_edited_handler", "message_id": message.id},
+        )
+        async_to_sync(channel_layer.group_send)(
+            "online-status",
+            {"type": "online_status_handler"},
+        )
+
+    context = {
+        "message": message,
+        "user": request.user,
+        "chat_group": chat_group,
+    }
+    return render(request, "a_rtchat/chat_message.html", context)
 
 
 

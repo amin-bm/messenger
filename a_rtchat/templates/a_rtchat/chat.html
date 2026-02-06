@@ -92,6 +92,35 @@
         {{ form }}
       </form>
 
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <button id="voice_record_btn" type="button"
+                  class="rounded-xl bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200">
+            🎤
+          </button>
+          <button id="voice_stop_btn" type="button"
+                  class="hidden rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700">
+            ⏹
+          </button>
+          <span id="voice_timer" class="hidden text-xs text-gray-500">00:00</span>
+          <span id="voice_error" class="text-xs text-red-600"></span>
+        </div>
+      </div>
+
+      <div id="voice_preview" class="hidden rounded-2xl bg-slate-50 px-3 py-2">
+        <div class="flex items-center gap-3">
+          <audio id="voice_audio" class="w-full" controls></audio>
+          <button id="voice_send_btn" type="button"
+                  class="shrink-0 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+            ارسال
+          </button>
+          <button id="voice_cancel_btn" type="button"
+                  class="shrink-0 rounded-xl bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-300">
+            لغو
+          </button>
+        </div>
+      </div>
+
       <form id="chat_file_form"
             enctype="multipart/form-data"
             class="flex items-center gap-3"
@@ -188,5 +217,201 @@
       if (e.key === 'Escape') closeGroupMembersModal();
     });
   });
+
+  (function () {
+    const recordBtn = document.getElementById('voice_record_btn');
+    const stopBtn = document.getElementById('voice_stop_btn');
+    const timerEl = document.getElementById('voice_timer');
+    const errorEl = document.getElementById('voice_error');
+    const previewEl = document.getElementById('voice_preview');
+    const audioEl = document.getElementById('voice_audio');
+    const sendBtn = document.getElementById('voice_send_btn');
+    const cancelBtn = document.getElementById('voice_cancel_btn');
+    const fileForm = document.getElementById('chat_file_form');
+
+    if (!recordBtn || !stopBtn || !timerEl || !errorEl || !previewEl || !audioEl || !sendBtn || !cancelBtn || !fileForm) return;
+
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let startTs = 0;
+    let timerId = 0;
+    let previewUrl = "";
+    let recordedBlob = null;
+
+    function pickMimeType() {
+      const candidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/ogg",
+      ];
+      for (const t of candidates) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
+      }
+      return "";
+    }
+
+    function formatTimer(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const s = String(totalSeconds % 60).padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function setRecordingUI(isRecording) {
+      if (isRecording) {
+        recordBtn.classList.add('hidden');
+        stopBtn.classList.remove('hidden');
+        timerEl.classList.remove('hidden');
+        errorEl.textContent = "";
+      } else {
+        recordBtn.classList.remove('hidden');
+        stopBtn.classList.add('hidden');
+        timerEl.classList.add('hidden');
+      }
+    }
+
+    function resetPreview() {
+      recordedBlob = null;
+      recordedChunks = [];
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = "";
+      audioEl.removeAttribute("src");
+      audioEl.load();
+      previewEl.classList.add("hidden");
+    }
+
+    function stopTimer() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = 0;
+      }
+    }
+
+    async function startRecording() {
+      resetPreview();
+      errorEl.textContent = "";
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        errorEl.textContent = "مرورگر از ضبط صدا پشتیبانی نمی‌کند.";
+        return;
+      }
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        errorEl.textContent = "اجازه دسترسی به میکروفون داده نشد.";
+        return;
+      }
+
+      const mimeType = pickMimeType();
+      try {
+        mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      } catch (e) {
+        errorEl.textContent = "شروع ضبط ناموفق بود.";
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+
+      recordedChunks = [];
+      mediaRecorder.addEventListener("dataavailable", (ev) => {
+        if (ev.data && ev.data.size > 0) recordedChunks.push(ev.data);
+      });
+
+      mediaRecorder.addEventListener("stop", () => {
+        stream.getTracks().forEach((t) => t.stop());
+        stopTimer();
+        timerEl.textContent = "00:00";
+
+        if (!recordedChunks.length) {
+          setRecordingUI(false);
+          return;
+        }
+
+        recordedBlob = new Blob(recordedChunks, { type: mediaRecorder && mediaRecorder.mimeType ? mediaRecorder.mimeType : "audio/webm" });
+        previewUrl = URL.createObjectURL(recordedBlob);
+        audioEl.src = previewUrl;
+        previewEl.classList.remove("hidden");
+        setRecordingUI(false);
+        scrollToBottom(0);
+      });
+
+      startTs = Date.now();
+      timerEl.textContent = "00:00";
+      timerId = setInterval(() => {
+        timerEl.textContent = formatTimer(Date.now() - startTs);
+      }, 250);
+
+      setRecordingUI(true);
+      try {
+        mediaRecorder.start();
+      } catch (e) {
+        setRecordingUI(false);
+        stopTimer();
+        stream.getTracks().forEach((t) => t.stop());
+        errorEl.textContent = "شروع ضبط ناموفق بود.";
+      }
+    }
+
+    function stopRecording() {
+      if (!mediaRecorder) return;
+      try {
+        if (mediaRecorder.state !== "inactive") mediaRecorder.stop();
+      } catch (e) {
+        setRecordingUI(false);
+        stopTimer();
+      }
+    }
+
+    async function sendVoice() {
+      if (!recordedBlob) return;
+      const url = fileForm.getAttribute("hx-post");
+      if (!url) return;
+
+      const csrfInput = fileForm.querySelector('input[name="csrfmiddlewaretoken"]');
+      const csrfToken = csrfInput ? csrfInput.value : "";
+
+      const ext = (recordedBlob.type || "").includes("ogg") ? "ogg" : "webm";
+      const file = new File([recordedBlob], `voice-${Date.now()}.${ext}`, { type: recordedBlob.type || "audio/webm" });
+
+      const formData = new FormData();
+      formData.append("file", file);
+      if (csrfToken) formData.append("csrfmiddlewaretoken", csrfToken);
+
+      sendBtn.disabled = true;
+      cancelBtn.disabled = true;
+      errorEl.textContent = "";
+
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          body: formData,
+          headers: {
+            "HX-Request": "true",
+            ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
+          },
+          credentials: "same-origin",
+        });
+
+        if (!res.ok) {
+          errorEl.textContent = "ارسال پیام صوتی ناموفق بود.";
+          return;
+        }
+
+        resetPreview();
+      } catch (e) {
+        errorEl.textContent = "ارسال پیام صوتی ناموفق بود.";
+      } finally {
+        sendBtn.disabled = false;
+        cancelBtn.disabled = false;
+      }
+    }
+
+    recordBtn.addEventListener("click", startRecording);
+    stopBtn.addEventListener("click", stopRecording);
+    cancelBtn.addEventListener("click", resetPreview);
+    sendBtn.addEventListener("click", sendVoice);
+  })();
 </script>
 {% endblock %}

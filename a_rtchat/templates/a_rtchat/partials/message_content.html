@@ -11,6 +11,16 @@
       class="mt-2 max-h-64 w-auto rounded-xl object-cover cursor-zoom-in select-none"
       loading="lazy"
     />
+  {% elif message.is_audio %}
+    <div class="mt-2">
+      <audio class="w-full" controls preload="none">
+        <source src="{{ message.file.url }}" type="{{ message.mime_type }}">
+      </audio>
+      <a href="{{ message.file.url }}" download
+         class="mt-1 inline-flex items-center gap-2 text-xs text-blue-600 hover:underline">
+        📎 {{ message.filename }}
+      </a>
+    </div>
   {% else %}
     <a href="{{ message.file.url }}" download
        class="mt-2 inline-flex items-center gap-2 text-sm text-blue-600 hover:underline">

@@ -52,6 +52,25 @@ class GroupMessage(models.Model):
          return os.path.basename(self.file.name)
       else:
          return None
+
+   @cached_property
+   def mime_type(self):
+      if not self.file:
+         return None
+      mime, _ = mimetypes.guess_type(self.file.name)
+      return mime or "application/octet-stream"
+
+   @property
+   def is_audio(self):
+      if not self.file:
+         return False
+      mime = self.mime_type
+      if mime and mime.startswith("audio/"):
+         return True
+      if mime in {"video/webm", "application/ogg"}:
+         return True
+      ext = os.path.splitext(self.file.name or "")[1].lower()
+      return ext in {".webm", ".ogg", ".wav", ".mp3", ".m4a", ".aac"}
       
    def __str__(self):
       if self.body:

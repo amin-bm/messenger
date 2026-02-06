@@ -318,6 +318,52 @@ def chat_message_edit(request, message_id):
     return render(request, "a_rtchat/chat_message.html", context)
 
 
+@login_required
+def chat_message_delete(request, message_id):
+    message = get_object_or_404(GroupMessage, id=message_id)
+    chat_group = message.group
+
+    if chat_group.is_private:
+        if request.user not in chat_group.members.all():
+            raise Http404
+    else:
+        if message.author_id != request.user.id and chat_group.admin_id != request.user.id:
+            raise Http404
+
+        if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
+            if request.user == chat_group.admin and request.user not in chat_group.members.all():
+                chat_group.members.add(request.user)
+            if request.user not in chat_group.members.all():
+                raise Http404
+
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    reply_ids = list(message.replies.values_list("id", flat=True))
+    if message.file:
+        message.file.delete(save=False)
+
+    deleted_message_id = message.id
+    message.delete()
+
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        chat_group.group_name,
+        {"type": "message_deleted_handler", "message_id": deleted_message_id},
+    )
+    for reply_id in reply_ids:
+        async_to_sync(channel_layer.group_send)(
+            chat_group.group_name,
+            {"type": "message_edited_handler", "message_id": reply_id},
+        )
+    async_to_sync(channel_layer.group_send)(
+        "online-status",
+        {"type": "online_status_handler"},
+    )
+
+    return HttpResponse(status=204)
+
+
 
 @login_required
 def toggle_pin(request, chatroom_name):

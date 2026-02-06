@@ -437,7 +437,60 @@
       });
     }
 
+    async function deleteMessageFromButton(deleteBtn) {
+      const messageEl = deleteBtn.closest('li[data-message-id]');
+      if (!messageEl) return;
+      if (messageEl.dataset.deleting === "1") return;
+
+      const deleteUrl = deleteBtn.getAttribute("data-delete-url") || "";
+      const csrf = getCsrfToken();
+      const messageId = messageEl.getAttribute("data-message-id") || "";
+      if (!deleteUrl || !csrf || !messageId) return;
+
+      if (!window.confirm("پیام حذف شود؟")) return;
+
+      messageEl.dataset.deleting = "1";
+      deleteBtn.disabled = true;
+
+      try {
+        const formData = new FormData();
+        formData.append("csrfmiddlewaretoken", csrf);
+
+        const res = await fetch(deleteUrl, {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "X-CSRFToken": csrf,
+            "HX-Request": "true",
+          },
+          body: formData,
+        });
+
+        if (!res.ok) {
+          deleteBtn.disabled = false;
+          delete messageEl.dataset.deleting;
+          return;
+        }
+
+        if (replyInput.value === messageId) clearReply();
+        const current = document.getElementById(`msg-${messageId}`);
+        if (current) current.remove();
+      } catch (e) {
+        deleteBtn.disabled = false;
+        delete messageEl.dataset.deleting;
+        return;
+      }
+    }
+
     document.addEventListener("click", (e) => {
+      const deleteBtn = e.target.closest('button[data-message-action="delete"]');
+      if (deleteBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        deleteMessageFromButton(deleteBtn);
+        return;
+      }
+
       const editBtn = e.target.closest('button[data-message-action="edit"]');
       if (editBtn) {
         e.preventDefault();

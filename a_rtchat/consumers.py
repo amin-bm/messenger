@@ -137,6 +137,12 @@ class ChatroomConsumer(WebsocketConsumer):
         html = render_to_string("a_rtchat/chat_message.html", context=context)
         self.send(text_data=html)
 
+    def message_deleted_handler(self, event):
+        message_id = event.get("message_id")
+        if not message_id:
+            return
+        self.send(text_data=f'<li id="msg-{message_id}" hx-swap-oob="delete"></li>')
+
     def update_online_count(self):
         online_count = self.chatroom.users_online.count() - 1
         async_to_sync(self.channel_layer.group_send)(

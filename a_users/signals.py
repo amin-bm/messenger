@@ -12,6 +12,7 @@ def user_postsave(sender, instance, created, **kwargs):
     if created:
         Profile.objects.create(
             user = user,
+            approved = bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)),
         )
     else:
         # update allauth emailaddress if exists 

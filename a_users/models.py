@@ -8,6 +8,7 @@ class Profile(models.Model):
     displayname = models.CharField(max_length=20, null=True, blank=True)
     phone = models.CharField(max_length=32, null=True, blank=True, unique=True)
     info = models.TextField(null=True, blank=True) 
+    approved = models.BooleanField(default=False)
     
     def __str__(self):
         return str(self.user)

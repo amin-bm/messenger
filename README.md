@@ -1,8 +1,8 @@
 1- compsre
 2- redis
 3- createsuperuser
-4- in admin > chat groups make 
-    1- public_group
+4- in admin > chat groups (Group name) make 
+    1- public_chat
     2- online-status
 
 

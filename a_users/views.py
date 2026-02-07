@@ -21,18 +21,25 @@ def profile_view(request, username=None):
 
 @login_required
 def profile_edit_view(request):
+    onboarding = request.path == reverse('profile-onboarding')
     form = ProfileForm(instance=request.user.profile)  
     
     if request.method == 'POST':
         form = ProfileForm(request.POST, request.FILES, instance=request.user.profile)
         if form.is_valid():
             form.save()
+            if onboarding:
+                profile = getattr(request.user, "profile", None)
+                approved = bool(
+                    getattr(request.user, "is_staff", False)
+                    or getattr(request.user, "is_superuser", False)
+                    or getattr(profile, "approved", False)
+                )
+                if approved:
+                    return redirect('home')
+                messages.info(request, 'پروفایل شما ثبت شد و در انتظار تایید مدیر است.')
+                return redirect('profile')
             return redirect('profile')
-        
-    if request.path == reverse('profile-onboarding'):
-        onboarding = True
-    else:
-        onboarding = False
       
     return render(request, 'a_users/profile_edit.html', { 'form':form, 'onboarding':onboarding })
 

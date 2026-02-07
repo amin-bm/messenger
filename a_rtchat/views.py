@@ -1,4 +1,5 @@
 from nt import remove
+from functools import wraps
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
@@ -15,6 +16,29 @@ from .models import *
 from .forms import *
 
 
+def _user_can_access_messenger(user) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
+        return True
+    profile = getattr(user, "profile", None)
+    return bool(getattr(profile, "approved", False))
+
+
+def messenger_required(view_func):
+    @login_required
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if _user_can_access_messenger(request.user):
+            return view_func(request, *args, **kwargs)
+        messages.warning(request, "پروفایل شما هنوز توسط مدیر تایید نشده است.")
+        if getattr(request, "htmx", False):
+            return HttpResponse(status=403)
+        return redirect("profile")
+
+    return _wrapped
+
+
 def get_chat_group_by_identifier(chatroom_identifier):
     return get_object_or_404(
         ChatGroup,
@@ -22,7 +46,7 @@ def get_chat_group_by_identifier(chatroom_identifier):
     )
 
 
-@login_required
+@messenger_required
 def chat_view(request, chatroom_identifier='public_chat'):
     if request.path == '/':
         my_groups_qs = request.user.chat_groups.all()
@@ -99,6 +123,7 @@ def chat_view(request, chatroom_identifier='public_chat'):
     return render(request, 'a_rtchat/chat.html', context)
 
 
+@messenger_required
 def get_or_create_chatroom(request, username):
     if request.user.username == username:
         return redirect('home')
@@ -136,7 +161,7 @@ def get_or_create_chatroom(request, username):
     return redirect('chatroom', chatroom.group_slug or chatroom.group_name)
 
 
-@login_required
+@messenger_required
 def create_groupchat(request):
     form = NewGroupForm()
 
@@ -155,7 +180,7 @@ def create_groupchat(request):
     return render(request, 'a_rtchat/create_groupchat.html', context)
 
 
-@login_required
+@messenger_required
 def chatroom_edit_view(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
     if request.user != chat_group.admin:
@@ -205,7 +230,7 @@ def chatroom_edit_view(request, chatroom_name):
     return render(request, 'a_rtchat/chatroom_edit.html', context)
 
 
-@login_required
+@messenger_required
 def chatroom_delete_view(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
     if request.user != chat_group.admin:
@@ -219,7 +244,7 @@ def chatroom_delete_view(request, chatroom_name):
     return render(request, 'a_rtchat/chatroom_delete.html', {'chat_group':chat_group})
 
 
-@login_required
+@messenger_required
 def chatroom_leave_view(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
     if request.user not in chat_group.members.all():
@@ -231,7 +256,7 @@ def chatroom_leave_view(request, chatroom_name):
         return redirect('home')
     
     
-@login_required
+@messenger_required
 def chat_file_upload(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
     
@@ -269,7 +294,7 @@ def chat_file_upload(request, chatroom_name):
     
         return HttpResponse()
 
-@login_required
+@messenger_required
 def chat_message_edit(request, message_id):
     message = get_object_or_404(GroupMessage, id=message_id)
     chat_group = message.group
@@ -319,7 +344,7 @@ def chat_message_edit(request, message_id):
     return render(request, "a_rtchat/chat_message.html", context)
 
 
-@login_required
+@messenger_required
 def chat_message_delete(request, message_id):
     message = get_object_or_404(GroupMessage, id=message_id)
     chat_group = message.group
@@ -364,12 +389,11 @@ def chat_message_delete(request, message_id):
 
     return HttpResponse(status=204)
 
-
-
-@login_required
+@messenger_required
 def chat_message_forward(request, message_id):
     message = get_object_or_404(GroupMessage, id=message_id)
     chat_group = message.group
+
 
     if request.method != "POST":
         return HttpResponse(status=405)
@@ -464,7 +488,7 @@ def chat_message_forward(request, message_id):
     return HttpResponse(status=204)
 
 
-@login_required
+@messenger_required
 def toggle_pin(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
 
@@ -485,7 +509,7 @@ def toggle_pin(request, chatroom_name):
     return HttpResponse(status=204)
 
 
-@login_required
+@messenger_required
 def toggle_mute(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
 

@@ -14,6 +14,14 @@ from django.contrib.auth.models import User
 from .models import ChatGroup, GroupMessage, ChatState
 
 
+def _user_can_access_messenger(user) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
+        return True
+    profile = getattr(user, "profile", None)
+    return bool(getattr(profile, "approved", False))
+
 
 class ChatroomConsumer(WebsocketConsumer):
     def connect(self):
@@ -22,6 +30,9 @@ class ChatroomConsumer(WebsocketConsumer):
         self.chatroom = get_object_or_404(ChatGroup, group_name=self.chatroom_name)
 
         if not getattr(self.user, "is_authenticated", False):
+            self.close()
+            return
+        if not _user_can_access_messenger(self.user):
             self.close()
             return
 
@@ -171,6 +182,10 @@ class OnlineStatusConsumer(WebsocketConsumer):
         self.user = self.scope['user']
         self.group_name = 'online-status'
         self.group = get_object_or_404(ChatGroup, group_name=self.group_name)
+
+        if not _user_can_access_messenger(self.user):
+            self.close()
+            return
 
         if self.user not in self.group.members.all():
             self.group.users_online.add(self.user)

@@ -21,6 +21,9 @@ from .models import ChatGroup, GroupMessage, ChatState
 PRESENCE_TIMEOUT = timedelta(seconds=90)
 
 def _send_push_notifications_for_message(message_id: int) -> None:
+    if bool(getattr(settings, "OFFLINE_MODE", False)):
+        return
+
     private_key = (getattr(settings, "WEBPUSH_VAPID_PRIVATE_KEY", "") or "").strip()
     public_key = (getattr(settings, "WEBPUSH_VAPID_PUBLIC_KEY", "") or "").strip()
     if not private_key or not public_key:

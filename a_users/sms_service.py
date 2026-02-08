@@ -30,6 +30,9 @@ def _smsir_request(url: str, api_key: str, payload: dict) -> dict | None:
 
 
 def send_sms_ir(phone_number: str, message: str) -> bool:
+    if bool(getattr(settings, "OFFLINE_MODE", False)):
+        return False
+
     api_key = _settings_or_env("SMSIR_API_KEY")
     line_number = _settings_or_env("SMSIR_LINE_NUMBER")
 
@@ -48,6 +51,10 @@ def send_sms_ir(phone_number: str, message: str) -> bool:
 
 
 def send_otp_sms_ir(phone_number: str, otp: str) -> bool:
+    if bool(getattr(settings, "OFFLINE_MODE", False)):
+        print(f"OTP for {phone_number}: {otp}")
+        return True
+
     api_key = _settings_or_env("SMSIR_API_KEY")
     template_id = _settings_or_env("SMSIR_TEMPLATE_ID")
 

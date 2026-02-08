@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import redirect_to_login
 from django.contrib import messages
 from .forms import *
+from .models import Profile
 
 def profile_view(request, username=None):
     if username:
@@ -33,6 +34,7 @@ def profile_edit_view(request):
                 approved = bool(
                     getattr(request.user, "is_staff", False)
                     or getattr(request.user, "is_superuser", False)
+                    or getattr(profile, "is_manager", False)
                     or getattr(profile, "approved", False)
                 )
                 if approved:
@@ -47,6 +49,75 @@ def profile_edit_view(request):
 @login_required
 def profile_settings_view(request):
     return render(request, 'a_users/profile_settings.html')
+
+
+@login_required
+def manager_panel_view(request):
+    current_profile = getattr(request.user, "profile", None)
+    can_approve = bool(
+        getattr(request.user, "is_staff", False)
+        or getattr(request.user, "is_superuser", False)
+        or getattr(current_profile, "is_manager", False)
+    )
+    can_manage_managers = bool(getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False))
+
+    if not can_approve:
+        messages.warning(request, "شما به این بخش دسترسی ندارید.")
+        return redirect("profile")
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        user_id = request.POST.get("user_id")
+        if not user_id:
+            messages.warning(request, "کاربر انتخاب نشده است.")
+            return redirect("profile-manager")
+        target_user = get_object_or_404(User, id=user_id)
+        target_profile = getattr(target_user, "profile", None)
+        if not target_profile:
+            target_profile = Profile.objects.create(user=target_user)
+
+        if action == "approve":
+            if not target_profile.approved:
+                target_profile.approved = True
+                target_profile.save(update_fields=["approved"])
+                messages.success(request, f"کاربر {target_user.username} تایید شد.")
+            return redirect("profile-manager")
+
+        if action == "toggle_manager":
+            if not can_manage_managers:
+                messages.warning(request, "شما اجازه تبدیل کاربر به مدیر را ندارید.")
+                return redirect("profile-manager")
+
+            target_profile.is_manager = not bool(getattr(target_profile, "is_manager", False))
+            if target_profile.is_manager:
+                target_profile.approved = True
+            target_profile.save(update_fields=["is_manager", "approved"])
+            messages.success(request, f"سطح دسترسی {target_user.username} به‌روزرسانی شد.")
+            return redirect("profile-manager")
+
+        messages.warning(request, "عملیات نامعتبر است.")
+        return redirect("profile-manager")
+
+    q = (request.GET.get("q") or "").strip()
+    pending_profiles = (
+        Profile.objects.select_related("user")
+        .filter(approved=False)
+        .order_by("user__date_joined", "user__id")
+    )
+    manager_profiles = Profile.objects.select_related("user").order_by("user__username")
+    if q:
+        manager_profiles = manager_profiles.filter(user__username__icontains=q)
+
+    return render(
+        request,
+        "a_users/manager.html",
+        {
+            "pending_profiles": pending_profiles,
+            "manager_profiles": manager_profiles,
+            "can_manage_managers": can_manage_managers,
+            "q": q,
+        },
+    )
 
 
 @login_required

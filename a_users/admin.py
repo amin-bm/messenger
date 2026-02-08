@@ -8,7 +8,7 @@ def approve_profiles(modeladmin, request, queryset):
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "approved", "phone", "displayname")
-    list_filter = ("approved",)
+    list_display = ("user", "approved", "is_manager", "phone", "displayname")
+    list_filter = ("approved", "is_manager")
     search_fields = ("user__username", "phone", "displayname")
     actions = (approve_profiles,)

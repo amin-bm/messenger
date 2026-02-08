@@ -53,7 +53,7 @@
                                 <path d="M12 9v6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                                 <path d="M9 12h6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                               </svg>
-                              <span>Create Chat</span>
+                              <span>Create Group</span>
                             </a>
                           </li>
                           <li>
@@ -65,6 +65,19 @@
                               <span>Settings</span>
                             </a>
                           </li>
+                          {% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_manager %}
+                          <li>
+                            <a class="gap-2" href="{% url 'profile-manager' %}">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">
+                                <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M19 8v6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                                <path d="M16 11h6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                              </svg>
+                              <span>Management</span>
+                            </a>
+                          </li>
+                          {% endif %}
                           <li>
                             <a class="gap-2" href="{% url 'account_logout' %}">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">

@@ -20,6 +20,8 @@ def _user_can_access_messenger(user) -> bool:
     if bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
         return True
     profile = getattr(user, "profile", None)
+    if bool(getattr(profile, "is_manager", False)):
+        return True
     return bool(getattr(profile, "approved", False))
 
 

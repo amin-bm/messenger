@@ -1,0 +1,73 @@
+{% extends 'layouts/box.html' %}
+
+{% block mobile_title %}مدیریت{% endblock %}
+
+{% block content %}
+
+<h1 class="mb-6">پنل مدیریت</h1>
+
+<h2 class="text-base font-bold text-gray-900 mb-3">کاربران در انتظار تایید</h2>
+{% if pending_profiles %}
+<table class="w-full text-sm text-left text-gray-500 mb-8">
+    <tbody>
+        {% for p in pending_profiles %}
+        <tr class="border-b">
+            <th scope="row" class="py-4 text-gray-900 font-medium">
+                @{{ p.user.username }}
+            </th>
+            <td class="py-4 pl-4">
+                {{ p.name }}
+            </td>
+            <td class="py-4 pl-4">
+                <form method="post" action="{% url 'profile-manager' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <input type="hidden" name="user_id" value="{{ p.user.id }}">
+                    <button type="submit" class="button block !bg-gray-800">تایید</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="text-sm text-gray-500 mb-8">کاربری برای تایید وجود ندارد.</div>
+{% endif %}
+
+{% if can_manage_managers %}
+<h2 class="text-base font-bold text-gray-900 mb-3">مدیرها</h2>
+
+<form method="get" class="flex gap-2 mb-4">
+    <input name="q" value="{{ q }}" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو با نام کاربری" />
+    <button type="submit" class="button block !bg-gray-800">جستجو</button>
+</form>
+
+<table class="w-full text-sm text-left text-gray-500">
+    <tbody>
+        {% for p in manager_profiles %}
+        <tr class="border-b">
+            <th scope="row" class="py-4 text-gray-900 font-medium">
+                @{{ p.user.username }}
+            </th>
+            <td class="py-4 pl-4">
+                {% if p.is_manager %}<span class="text-green-600">مدیر</span>{% else %}<span class="text-gray-400">کاربر</span>{% endif %}
+                {% if p.user.is_superuser %}<span class="text-indigo-600 ml-2">سوپر یوزر</span>{% endif %}
+                {% if p.user.is_staff and not p.user.is_superuser %}<span class="text-indigo-600 ml-2">استف</span>{% endif %}
+            </td>
+            <td class="py-4 pl-4">
+                <form method="post" action="{% url 'profile-manager' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle_manager">
+                    <input type="hidden" name="user_id" value="{{ p.user.id }}">
+                    <button type="submit" class="button block !bg-gray-800">
+                        {% if p.is_manager %}حذف مدیر{% else %}تبدیل به مدیر{% endif %}
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% endblock %}

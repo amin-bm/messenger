@@ -9,9 +9,25 @@ import json
 from django.db.models import OuterRef, Subquery, Count, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from datetime import timedelta
 
 from django.contrib.auth.models import User
+from a_users.models import Profile
 from .models import ChatGroup, GroupMessage, ChatState
+
+
+PRESENCE_TIMEOUT = timedelta(seconds=90)
+
+
+def _touch_last_seen(user) -> None:
+    if not getattr(user, "is_authenticated", False):
+        return
+    Profile.objects.filter(user=user).update(last_seen=timezone.now())
+
+
+def _presence_cutoff(now=None):
+    now = now or timezone.now()
+    return now - PRESENCE_TIMEOUT
 
 
 def _user_can_access_messenger(user) -> bool:
@@ -58,6 +74,7 @@ class ChatroomConsumer(WebsocketConsumer):
         if self.user not in self.chatroom.users_online.all():
             self.chatroom.users_online.add(self.user)
             self.update_online_count()
+        _touch_last_seen(self.user)
 
         self.accept()
 
@@ -81,8 +98,10 @@ class ChatroomConsumer(WebsocketConsumer):
         if self.user in self.chatroom.users_online.all():
             self.chatroom.users_online.remove(self.user)
             self.update_online_count()
+        _touch_last_seen(self.user)
 
     def receive(self, text_data):
+        _touch_last_seen(self.user)
         data = json.loads(text_data)
         body = data.get('body', '').strip()
         reply_to_id = str(data.get('reply_to') or '').strip()
@@ -117,6 +136,7 @@ class ChatroomConsumer(WebsocketConsumer):
         )
 
     def message_handler(self, event):
+        _touch_last_seen(self.user)
         message = GroupMessage.objects.get(id=event['message_id'])
 
         context = {
@@ -157,7 +177,11 @@ class ChatroomConsumer(WebsocketConsumer):
         self.send(text_data=f'<li id="msg-{message_id}" hx-swap-oob="delete"></li>')
 
     def update_online_count(self):
-        online_count = self.chatroom.users_online.count() - 1
+        cutoff = _presence_cutoff()
+        stale = list(self.chatroom.users_online.filter(profile__last_seen__lt=cutoff))
+        if stale:
+            self.chatroom.users_online.remove(*stale)
+        online_count = self.chatroom.users_online.filter(profile__last_seen__gte=cutoff).count() - 1
         async_to_sync(self.channel_layer.group_send)(
             self.chatroom_name,
             {"type": "online_count_handler", "online_count": online_count}
@@ -189,8 +213,9 @@ class OnlineStatusConsumer(WebsocketConsumer):
             self.close()
             return
 
-        if self.user not in self.group.members.all():
+        if self.user not in self.group.users_online.all():
             self.group.users_online.add(self.user)
+        _touch_last_seen(self.user)
 
         async_to_sync(self.channel_layer.group_add)(
             self.group_name,
@@ -203,6 +228,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
     def disconnect(self, close_code):
         if self.user in self.group.users_online.all():
             self.group.users_online.remove(self.user)
+        _touch_last_seen(self.user)
 
         async_to_sync(self.channel_layer.group_discard)(
             self.group_name,
@@ -210,17 +236,43 @@ class OnlineStatusConsumer(WebsocketConsumer):
         )
         self.online_status()
 
+    def receive(self, text_data=None, bytes_data=None):
+        _touch_last_seen(self.user)
+        if text_data:
+            try:
+                data = json.loads(text_data)
+            except Exception:
+                data = {}
+            if (data or {}).get("type") == "ping":
+                self.online_status()
+
     def online_status(self):
         event = {'type': 'online_status_handler'}
         async_to_sync(self.channel_layer.group_send)(self.group_name, event)
 
     def online_status_handler(self, event):
+        now = timezone.now()
+        cutoff = _presence_cutoff(now)
+
+        stale_global = list(self.group.users_online.filter(profile__last_seen__lt=cutoff))
+        if stale_global:
+            self.group.users_online.remove(*stale_global)
+
+        global_online_ids = set(
+            self.group.users_online.filter(profile__last_seen__gte=cutoff).values_list('id', flat=True)
+        )
+
         # online users (global, except me)
-        online_users = self.group.users_online.exclude(id=self.user.id)
+        online_users = User.objects.filter(id__in=global_online_ids).exclude(id=self.user.id)
 
         # public chat
         public_chat = ChatGroup.objects.get(group_name='public_chat')
-        public_chat_online = public_chat.users_online.exclude(id=self.user.id).exists()
+        public_chat_online = (
+            public_chat.users_online
+            .filter(profile__last_seen__gte=cutoff)
+            .exclude(id=self.user.id)
+            .exists()
+        )
         public_last = public_chat.chat_messages.order_by('-created').first()
 
         # last message subquery per chat
@@ -292,8 +344,16 @@ class OnlineStatusConsumer(WebsocketConsumer):
         })
 
         for chatroom in my_chats:
-            # online = someone else online
-            is_online = chatroom.users_online.exclude(id=self.user.id).exists()
+            stale_room = list(chatroom.users_online.filter(profile__last_seen__lt=cutoff))
+            if stale_room:
+                chatroom.users_online.remove(*stale_room)
+
+            is_online = (
+                chatroom.users_online
+                .filter(profile__last_seen__gte=cutoff)
+                .exclude(id=self.user.id)
+                .exists()
+            )
 
             last_text = ""
             if chatroom.last_body:
@@ -315,6 +375,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
                         break
                 if not other:
                     continue
+                is_online = other.id in global_online_ids
 
                 sidebar_items.append({
                     "kind": "private",
@@ -369,8 +430,6 @@ class OnlineStatusConsumer(WebsocketConsumer):
             .exclude(id=self.user.id)
             .select_related('profile')
         )
-
-        global_online_ids = set(self.group.users_online.values_list('id', flat=True))
 
         contacts = []
         for u in contact_users:

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.utils import timezone
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -10,6 +11,7 @@ class Profile(models.Model):
     info = models.TextField(null=True, blank=True) 
     approved = models.BooleanField(default=False)
     is_manager = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     
     def __str__(self):
         return str(self.user)

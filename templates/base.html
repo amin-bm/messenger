@@ -29,7 +29,11 @@
   {% block layout %}{% endblock %}
 
   {% if user.is_authenticated %}
-    <footer hx-ext="ws" ws-connect="/ws/online-status/"></footer>
+    <footer hx-ext="ws" ws-connect="/ws/online-status/">
+      <form id="presence-ping-form" ws-send class="hidden">
+        <input type="hidden" name="type" value="ping">
+      </form>
+    </footer>
   {% endif %}
 
   <script>
@@ -188,7 +192,28 @@
       updateMobileLayout();
     }
 
-    document.addEventListener('DOMContentLoaded', refreshSidebarUI);
+    function setupPresencePing() {
+      if (document.body.dataset.presencePing === "1") return;
+      const form = document.getElementById('presence-ping-form');
+      if (!form) return;
+      document.body.dataset.presencePing = "1";
+
+      const send = () => {
+        if (!window.htmx || typeof window.htmx.trigger !== 'function') return;
+        window.htmx.trigger(form, 'submit');
+      };
+
+      send();
+      window.setInterval(send, 30000);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) send();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      refreshSidebarUI();
+      setupPresencePing();
+    });
     document.body.addEventListener('htmx:afterSwap', refreshSidebarUI);
     document.body.addEventListener('htmx:afterSettle', refreshSidebarUI);
     document.body.addEventListener('htmx:wsAfterMessage', refreshSidebarUI);

@@ -283,6 +283,87 @@
       container.scrollTop = container.scrollHeight;
     }, time);
   }
+
+  (function () {
+    function normalizeDateKey(key) {
+      return (key || "").trim();
+    }
+
+    function isSeparator(el) {
+      return Boolean(el && el.nodeType === 1 && el.hasAttribute("data-date-separator"));
+    }
+
+    function formatEnglishDateLabel(dateKey) {
+      const key = normalizeDateKey(dateKey);
+      if (!key) return "";
+      const date = new Date(`${key}T00:00:00Z`);
+      if (!Number.isFinite(date.getTime())) return key;
+      try {
+        return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
+      } catch (e) {
+        return key;
+      }
+    }
+
+    function buildSeparator(dateKey) {
+      const li = document.createElement("li");
+      li.className = "w-full flex justify-center my-2";
+      li.setAttribute("data-date-separator", dateKey);
+      const pill = document.createElement("div");
+      pill.className = "rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-gray-600 shadow-sm backdrop-blur";
+      pill.textContent = formatEnglishDateLabel(dateKey) || dateKey;
+      li.appendChild(pill);
+      return li;
+    }
+
+    function ensureDateSeparatorsInList(listEl) {
+      if (!listEl) return;
+
+      const messages = Array.from(listEl.querySelectorAll("li[data-message-date]"));
+      let prevDate = "";
+
+      messages.forEach((msg) => {
+        const dateKey = normalizeDateKey(msg.dataset.messageDate);
+        if (!dateKey) return;
+
+        if (dateKey !== prevDate) {
+          const prevSibling = msg.previousElementSibling;
+          if (!(prevSibling && isSeparator(prevSibling) && normalizeDateKey(prevSibling.dataset.dateSeparator) === dateKey)) {
+            msg.parentNode.insertBefore(buildSeparator(dateKey), msg);
+          }
+        }
+
+        prevDate = dateKey;
+      });
+
+      Array.from(listEl.querySelectorAll("li[data-date-separator]")).forEach((sep) => {
+        const next = sep.nextElementSibling;
+        const sepDate = normalizeDateKey(sep.dataset.dateSeparator);
+        if (!next || isSeparator(next) || normalizeDateKey(next.dataset.messageDate) !== sepDate) {
+          sep.remove();
+        }
+      });
+    }
+
+    window.rtchatEnsureDateSeparators = function () {
+      const list = document.getElementById("chat_messages");
+      ensureDateSeparatorsInList(list);
+    };
+
+    function run() {
+      window.rtchatEnsureDateSeparators();
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
+    else run();
+
+    document.body.addEventListener("htmx:oobAfterSwap", run);
+    document.body.addEventListener("htmx:afterSwap", (e) => {
+      const t = e && e.target ? e.target : null;
+      if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) run();
+    });
+    document.body.addEventListener("htmx:wsAfterMessage", run);
+  })();
   scrollToBottom();
   if (window.location.pathname === '/' && window.matchMedia('(min-width: 768px)').matches) {
     window.location.replace('{% url "chatroom" chatroom_identifier %}');

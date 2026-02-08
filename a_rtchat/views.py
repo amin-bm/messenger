@@ -416,10 +416,12 @@ def chat_file_upload(request, chatroom_name):
             chatroom_name, event
             )
 
-        async_to_sync(channel_layer.group_send)(
-            "online-status",
-            {"type": "online_status_handler"}
-        )
+        target_user_ids = list(chat_group.members.values_list("id", flat=True))
+        if not target_user_ids and chat_group.group_name == "public_chat":
+            refresh_event = {"type": "online_status_handler"}
+        else:
+            refresh_event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [request.user.id])}
+        async_to_sync(channel_layer.group_send)("online-status", refresh_event)
 
     
         return HttpResponse()
@@ -610,10 +612,12 @@ def chat_message_forward(request, message_id):
         target_group.group_name,
         {"type": "message_handler", "message_id": forwarded.id},
     )
-    async_to_sync(channel_layer.group_send)(
-        "online-status",
-        {"type": "online_status_handler"},
-    )
+    target_user_ids = list(target_group.members.values_list("id", flat=True))
+    if not target_user_ids and target_group.group_name == "public_chat":
+        refresh_event = {"type": "online_status_handler"}
+    else:
+        refresh_event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [request.user.id])}
+    async_to_sync(channel_layer.group_send)("online-status", refresh_event)
 
     return HttpResponse(status=204)
 

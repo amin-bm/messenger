@@ -86,7 +86,7 @@ class ChatroomConsumer(WebsocketConsumer):
         # ✅ refresh sidebar so unread becomes 0 immediately
         async_to_sync(self.channel_layer.group_send)(
             "online-status",
-            {"type": "online_status_handler"}
+            {"type": "online_status_handler", "target_user_ids": [self.user.id]}
         )
 
     def disconnect(self, close_code):
@@ -130,10 +130,12 @@ class ChatroomConsumer(WebsocketConsumer):
         )
 
         # ✅ refresh sidebar (last message + unread)
-        async_to_sync(self.channel_layer.group_send)(
-            "online-status",
-            {"type": "online_status_handler"}
-        )
+        target_user_ids = list(self.chatroom.members.values_list("id", flat=True))
+        if not target_user_ids and self.chatroom.group_name == "public_chat":
+            event = {"type": "online_status_handler"}
+        else:
+            event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [self.user.id])}
+        async_to_sync(self.channel_layer.group_send)("online-status", event)
 
     def message_handler(self, event):
         _touch_last_seen(self.user)
@@ -155,7 +157,7 @@ class ChatroomConsumer(WebsocketConsumer):
         # ✅ refresh sidebar so unread stays 0 while user is inside
         async_to_sync(self.channel_layer.group_send)(
             "online-status",
-            {"type": "online_status_handler"}
+            {"type": "online_status_handler", "target_user_ids": [self.user.id]}
         )
 
     def message_edited_handler(self, event):
@@ -251,6 +253,14 @@ class OnlineStatusConsumer(WebsocketConsumer):
         async_to_sync(self.channel_layer.group_send)(self.group_name, event)
 
     def online_status_handler(self, event):
+        target_user_ids = (event or {}).get("target_user_ids")
+        if target_user_ids is not None:
+            if isinstance(target_user_ids, (list, tuple, set)):
+                if self.user.id not in target_user_ids:
+                    return
+            else:
+                if self.user.id != target_user_ids:
+                    return
         now = timezone.now()
         cutoff = _presence_cutoff(now)
 
@@ -303,7 +313,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
         # unread counts (bucket by last_read to avoid N+1)
         unread_map = {cid: 0 for cid in chat_ids}
         buckets = defaultdict(list)
-        min_dt = timezone.make_aware(timezone.datetime.min)
+        min_dt = timezone.make_aware(timezone.datetime(1970, 1, 1))
 
         for cid in chat_ids:
             lr = states.get(cid).last_read if cid in states else min_dt
@@ -411,7 +421,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
                 })
 
         # sort: pinned first, then by last_time desc
-        min_time = timezone.make_aware(timezone.datetime.min)
+        min_time = min_dt
         public_items = [i for i in sidebar_items if i["kind"] == "public"]
         chat_items = [i for i in sidebar_items if i["kind"] != "public"]
 

@@ -106,14 +106,18 @@
         <!-- Search (اختیاری) -->
         <div class="p-3">
           <input
+            id="sidebar-search"
             type="text"
             placeholder="Search"
             class="w-full rounded-xl bg-white px-4 py-2 text-sm border"
+            dir="auto"
+            autocomplete="off"
           />
         </div>
 
         <!-- لیست چت‌ها: همون آی‌دی قبلی برای سازگاری با کد شما -->
         <nav class="flex-1 overflow-y-auto px-2 pb-3">
+            <div id="sidebar-search-results" class="hidden"></div>
             <div id="sidebar-content"></div>
         </nav>
       </aside>

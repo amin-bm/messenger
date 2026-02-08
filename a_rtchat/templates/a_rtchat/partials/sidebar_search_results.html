@@ -1,0 +1,37 @@
+{% if not q %}
+  <div class="px-3 py-2 text-sm text-gray-500"></div>
+{% else %}
+  <div class="pt-2">
+    <div class="px-3 pb-2 text-xs text-gray-500">نتایج</div>
+    <ul class="space-y-1 px-1">
+      {% for r in results %}
+        <li>
+          <a href="{{ r.url }}" class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="text-sm font-medium text-gray-900 truncate">{{ r.title }}</div>
+                  {% if r.kind == "chat" %}
+                    <div class="text-xs text-gray-500 truncate">{{ r.subtitle }}</div>
+                  {% else %}
+                    <div class="text-xs text-gray-500 truncate">
+                      <span class="font-semibold text-gray-700">{{ r.author }}</span>
+                      <span class="px-1">·</span>
+                      <span>{{ r.snippet_html }}</span>
+                    </div>
+                  {% endif %}
+                </div>
+                {% if r.kind != "chat" and r.created %}
+                  <div class="shrink-0 text-[11px] text-gray-500">{{ r.created|date:"H:i" }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </li>
+      {% empty %}
+        <li class="px-3 py-2 text-sm text-gray-500">نتیجه‌ای پیدا نشد</li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
+

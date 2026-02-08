@@ -12,6 +12,8 @@ from django.utils import timezone
 from django.core.files.base import File
 from django.utils.text import slugify
 from django.db.models import Q
+from django.urls import reverse
+from django.utils.html import escape, format_html
 from .models import *
 from .forms import *
 
@@ -47,6 +49,53 @@ def get_chat_group_by_identifier(chatroom_identifier):
         Q(group_slug=chatroom_identifier) | Q(group_name=chatroom_identifier),
     )
 
+def _chat_title_for_user(chat_group: ChatGroup, user: User):
+    if getattr(chat_group, "is_private", False):
+        other = chat_group.members.exclude(id=user.id).select_related("profile").first()
+        if other:
+            return getattr(other.profile, "name", None) or other.username, f"@{other.username}"
+        return chat_group.group_slug or chat_group.group_name, ""
+
+    if chat_group.group_name == "public_chat":
+        return chat_group.groupchat_name or "Public Chat", "General"
+
+    if chat_group.groupchat_name:
+        return chat_group.groupchat_name, "Group"
+
+    return chat_group.group_slug or chat_group.group_name, ""
+
+
+def _build_highlight_snippet(text: str, q: str, radius: int = 40):
+    s = (text or "").strip()
+    q = (q or "").strip()
+    if not s or not q:
+        return escape(s[:120])
+
+    low = s.lower()
+    qlow = q.lower()
+    idx = low.find(qlow)
+    if idx < 0:
+        return escape(s[:120])
+
+    start = max(0, idx - radius)
+    end = min(len(s), idx + len(q) + radius)
+    prefix = "…" if start > 0 else ""
+    suffix = "…" if end < len(s) else ""
+
+    before = escape(s[start:idx])
+    match = escape(s[idx:idx + len(q)])
+    after = escape(s[idx + len(q):end])
+
+    return format_html(
+        "{}{}<span class=\"font-semibold text-blue-700\">{}</span>{}{}",
+        prefix,
+        before,
+        match,
+        after,
+        suffix,
+    )
+
+
 
 @messenger_required
 def chat_view(request, chatroom_identifier='public_chat'):
@@ -73,7 +122,30 @@ def chat_view(request, chatroom_identifier='public_chat'):
         chat_group = get_chat_group_by_identifier(chatroom_identifier)
 
     chatroom_identifier = chat_group.group_slug or chat_group.group_name
-    chat_messages = chat_group.chat_messages.all()[:30]
+    focus_raw = (request.GET.get("focus") or "").strip()
+    focus_message = None
+    if focus_raw.isdigit():
+        focus_message = (
+            GroupMessage.objects
+            .filter(group=chat_group, id=int(focus_raw))
+            .select_related("group")
+            .first()
+        )
+
+    if focus_message:
+        older = list(
+            chat_group.chat_messages
+            .filter(created__lt=focus_message.created)
+            .order_by("-created")[:15]
+        )
+        newer = list(
+            chat_group.chat_messages
+            .filter(created__gte=focus_message.created)
+            .order_by("created")[:15]
+        )
+        chat_messages = older[::-1] + newer
+    else:
+        chat_messages = list(chat_group.chat_messages.order_by("-created")[:30])[::-1]
     form = ChatmessageCreateForm()
 
     other_user = None;
@@ -123,6 +195,62 @@ def chat_view(request, chatroom_identifier='public_chat'):
     }
 
     return render(request, 'a_rtchat/chat.html', context)
+
+
+@messenger_required
+def sidebar_search(request):
+    q = (request.GET.get("q") or "").strip()
+    if not q:
+        return render(request, "a_rtchat/partials/sidebar_search_results.html", {"q": "", "results": []})
+
+    accessible_groups = (
+        ChatGroup.objects
+        .filter(Q(members=request.user) | Q(group_name="public_chat"))
+        .exclude(group_name="online-status")
+        .distinct()
+    )
+
+    group_matches = (
+        accessible_groups
+        .filter(Q(groupchat_name__icontains=q) | Q(group_slug__icontains=q) | Q(group_name__icontains=q))
+        .order_by("groupchat_name", "group_slug")[:10]
+    )
+
+    message_qs = (
+        GroupMessage.objects
+        .filter(group__in=accessible_groups)
+        .filter(body__icontains=q)
+        .select_related("group", "author", "author__profile")
+        .order_by("-created")[:50]
+    )
+
+    results = []
+
+    for g in group_matches:
+        title, subtitle = _chat_title_for_user(g, request.user)
+        identifier = g.group_slug or g.group_name
+        results.append({
+            "kind": "chat",
+            "title": title,
+            "subtitle": subtitle,
+            "url": reverse("chatroom", args=[identifier]),
+        })
+
+    for m in message_qs:
+        g = m.group
+        title, _ = _chat_title_for_user(g, request.user)
+        identifier = g.group_slug or g.group_name
+        author_name = getattr(getattr(m.author, "profile", None), "name", None) or m.author.username
+        results.append({
+            "kind": "message",
+            "title": title,
+            "author": author_name,
+            "created": m.created,
+            "url": f"{reverse('chatroom', args=[identifier])}?focus={m.id}",
+            "snippet_html": _build_highlight_snippet(m.body or "", q),
+        })
+
+    return render(request, "a_rtchat/partials/sidebar_search_results.html", {"q": q, "results": results})
 
 
 @messenger_required

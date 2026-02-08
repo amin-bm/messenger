@@ -58,6 +58,8 @@
         btn.classList.toggle('shadow', isActive);
         btn.classList.toggle('text-gray-600', !isActive);
       });
+
+      applySidebarSearch();
     }
 
     function bindSidebarTabs() {
@@ -102,8 +104,79 @@
       });
     }
 
+    function normalizeSearchText(text) {
+      return (text || '').toString().toLowerCase().trim();
+    }
+
+    function applySidebarSearch() {
+      const input = document.getElementById('sidebar-search');
+      const q = normalizeSearchText(input ? input.value : '');
+      const tab = localStorage.getItem('sidebarTab') || 'chats';
+      const results = document.getElementById('sidebar-search-results');
+      const content = document.getElementById('sidebar-content');
+
+      if (tab === 'contacts') {
+        if (results) {
+          results.classList.add('hidden');
+          results.innerHTML = '';
+        }
+        if (content) content.classList.remove('hidden');
+        const panel = document.getElementById('tab-contacts-panel');
+        if (!panel) return;
+        const items = panel.querySelectorAll('ul > li');
+        items.forEach(li => {
+          if (!q) {
+            li.style.display = '';
+            return;
+          }
+          const name = li.querySelector('.text-sm')?.textContent || '';
+          const username = li.querySelector('.text-xs')?.textContent || '';
+          const haystack = normalizeSearchText(`${name} ${username}`);
+          li.style.display = haystack.includes(q) ? '' : 'none';
+        });
+      } else {
+        if (!q) {
+          if (results) {
+            results.classList.add('hidden');
+            results.innerHTML = '';
+          }
+          if (content) content.classList.remove('hidden');
+          return;
+        }
+
+        if (content) content.classList.add('hidden');
+        if (results) results.classList.remove('hidden');
+        scheduleSidebarSearchRequest(q);
+      }
+    }
+
+    let sidebarSearchTimer = null;
+    let sidebarSearchLastQ = "";
+
+    function scheduleSidebarSearchRequest(q) {
+      if (sidebarSearchTimer) window.clearTimeout(sidebarSearchTimer);
+      sidebarSearchLastQ = q;
+      sidebarSearchTimer = window.setTimeout(() => {
+        const tab = localStorage.getItem('sidebarTab') || 'chats';
+        if (tab !== 'chats') return;
+        const results = document.getElementById('sidebar-search-results');
+        if (!results) return;
+        if (!window.htmx || typeof window.htmx.ajax !== 'function') return;
+        const url = `/chat/search/?q=${encodeURIComponent(sidebarSearchLastQ)}`;
+        window.htmx.ajax('GET', url, { target: '#sidebar-search-results', swap: 'innerHTML' });
+      }, 250);
+    }
+
+    function bindSidebarSearch() {
+      const input = document.getElementById('sidebar-search');
+      if (!input || input.dataset.bound === "1") return;
+      input.dataset.bound = "1";
+      input.addEventListener('input', applySidebarSearch);
+    }
+
     function refreshSidebarUI() {
       bindSidebarTabs();
+      bindSidebarSearch();
       bindSidebarHoverActions();
 
       const tab = localStorage.getItem('sidebarTab') || 'chats';

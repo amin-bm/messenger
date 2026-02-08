@@ -72,7 +72,7 @@
   <!-- Messages area -->
   <div id="chat_container" class="flex-1 overflow-y-auto p-4 bg-slate-100">
     <ul id="chat_messages" class="flex flex-col gap-2">
-      {% for message in chat_messages reversed %}
+      {% for message in chat_messages %}
         {% include 'a_rtchat/chat_message.html' %}
       {% endfor %}
     </ul>
@@ -364,7 +364,21 @@
     });
     document.body.addEventListener("htmx:wsAfterMessage", run);
   })();
-  scrollToBottom();
+  (function () {
+    const params = new URLSearchParams(window.location.search || "");
+    const focusId = (params.get("focus") || "").trim();
+    if (!focusId) {
+      scrollToBottom();
+      return;
+    }
+    setTimeout(() => {
+      const el = document.getElementById(`msg-${focusId}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-blue-400", "rounded-2xl");
+      setTimeout(() => el.classList.remove("ring-2", "ring-blue-400", "rounded-2xl"), 1100);
+    }, 50);
+  })();
   if (window.location.pathname === '/' && window.matchMedia('(min-width: 768px)').matches) {
     window.location.replace('{% url "chatroom" chatroom_identifier %}');
   }

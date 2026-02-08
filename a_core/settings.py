@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Project title displayed in the header
-PROJECT_TITLE = "Project Title"
+PROJECT_TITLE = "Pesk Messenger"
 
 
 # SECURITY WARNING: keep the secret key used in production secret!

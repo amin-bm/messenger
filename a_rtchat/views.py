@@ -14,8 +14,10 @@ from django.utils.text import slugify
 from django.db.models import Q
 from django.urls import reverse
 from django.utils.html import escape, format_html
+from django.db import transaction
 from .models import *
 from .forms import *
+from .consumers import _send_push_notifications_for_message
 
 
 def _user_can_access_messenger(user) -> bool:
@@ -178,6 +180,21 @@ def chat_view(request, chatroom_identifier='public_chat'):
                     .first()
                 )
             message.save()
+            transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
+
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                chat_group.group_name,
+                {"type": "message_handler", "message_id": message.id},
+            )
+
+            target_user_ids = list(chat_group.members.values_list("id", flat=True))
+            if not target_user_ids and chat_group.group_name == "public_chat":
+                refresh_event = {"type": "online_status_handler"}
+            else:
+                refresh_event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [request.user.id])}
+            async_to_sync(channel_layer.group_send)("online-status", refresh_event)
+
             context = {
                 'message': message,
                 'user' : request.user,
@@ -406,6 +423,7 @@ def chat_file_upload(request, chatroom_name):
             author = request.user,
             reply_to=reply_to,
         )
+        transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
         channel_layer = get_channel_layer()
         event_type = "message_handler"
         event = {
@@ -592,6 +610,7 @@ def chat_message_forward(request, message_id):
         body=message.body,
         forwarded_from=message.author,
     )
+    transaction.on_commit(lambda: _send_push_notifications_for_message(forwarded.id))
 
     if message.file:
         try:

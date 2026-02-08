@@ -27,3 +27,15 @@ class Profile(models.Model):
         if self.image:
             return self.image.url
         return f'{settings.STATIC_URL}images/avatar.svg'
+
+
+class PushSubscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="push_subscriptions")
+    endpoint = models.URLField(unique=True, max_length=1000)
+    keys = models.JSONField(default=dict, blank=True)
+    subscription = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.endpoint}"

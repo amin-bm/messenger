@@ -8,15 +8,90 @@ import json
 
 from django.db.models import OuterRef, Subquery, Count, Value
 from django.db.models.functions import Coalesce
+from django.db import transaction
+from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 
 from django.contrib.auth.models import User
-from a_users.models import Profile
+from a_users.models import Profile, PushSubscription
 from .models import ChatGroup, GroupMessage, ChatState
 
 
 PRESENCE_TIMEOUT = timedelta(seconds=90)
+
+def _send_push_notifications_for_message(message_id: int) -> None:
+    private_key = (getattr(settings, "WEBPUSH_VAPID_PRIVATE_KEY", "") or "").strip()
+    public_key = (getattr(settings, "WEBPUSH_VAPID_PUBLIC_KEY", "") or "").strip()
+    if not private_key or not public_key:
+        return
+
+    try:
+        from pywebpush import webpush, WebPushException
+    except Exception:
+        return
+
+    message = (
+        GroupMessage.objects
+        .select_related("group", "author", "author__profile")
+        .get(id=message_id)
+    )
+    group = message.group
+
+    member_ids = list(group.members.exclude(id=message.author_id).values_list("id", flat=True))
+    if not member_ids:
+        return
+
+    muted_ids = set(
+        ChatState.objects
+        .filter(group=group, user_id__in=member_ids, is_muted=True)
+        .values_list("user_id", flat=True)
+    )
+    target_ids = [uid for uid in member_ids if uid not in muted_ids]
+    if not target_ids:
+        return
+
+    body = ""
+    if message.body:
+        body = message.body
+    elif message.file:
+        body = f"📎 {message.filename or 'File'}"
+
+    identifier = group.group_slug or group.group_name
+    url = f"/chat/room/{identifier}"
+
+    claims_sub = (getattr(settings, "WEBPUSH_VAPID_CLAIMS_SUB", "") or "").strip() or "mailto:admin@localhost"
+    vapid_claims = {"sub": claims_sub}
+
+    author_name = getattr(getattr(message.author, "profile", None), "name", None) or message.author.username
+
+    subs = PushSubscription.objects.filter(user_id__in=target_ids)
+    for sub in subs:
+        title = "پیام جدید"
+        if group.is_private:
+            title = author_name
+        elif group.group_name == "public_chat":
+            title = group.groupchat_name or "Public Chat"
+        else:
+            title = group.groupchat_name or identifier
+
+        payload = {"title": title, "body": body, "url": url}
+        sub_info = sub.subscription or {"endpoint": sub.endpoint, "keys": sub.keys}
+
+        try:
+            webpush(
+                subscription_info=sub_info,
+                data=json.dumps(payload, ensure_ascii=False),
+                vapid_private_key=private_key,
+                vapid_claims=vapid_claims,
+            )
+        except WebPushException as e:
+            resp = getattr(e, "response", None)
+            status = getattr(resp, "status_code", None)
+            if status in (404, 410):
+                PushSubscription.objects.filter(id=sub.id).delete()
+        except Exception:
+            continue
 
 
 def _touch_last_seen(user) -> None:
@@ -123,6 +198,8 @@ class ChatroomConsumer(WebsocketConsumer):
             group=self.chatroom,
             reply_to=reply_to,
         )
+
+        transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
 
         async_to_sync(self.channel_layer.group_send)(
             self.chatroom_name,

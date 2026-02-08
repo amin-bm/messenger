@@ -28,6 +28,11 @@ urlpatterns = [
     path('', include('a_rtchat.urls')),
     path('profile/', include('a_users.urls')),
     path('@<username>/', profile_view, name="profile"),
+    path('manifest.webmanifest', pwa_manifest, name='pwa-manifest'),
+    path('sw.js', pwa_service_worker, name='pwa-service-worker'),
+    path('pwa/vapid-public-key', vapid_public_key, name='pwa-vapid-public-key'),
+    path('pwa/subscribe', pwa_subscribe, name='pwa-subscribe'),
+    path('pwa/unsubscribe', pwa_unsubscribe, name='pwa-unsubscribe'),
 ]
 
 # Only used when DEBUG=True, whitenoise can serve files when DEBUG=False

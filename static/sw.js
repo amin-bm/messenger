@@ -1,8 +1,8 @@
-const CACHE_NAME = "pesk-messenger-v1";
+const CACHE_NAME = "pesk-messenger-v2";
 
 const APP_SHELL = [
   "/",
-  "/static/css/tailwind.css",
+  "/static/css/tailwind.css?v=2",
   "/static/css/fonts.css",
   "/static/vendor/htmx.min.js",
   "/static/vendor/ws.min.js",
@@ -99,4 +99,3 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
-

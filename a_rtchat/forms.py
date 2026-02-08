@@ -9,7 +9,7 @@ class ChatmessageCreateForm(ModelForm):
         model = GroupMessage
         fields = ('body',)
         widgets = {
-            'body': forms.Textarea(attrs={'placeholder': 'Write a message...', 'class': 'w-full !bg-transparent !px-2 !py-2 !rounded-none text-sm text-gray-900 placeholder-gray-400 outline-none resize-none leading-6 max-h-40 overflow-y-auto', 'style': 'unicode-bidi: plaintext; text-align: start;', 'dir': 'auto', 'maxlength': '300', 'rows': 1, 'autofocus': True, 'autocomplete': 'off'}),
+            'body': forms.Textarea(attrs={'placeholder': 'Write a message...', 'class': 'w-full !bg-transparent !px-2 !rounded-none text-gray-900 placeholder-gray-400 outline-none resize-none max-h-40 overflow-y-auto', 'style': 'unicode-bidi: plaintext; font-size: 0.875rem; text-align: start; box-sizing: border-box; vertical-align: middle; line-height: inhert; margin-top: 3px; margin-bottom: 3px; padding-top: 3px; padding-bottom: 3px;', 'dir': 'auto', 'maxlength': '300', 'rows': 1, 'autofocus': True, 'autocomplete': 'off'}),
         }
 
 

@@ -6,6 +6,20 @@
 
 <h1 class="mb-6">پنل مدیریت</h1>
 
+<h2 class="text-base font-bold text-gray-900 mb-3">بکاپ</h2>
+<div class="mb-8 flex flex-col gap-3">
+    <a href="{% url 'profile-manager-backup' %}" class="button block !bg-gray-800 w-fit">گرفتن بکاپ</a>
+    <form method="post" action="{% url 'profile-manager-restore' %}" enctype="multipart/form-data" class="flex flex-col gap-2">
+        {% csrf_token %}
+        <input type="file" name="backup_file" accept=".json,application/json" class="w-full rounded-lg border px-3 py-2" />
+        <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="confirm_restore" class="rounded border" />
+            <span>می‌دانم که با لود بکاپ، اطلاعات فعلی پاک می‌شود.</span>
+        </label>
+        <button type="submit" class="button block !bg-gray-800 w-fit">لود بکاپ</button>
+    </form>
+</div>
+
 <h2 class="text-base font-bold text-gray-900 mb-3">کاربران در انتظار تایید</h2>
 {% if pending_profiles %}
 <table class="w-full text-sm text-left text-gray-500 mb-8">

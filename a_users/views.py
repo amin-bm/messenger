@@ -6,6 +6,13 @@ from django.contrib.auth import logout
 from django.contrib.auth.models import User
 from django.contrib.auth.views import redirect_to_login
 from django.contrib import messages
+from django.core.management import call_command
+from django.http import HttpResponse
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods
+import io
+import os
+import tempfile
 from .forms import *
 from .models import Profile
 
@@ -49,6 +56,14 @@ def profile_edit_view(request):
 @login_required
 def profile_settings_view(request):
     return render(request, 'a_users/profile_settings.html')
+
+def _user_can_open_manager_panel(user) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
+        return True
+    profile = getattr(user, "profile", None)
+    return bool(getattr(profile, "is_manager", False))
 
 
 @login_required
@@ -118,6 +133,71 @@ def manager_panel_view(request):
             "q": q,
         },
     )
+
+
+@login_required
+@require_http_methods(["GET"])
+def manager_backup_view(request):
+    if not _user_can_open_manager_panel(request.user):
+        messages.warning(request, "شما به این بخش دسترسی ندارید.")
+        return redirect("profile")
+
+    out = io.StringIO()
+    call_command(
+        "dumpdata",
+        stdout=out,
+        indent=2,
+        use_natural_foreign_keys=True,
+        use_natural_primary_keys=True,
+        exclude=["sessions", "admin.logentry"],
+    )
+
+    ts = timezone.localtime().strftime("%Y%m%d-%H%M%S")
+    filename = f"messenger-backup-{ts}.json"
+    response = HttpResponse(out.getvalue(), content_type="application/json; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+@require_http_methods(["POST"])
+def manager_restore_view(request):
+    if not _user_can_open_manager_panel(request.user):
+        messages.warning(request, "شما به این بخش دسترسی ندارید.")
+        return redirect("profile")
+
+    uploaded = request.FILES.get("backup_file")
+    confirm_restore = request.POST.get("confirm_restore")
+
+    if not uploaded:
+        messages.warning(request, "فایل بکاپ انتخاب نشده است.")
+        return redirect("profile-manager")
+
+    if confirm_restore != "on":
+        messages.warning(request, "برای لود بکاپ باید تایید را فعال کنید.")
+        return redirect("profile-manager")
+
+    temp_path = None
+    try:
+        temp_dir = tempfile.gettempdir()
+        temp_path = os.path.join(temp_dir, f"messenger-restore-{timezone.now().timestamp()}.json")
+        with open(temp_path, "wb") as f:
+            for chunk in uploaded.chunks():
+                f.write(chunk)
+
+        call_command("flush", interactive=False, verbosity=0)
+        call_command("loaddata", temp_path, verbosity=0)
+        messages.success(request, "بکاپ با موفقیت لود شد. ممکن است نیاز باشد دوباره وارد شوید.")
+        return redirect("home")
+    except Exception:
+        messages.error(request, "لود بکاپ ناموفق بود.")
+        return redirect("profile-manager")
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
 
 
 @login_required

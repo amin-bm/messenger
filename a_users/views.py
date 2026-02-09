@@ -10,6 +10,9 @@ from django.core.management import call_command
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
+from django.db.models import Q
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 import io
 import os
 import tempfile
@@ -114,6 +117,7 @@ def manager_panel_view(request):
         return redirect("profile-manager")
 
     q = (request.GET.get("q") or "").strip()
+    cq = (request.GET.get("cq") or "").strip()
     pending_profiles = (
         Profile.objects.select_related("user")
         .filter(approved=False)
@@ -123,6 +127,11 @@ def manager_panel_view(request):
     if q:
         manager_profiles = manager_profiles.filter(user__username__icontains=q)
 
+    contact_profiles = Profile.objects.select_related("user").order_by("user__username")
+    if cq:
+        contact_profiles = contact_profiles.filter(user__username__icontains=cq)
+    contact_profiles = contact_profiles[:50]
+
     return render(
         request,
         "a_users/manager.html",
@@ -131,6 +140,73 @@ def manager_panel_view(request):
             "manager_profiles": manager_profiles,
             "can_manage_managers": can_manage_managers,
             "q": q,
+            "contact_profiles": contact_profiles,
+            "cq": cq,
+        },
+    )
+
+
+@login_required
+def manager_contact_visibility_view(request, user_id: int):
+    current_profile = getattr(request.user, "profile", None)
+    can_approve = bool(
+        getattr(request.user, "is_staff", False)
+        or getattr(request.user, "is_superuser", False)
+        or getattr(current_profile, "is_manager", False)
+    )
+    if not can_approve:
+        messages.warning(request, "شما به این بخش دسترسی ندارید.")
+        return redirect("profile")
+
+    target_user = get_object_or_404(User, id=user_id)
+    target_profile = getattr(target_user, "profile", None)
+    if not target_profile:
+        target_profile = Profile.objects.create(user=target_user)
+
+    viewer_users = (
+        User.objects
+        .select_related("profile")
+        .filter(
+            Q(is_staff=True)
+            | Q(is_superuser=True)
+            | Q(profile__is_manager=True)
+            | Q(profile__approved=True)
+        )
+        .distinct()
+        .order_by("username")
+    )
+
+    if request.method == "POST":
+        mode = (request.POST.get("visibility_mode") or "").strip().lower()
+        if mode not in (Profile.CONTACT_VISIBILITY_ALL, Profile.CONTACT_VISIBILITY_SELECTED):
+            mode = Profile.CONTACT_VISIBILITY_ALL
+
+        allowed_ids = []
+        for raw in request.POST.getlist("visible_to"):
+            if str(raw).isdigit():
+                allowed_ids.append(int(raw))
+
+        target_profile.contact_visibility_mode = mode
+        target_profile.save(update_fields=["contact_visibility_mode"])
+        if mode == Profile.CONTACT_VISIBILITY_SELECTED:
+            target_profile.contact_visible_to.set(User.objects.filter(id__in=allowed_ids))
+        else:
+            target_profile.contact_visible_to.clear()
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)("online-status", {"type": "online_status_handler"})
+
+        messages.success(request, f"نمایش مخاطب @{target_user.username} به‌روزرسانی شد.")
+        return redirect("profile-manager-contact-visibility", user_id=target_user.id)
+
+    selected_ids = set(target_profile.contact_visible_to.values_list("id", flat=True))
+    return render(
+        request,
+        "a_users/manager.html",
+        {
+            "target_profile": target_profile,
+            "viewer_users": viewer_users,
+            "selected_ids": selected_ids,
         },
     )
 

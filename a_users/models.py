@@ -4,6 +4,13 @@ from django.conf import settings
 from django.utils import timezone
 
 class Profile(models.Model):
+    CONTACT_VISIBILITY_ALL = "all"
+    CONTACT_VISIBILITY_SELECTED = "selected"
+    CONTACT_VISIBILITY_CHOICES = [
+        (CONTACT_VISIBILITY_ALL, "All"),
+        (CONTACT_VISIBILITY_SELECTED, "Selected"),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     image = models.ImageField(upload_to='avatars/', null=True, blank=True)
     displayname = models.CharField(max_length=20, null=True, blank=True)
@@ -12,6 +19,16 @@ class Profile(models.Model):
     approved = models.BooleanField(default=False)
     is_manager = models.BooleanField(default=False)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    contact_visibility_mode = models.CharField(
+        max_length=16,
+        choices=CONTACT_VISIBILITY_CHOICES,
+        default=CONTACT_VISIBILITY_ALL,
+    )
+    contact_visible_to = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name="contact_visible_to_profiles",
+    )
     
     def __str__(self):
         return str(self.user)

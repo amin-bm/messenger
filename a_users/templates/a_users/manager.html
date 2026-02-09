@@ -4,22 +4,120 @@
 
 {% block content %}
 
-<h1 class="mb-6">پنل مدیریت</h1>
+<h1 class="mb-6"  dir="auto">پنل مدیریت</h1>
 
-<h2 class="text-base font-bold text-gray-900 mb-3">بکاپ</h2>
-<div class="mb-8 flex flex-col gap-3">
-    <a href="{% url 'profile-manager-backup' %}" class="button block !bg-gray-800 w-fit">گرفتن بکاپ</a>
-    <form method="post" action="{% url 'profile-manager-restore' %}" enctype="multipart/form-data" class="flex flex-col gap-2">
-        {% csrf_token %}
-        <input type="file" name="backup_file" accept=".json,application/json" class="w-full rounded-lg border px-3 py-2" />
-        <label class="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" name="confirm_restore" class="rounded border" />
-            <span>می‌دانم که با لود بکاپ، اطلاعات فعلی پاک می‌شود.</span>
-        </label>
-        <button type="submit" class="button block !bg-gray-800 w-fit">لود بکاپ</button>
-    </form>
+{% if target_profile %}
+<div class="mb-6">
+    <a href="{% url 'profile-manager' %}" class="button block !bg-gray-800 w-fit">بازگشت</a>
 </div>
 
+<h2 class="text-base font-bold text-gray-900 mb-3">محدودسازی نمایش مخاطب @{{ target_profile.user.username }}</h2>
+
+<form method="post" action="{% url 'profile-manager-contact-visibility' target_profile.user.id %}" class="border rounded-lg p-4 bg-white" x-data="{ mode: '{{ target_profile.contact_visibility_mode }}', q: '' }">
+    {% csrf_token %}
+    <div class="flex flex-col gap-4">
+        <div class="flex flex-col md:flex-row gap-3 items-start md:items-center">
+            <div class="w-full md:w-[260px]">
+                <select name="visibility_mode" x-model="mode" class="w-full rounded-lg border px-3 py-2">
+                    <option value="all">نمایش برای همه</option>
+                    <option value="selected">نمایش فقط برای افراد انتخاب شده</option>
+                </select>
+            </div>
+            <div class="w-full flex-1">
+                <input x-model="q" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو کاربر برای فیلتر" />
+            </div>
+            <button type="submit" class="button block !bg-gray-800 w-fit">ذخیره</button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">نمایش</th>
+                        <th scope="col" class="px-4 py-3">کاربر</th>
+                        <th scope="col" class="px-4 py-3">نام</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in viewer_users %}
+                        {% if u.id != target_profile.user.id %}
+                        <tr class="bg-white border-b" data-search="{{ u.username|lower }} {{ u.profile.name|lower }}" x-show="!q || ($el.dataset.search || '').includes(q.toLowerCase())">
+                            <td class="px-4 py-3">
+                                <input type="checkbox" name="visible_to" value="{{ u.id }}" class="rounded border" :disabled="mode !== 'selected'" {% if u.id in selected_ids %}checked{% endif %} />
+                            </td>
+                            <th scope="row" class="px-4 py-3 text-gray-900 font-medium">@{{ u.username }}</th>
+                            <td class="px-4 py-3">{{ u.profile.name }}</td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+
+{% else %}
+<h2 class="text-base font-bold text-gray-900 mb-3" dir="rtl">پشتیبان‌گیری</h2>
+<div class="mb-10 grid grid-cols-1 md:grid-cols-2 gap-4" dir="rtl">
+    <div class="border rounded-xl p-4 bg-white">
+        <div class="flex items-center gap-3 mb-1">
+            <div class="h-9 w-9 rounded-lg bg-slate-100 text-slate-700 grid place-items-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 3v12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M5 21h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <div class="text-sm font-semibold text-gray-900">گرفتن بکاپ</div>
+                <div class="text-xs text-gray-500">دانلود فایل بکاپ از اطلاعات فعلی سیستم</div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <a href="{% url 'profile-manager-backup' %}" class="button block !bg-gray-800 w-fit">دانلود بکاپ</a>
+        </div>
+    </div>
+
+    <div class="border rounded-xl p-4 bg-white" x-data="{ fileName: '', confirm: false, tried: false }">
+        <div class="flex items-center gap-3 mb-1">
+            <div class="h-9 w-9 rounded-lg bg-amber-50 text-amber-700 grid place-items-center">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 21V9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M17 14l-5-5-5 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M5 3h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                </svg>
+            </div>
+            <div class="min-w-0">
+                <div class="text-sm font-semibold text-gray-900">بازگردانی بکاپ</div>
+                <div class="text-xs text-gray-500">با لود بکاپ، اطلاعات فعلی پاک می‌شود</div>
+            </div>
+        </div>
+
+        <form method="post" action="{% url 'profile-manager-restore' %}" enctype="multipart/form-data" class="mt-4 flex flex-col gap-3" @submit="if (!confirm) { tried = true; $event.preventDefault(); }">
+            {% csrf_token %}
+            <input id="backup_file_input" type="file" name="backup_file" accept=".json,application/json" class="hidden" @change="fileName = $event.target.files?.[0]?.name || ''" />
+
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-2">
+                    <label for="backup_file_input" class="button block !bg-gray-800 w-fit cursor-pointer select-none">انتخاب فایل</label>
+                    <div class="text-xs text-gray-500 truncate" x-text="fileName || 'فایلی انتخاب نشده'"></div>
+                </div>
+            </div>
+
+            <label class="flex items-start justify-between gap-3 text-sm text-gray-800 bg-amber-50 border border-amber-200 rounded-lg p-3" dir="rtl">
+                <div class="flex flex-col gap-1">
+                    <span class="font-medium">تایید بازگردانی</span>
+                    <span class="text-xs text-amber-800">می‌دانم که با بازگردانی بکاپ، اطلاعات فعلی پاک می‌شود.</span>
+                </div>
+                <input type="checkbox" name="confirm_restore" class="h-5 w-5 rounded border border-amber-300 mt-0.5" x-model="confirm" @change="if (confirm) tried = false" />
+            </label>
+            <div x-show="tried && !confirm" x-cloak class="text-xs text-red-600" dir="rtl">برای ادامه باید تیک تایید را فعال کنید.</div>
+
+            <button type="submit" class="button block !bg-gray-800 w-fit" :class="!confirm ? 'opacity-80' : ''">لود بکاپ</button>
+        </form>
+    </div>
+</div>
+<br>
 <h2 class="text-base font-bold text-gray-900 mb-3">کاربران در انتظار تایید</h2>
 {% if pending_profiles %}
 <table class="w-full text-sm text-left text-gray-500 mb-8">
@@ -49,7 +147,7 @@
 {% endif %}
 
 {% if can_manage_managers %}
-<h2 class="text-base font-bold text-gray-900 mb-3">مدیرها</h2>
+<h2 class="text-base font-bold text-gray-900 mb-3">کاربرها</h2>
 
 <form method="get" class="flex gap-2 mb-4">
     <input name="q" value="{{ q }}" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو با نام کاربری" />
@@ -65,7 +163,7 @@
             </th>
             <td class="py-4 pl-4">
                 {% if p.is_manager %}<span class="text-green-600">مدیر</span>{% else %}<span class="text-gray-400">کاربر</span>{% endif %}
-                {% if p.user.is_superuser %}<span class="text-indigo-600 ml-2">سوپر یوزر</span>{% endif %}
+                <!-- {% if p.user.is_superuser %}<span class="text-indigo-600 ml-2">سوپر یوزر</span>{% endif %} -->
                 {% if p.user.is_staff and not p.user.is_superuser %}<span class="text-indigo-600 ml-2">استف</span>{% endif %}
             </td>
             <td class="py-4 pl-4">
@@ -84,4 +182,43 @@
 </table>
 {% endif %}
 
+<br>
+<h2 class="text-base font-bold text-gray-900 mt-10 mb-3">محدودسازی نمایش مخاطبین</h2>
+
+<form method="get" class="flex gap-2 mb-4">
+    <input name="cq" value="{{ cq }}" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو مخاطب با نام کاربری" />
+    {% if q %}<input type="hidden" name="q" value="{{ q }}" />{% endif %}
+    <button type="submit" class="button block !bg-gray-800">جستجو</button>
+</form>
+
+<table class="w-full text-sm text-left text-gray-500">
+    <tbody>
+        {% for p in contact_profiles %}
+        <tr class="border-b">
+            <th scope="row" class="py-4 text-gray-900 font-medium">
+                @{{ p.user.username }}
+            </th>
+            <td class="py-4 pl-4">
+                {{ p.name }}
+            </td>
+            <td class="py-4 pl-4">
+                {% if p.contact_visibility_mode == "selected" %}
+                    <span class="text-amber-700">انتخاب‌شده</span>
+                {% else %}
+                    <span class="text-gray-600">همه</span>
+                {% endif %}
+            </td>
+            <td class="py-4 pl-4">
+                <a href="{% url 'profile-manager-contact-visibility' p.user.id %}" class="button block !bg-gray-800 w-fit">تنظیم</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td class="py-4 text-sm text-gray-500" colspan="4">مخاطبی پیدا نشد.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endif %}
 {% endblock %}

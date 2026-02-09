@@ -6,7 +6,7 @@ from django.template.loader import render_to_string
 from asgiref.sync import async_to_sync
 import json
 
-from django.db.models import OuterRef, Subquery, Count, Value
+from django.db.models import OuterRef, Subquery, Count, Value, Q
 from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.conf import settings
@@ -520,6 +520,16 @@ class OnlineStatusConsumer(WebsocketConsumer):
             .exclude(id=self.user.id)
             .select_related('profile')
         )
+        can_see_all_contacts = bool(
+            getattr(self.user, "is_staff", False)
+            or getattr(self.user, "is_superuser", False)
+            or getattr(getattr(self.user, "profile", None), "is_manager", False)
+        )
+        if not can_see_all_contacts:
+            contact_users = contact_users.filter(
+                Q(profile__contact_visibility_mode=Profile.CONTACT_VISIBILITY_ALL)
+                | Q(profile__contact_visible_to=self.user)
+            ).distinct()
 
         contacts = []
         for u in contact_users:

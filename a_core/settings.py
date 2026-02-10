@@ -289,6 +289,8 @@ ACCOUNT_FORMS = {
     "login": "a_users.allauth_forms.PhoneLoginForm",
 }
 
+CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL = _env_bool("CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", "0")
+
 try:
     from .local_settings import *  # noqa: F403
 except Exception:

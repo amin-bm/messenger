@@ -119,6 +119,23 @@ def _user_can_access_messenger(user) -> bool:
     return bool(getattr(profile, "approved", False))
 
 
+def _user_is_manager_or_staff(user) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
+        return True
+    profile = getattr(user, "profile", None)
+    return bool(getattr(profile, "is_manager", False))
+
+
+def _public_chat_visible_to_user(user: User, public_chat: ChatGroup) -> bool:
+    if bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False)):
+        return True
+    if _user_is_manager_or_staff(user):
+        return True
+    return public_chat.members.filter(id=user.id).exists()
+
+
 class ChatroomConsumer(WebsocketConsumer):
     def connect(self):
         self.user = self.scope['user']
@@ -129,6 +146,10 @@ class ChatroomConsumer(WebsocketConsumer):
             self.close()
             return
         if not _user_can_access_messenger(self.user):
+            self.close()
+            return
+
+        if self.chatroom.group_name == "public_chat" and not _public_chat_visible_to_user(self.user, self.chatroom):
             self.close()
             return
 
@@ -211,7 +232,11 @@ class ChatroomConsumer(WebsocketConsumer):
 
         # ✅ refresh sidebar (last message + unread)
         target_user_ids = list(self.chatroom.members.values_list("id", flat=True))
-        if not target_user_ids and self.chatroom.group_name == "public_chat":
+        if (
+            not target_user_ids
+            and self.chatroom.group_name == "public_chat"
+            and bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False))
+        ):
             event = {"type": "online_status_handler"}
         else:
             event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [self.user.id])}
@@ -355,16 +380,6 @@ class OnlineStatusConsumer(WebsocketConsumer):
         # online users (global, except me)
         online_users = User.objects.filter(id__in=global_online_ids).exclude(id=self.user.id)
 
-        # public chat
-        public_chat = ChatGroup.objects.get(group_name='public_chat')
-        public_chat_online = (
-            public_chat.users_online
-            .filter(profile__last_seen__gte=cutoff)
-            .exclude(id=self.user.id)
-            .exists()
-        )
-        public_last = public_chat.chat_messages.order_by('-created').first()
-
         # last message subquery per chat
         last_msg_qs = GroupMessage.objects.filter(group=OuterRef('pk')).order_by('-created')
         # state subquery per chat (for pinned/muted/last_read)
@@ -412,26 +427,35 @@ class OnlineStatusConsumer(WebsocketConsumer):
 
         sidebar_items = []
 
-        public_state = states.get(public_chat.id)
-        public_unread_count = unread_map.get(public_chat.id, 0)
-        sidebar_items.append({
-            "kind": "public",
-            "title": (public_chat.groupchat_name or "Public Chat"),
-            "subtitle": "General",
-            "url": "/chat/room/public_chat",
-            "chatroom_name": "public_chat",
-            "avatar_url": None,
-            "avatar_letter": (public_chat.groupchat_name[:1].upper() if public_chat.groupchat_name else "P"),
-            "is_online": public_chat_online,
-            "is_pinned": bool(getattr(public_state, "is_pinned", False)),
-            "is_muted": bool(getattr(public_state, "is_muted", False)),
-            "unread_count": public_unread_count,
-            "last_text": (
-                public_last.body if public_last and public_last.body
-                else ("📎 File" if public_last and public_last.file else "")
-            ),
-            "last_time": (public_last.created if public_last else None),
-        })
+        public_chat = ChatGroup.objects.filter(group_name="public_chat").first()
+        if public_chat and _public_chat_visible_to_user(self.user, public_chat):
+            public_chat_online = (
+                public_chat.users_online
+                .filter(profile__last_seen__gte=cutoff)
+                .exclude(id=self.user.id)
+                .exists()
+            )
+            public_last = public_chat.chat_messages.order_by('-created').first()
+            public_state = states.get(public_chat.id)
+            public_unread_count = unread_map.get(public_chat.id, 0)
+            sidebar_items.append({
+                "kind": "public",
+                "title": (public_chat.groupchat_name or "Public Chat"),
+                "subtitle": "General",
+                "url": "/chat/room/public_chat",
+                "chatroom_name": "public_chat",
+                "avatar_url": None,
+                "avatar_letter": (public_chat.groupchat_name[:1].upper() if public_chat.groupchat_name else "P"),
+                "is_online": public_chat_online,
+                "is_pinned": bool(getattr(public_state, "is_pinned", False)),
+                "is_muted": bool(getattr(public_state, "is_muted", False)),
+                "unread_count": public_unread_count,
+                "last_text": (
+                    public_last.body if public_last and public_last.body
+                    else ("📎 File" if public_last and public_last.file else "")
+                ),
+                "last_time": (public_last.created if public_last else None),
+            })
 
         for chatroom in my_chats:
             stale_room = list(chatroom.users_online.filter(profile__last_seen__lt=cutoff))

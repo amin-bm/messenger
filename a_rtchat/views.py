@@ -15,6 +15,7 @@ from django.db.models import Q
 from django.urls import reverse
 from django.utils.html import escape, format_html
 from django.db import transaction
+from django.conf import settings
 from .models import *
 from .forms import *
 from .consumers import _send_push_notifications_for_message
@@ -29,6 +30,23 @@ def _user_can_access_messenger(user) -> bool:
     if bool(getattr(profile, "is_manager", False)):
         return True
     return bool(getattr(profile, "approved", False))
+
+
+def _user_is_manager_or_staff(user) -> bool:
+    if not getattr(user, "is_authenticated", False):
+        return False
+    if bool(getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
+        return True
+    profile = getattr(user, "profile", None)
+    return bool(getattr(profile, "is_manager", False))
+
+
+def _public_chat_visible_to_user(user: User, public_chat: ChatGroup) -> bool:
+    if bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False)):
+        return True
+    if _user_is_manager_or_staff(user):
+        return True
+    return public_chat.members.filter(id=user.id).exists()
 
 
 def messenger_required(view_func):
@@ -123,6 +141,9 @@ def chat_view(request, chatroom_identifier='public_chat'):
     else:
         chat_group = get_chat_group_by_identifier(chatroom_identifier)
 
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
+
     chatroom_identifier = chat_group.group_slug or chat_group.group_name
     focus_raw = (request.GET.get("focus") or "").strip()
     focus_message = None
@@ -189,7 +210,11 @@ def chat_view(request, chatroom_identifier='public_chat'):
             )
 
             target_user_ids = list(chat_group.members.values_list("id", flat=True))
-            if not target_user_ids and chat_group.group_name == "public_chat":
+            if (
+                not target_user_ids
+                and chat_group.group_name == "public_chat"
+                and bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False))
+            ):
                 refresh_event = {"type": "online_status_handler"}
             else:
                 refresh_event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [request.user.id])}
@@ -220,9 +245,10 @@ def sidebar_search(request):
     if not q:
         return render(request, "a_rtchat/partials/sidebar_search_results.html", {"q": "", "results": []})
 
+    include_public = bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False)) or _user_is_manager_or_staff(request.user)
     accessible_groups = (
         ChatGroup.objects
-        .filter(Q(members=request.user) | Q(group_name="public_chat"))
+        .filter(Q(members=request.user) | (Q(group_name="public_chat") if include_public else Q()))
         .exclude(group_name="online-status")
         .distinct()
     )
@@ -406,6 +432,9 @@ def chatroom_leave_view(request, chatroom_name):
 @messenger_required
 def chat_file_upload(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
+
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
     
     if request.htmx and request.FILES:
         file = request.FILES['file']
@@ -435,7 +464,11 @@ def chat_file_upload(request, chatroom_name):
             )
 
         target_user_ids = list(chat_group.members.values_list("id", flat=True))
-        if not target_user_ids and chat_group.group_name == "public_chat":
+        if (
+            not target_user_ids
+            and chat_group.group_name == "public_chat"
+            and bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False))
+        ):
             refresh_event = {"type": "online_status_handler"}
         else:
             refresh_event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [request.user.id])}
@@ -448,6 +481,9 @@ def chat_file_upload(request, chatroom_name):
 def chat_message_edit(request, message_id):
     message = get_object_or_404(GroupMessage, id=message_id)
     chat_group = message.group
+
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
 
     if message.author_id != request.user.id:
         raise Http404
@@ -499,6 +535,9 @@ def chat_message_delete(request, message_id):
     message = get_object_or_404(GroupMessage, id=message_id)
     chat_group = message.group
 
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
+
     if chat_group.is_private:
         if request.user not in chat_group.members.all():
             raise Http404
@@ -543,6 +582,9 @@ def chat_message_delete(request, message_id):
 def chat_message_forward(request, message_id):
     message = get_object_or_404(GroupMessage, id=message_id)
     chat_group = message.group
+
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
 
 
     if request.method != "POST":
@@ -632,7 +674,11 @@ def chat_message_forward(request, message_id):
         {"type": "message_handler", "message_id": forwarded.id},
     )
     target_user_ids = list(target_group.members.values_list("id", flat=True))
-    if not target_user_ids and target_group.group_name == "public_chat":
+    if (
+        not target_user_ids
+        and target_group.group_name == "public_chat"
+        and bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False))
+    ):
         refresh_event = {"type": "online_status_handler"}
     else:
         refresh_event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [request.user.id])}
@@ -644,6 +690,9 @@ def chat_message_forward(request, message_id):
 @messenger_required
 def toggle_pin(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
+
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
 
     if chat_group.is_private and request.user not in chat_group.members.all():
         raise Http404
@@ -665,6 +714,9 @@ def toggle_pin(request, chatroom_name):
 @messenger_required
 def toggle_mute(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
+
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
 
     if chat_group.is_private and request.user not in chat_group.members.all():
         raise Http404

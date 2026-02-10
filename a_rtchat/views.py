@@ -1,4 +1,4 @@
-from nt import remove
+from os import remove
 from functools import wraps
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, render, redirect

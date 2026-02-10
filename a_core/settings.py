@@ -13,18 +13,67 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _strip_wrapping_quotes(value: str) -> str:
+    value = (value or "").strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"', "`"):
+        return value[1:-1].strip()
+    return value
+
+
+def _load_env_file(file_path: Path) -> None:
+    try:
+        content = file_path.read_text(encoding="utf-8")
+    except Exception:
+        return
+
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].lstrip()
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            continue
+        if key in os.environ:
+            continue
+        os.environ[key] = _strip_wrapping_quotes(value)
+
+
+_env_file = os.getenv("DJANGO_ENV_FILE", "").strip()
+_env_candidates: list[Path] = []
+if _env_file:
+    _env_candidates.append(Path(_env_file))
+_env_candidates.extend(
+    [
+        BASE_DIR / "messenger.env",
+        BASE_DIR / ".env",
+        Path("/etc/messenger/messenger.env"),
+        Path("/etc/pesk-messenger/pesk-messenger.env"),
+    ]
+)
+for _p in _env_candidates:
+    if _p.exists():
+        _load_env_file(_p)
+        break
+
+
 def _env_bool(name: str, default: str = "0") -> bool:
     return os.getenv(name, default).strip().lower() in ("1", "true", "yes", "on")
 
 
 def _env_csv(name: str) -> list[str]:
-    raw = os.getenv(name, "").strip()
+    raw = _strip_wrapping_quotes(os.getenv(name, ""))
     if not raw:
         return []
-    return [item.strip() for item in raw.split(",") if item.strip()]
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+    return [_strip_wrapping_quotes(item) for item in raw.split(",") if item.strip()]
 
 
 # Project title displayed in the header
@@ -40,7 +89,7 @@ SECRET_KEY = os.getenv(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _env_bool("DJANGO_DEBUG", "1")
 
-OFFLINE_MODE = _env_bool("OFFLINE_MODE", "1")
+OFFLINE_MODE = _env_bool("OFFLINE_MODE", "0")
 
 ALLOWED_HOSTS = _env_csv("DJANGO_ALLOWED_HOSTS") or ['localhost', '127.0.0.1', '*']
 
@@ -138,36 +187,37 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-# _use_postgres = bool(os.getenv("POSTGRES_HOST") or os.getenv("POSTGRES_DB"))
-# if _use_postgres:
-#     DATABASES = {
-#         "default": {
-#             "ENGINE": "django.db.backends.postgresql",
-#             "NAME": os.getenv("POSTGRES_DB", "chat_db"),
-#             "USER": os.getenv("POSTGRES_USER", "postgres"),
-#             "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
-#             "HOST": os.getenv("POSTGRES_HOST", "localhost"),
-#             "PORT": os.getenv("POSTGRES_PORT", "5432"),
-#         }
-#     }
-# else:
-#     DATABASES = {
-#         "default": {
-#             "ENGINE": "django.db.backends.sqlite3",
-#             "NAME": os.getenv("SQLITE_PATH", str(BASE_DIR / "db.sqlite3")),
-#         }
-#     }
+_use_postgres = bool(
+    os.getenv("POSTGRES_HOST")
+    or os.getenv("POSTGRES_DB")
+    or os.getenv("POSTGRES_USER")
+    or os.getenv("POSTGRES_PASSWORD")
+    or os.getenv("DATABASE_HOST")
+    or os.getenv("DATABASE_NAME")
+    or os.getenv("DATABASE_USER")
+    or os.getenv("DATABASE_PASSWORD")
+)
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'chat_db'),
-        'USER': os.getenv('POSTGRES_USER', 'postgres'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', '1234'),
-        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
-        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+if _use_postgres:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": (os.getenv("DATABASE_NAME") or os.getenv("POSTGRES_DB") or "chat_db").strip(),
+            "USER": (os.getenv("DATABASE_USER") or os.getenv("POSTGRES_USER") or "postgres").strip(),
+            "PASSWORD": (os.getenv("DATABASE_PASSWORD") or os.getenv("POSTGRES_PASSWORD") or "").strip(),
+            "HOST": (os.getenv("DATABASE_HOST") or os.getenv("POSTGRES_HOST") or "localhost").strip() or "localhost",
+            "PORT": (os.getenv("DATABASE_PORT") or os.getenv("POSTGRES_PORT") or "5432").strip() or "5432",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.getenv("SQLITE_PATH", str(BASE_DIR / "db.sqlite3")),
+        }
+    }
+
+
 
 
 # Password validation

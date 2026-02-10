@@ -1,8 +1,12 @@
 import json
+import logging
 import os
+import urllib.error
 import urllib.request
 
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def _settings_or_env(name: str) -> str:
@@ -25,7 +29,18 @@ def _smsir_request(url: str, api_key: str, payload: dict) -> dict | None:
         with urllib.request.urlopen(request, timeout=15) as response:
             body = response.read().decode("utf-8")
             return json.loads(body or "{}")
+    except urllib.error.HTTPError as exc:
+        try:
+            body = exc.read().decode("utf-8", errors="replace")
+        except Exception:
+            body = ""
+        logger.warning("SMSIR HTTPError %s for %s: %s", exc.code, url, body[:800])
+        try:
+            return json.loads(body or "{}")
+        except Exception:
+            return None
     except Exception:
+        logger.exception("SMSIR request failed for %s", url)
         return None
 
 
@@ -37,6 +52,7 @@ def send_sms_ir(phone_number: str, message: str) -> bool:
     line_number = _settings_or_env("SMSIR_LINE_NUMBER")
 
     if not api_key or not line_number:
+        logger.warning("SMSIR bulk send disabled: missing API key or line number")
         return False
 
     url = "https://api.sms.ir/v1/send/bulk"
@@ -59,15 +75,20 @@ def send_otp_sms_ir(phone_number: str, otp: str) -> bool:
     template_id = _settings_or_env("SMSIR_TEMPLATE_ID")
 
     if not api_key or not template_id:
+        logger.warning("SMSIR OTP disabled: missing API key or template id")
         if getattr(settings, "DEBUG", False):
             print(f"OTP for {phone_number}: {otp}")
             return True
         return False
 
     url = "https://api.sms.ir/v1/send/verify"
+    try:
+        template_id_value: int | str = int(template_id)
+    except Exception:
+        template_id_value = template_id
     payload = {
         "mobile": phone_number,
-        "templateId": template_id,
+        "templateId": template_id_value,
         "parameters": [{"name": "CODE", "value": str(otp)}],
     }
     result = _smsir_request(url, api_key, payload)

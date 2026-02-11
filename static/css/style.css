@@ -30,3 +30,58 @@
     font-size: 16px !important;
   }
 }
+
+@media (pointer: coarse) {
+  #chats-list .chat-actions-ellipsis {
+    display: flex !important;
+  }
+
+  #chats-list .group-actions {
+    display: none !important;
+  }
+
+  #chats-list li {
+    overflow: visible;
+  }
+}
+
+#chats-list .chat-actions-ellipsis {
+  display: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+  color: #4b5563;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #chats-list li:hover .chat-actions-ellipsis {
+    display: flex;
+  }
+}
+
+#chats-list .chat-actions-ellipsis:active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+@media (pointer: coarse) {
+  #chats-list .group-actions {
+    display: none !important;
+  }
+
+  #chats-list .chat-actions-ellipsis {
+    display: grid !important;
+  }
+}
+
+@media (pointer: fine) {
+  #chats-list .chat-actions-ellipsis {
+    display: none !important;
+  }
+}

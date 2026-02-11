@@ -33,15 +33,16 @@
   <div id="tab-chats-panel" class="pt-2">
     <ul id="chats-list" class="space-y-1 px-1">
       {% for item in sidebar_items %}
-        <li>
+        <li class="chat-row flex items-stretch gap-1">
           <a href="{{ item.url }}"
              data-chat-url="{{ item.url }}"
              data-chat-id="{{ item.chatroom_name|default:'' }}"
              data-chat-title="{{ item.title|default:'' }}"
              data-chat-last-text="{% if item.last_text %}{{ item.last_text }}{% else %}{{ item.subtitle }}{% endif %}"
              data-chat-unread="{{ item.unread_count|default:0 }}"
+             data-chat-pinned="{% if item.is_pinned %}1{% else %}0{% endif %}"
              data-chat-muted="{% if item.is_muted %}1{% else %}0{% endif %}"
-             class="chat-item flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition relative">
+             class="chat-item flex flex-1 items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition min-w-0">
 
             <div class="relative shrink-0">
               {% if item.avatar_url %}
@@ -68,13 +69,13 @@
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
-                  {% if item.last_time %}
-                    <div class="text-[11px] text-gray-500">{{ item.last_time|date:"H:i" }}</div>
-                  {% endif %}
                   {% if item.unread_count and item.unread_count > 0 %}
                     <div class="min-w-[22px] h-[18px] px-2 rounded-full bg-blue-600 text-white text-[11px] flex items-center justify-center">
                       {{ item.unread_count }}
                     </div>
+                  {% endif %}
+                  {% if item.last_time %}
+                    <div class="text-[11px] text-gray-500">{{ item.last_time|date:"H:i" }}</div>
                   {% endif %}
                 </div>
               </div>
@@ -84,23 +85,23 @@
               </div>
             </div>
 
-            {% if item.chatroom_name %}
-              <div class="absolute right-2 top-1/2 -translate-y-1/2 hidden group-actions gap-1">
-                <button type="button"
-                        class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0"
-                        hx-post="{% url 'chat-pin' item.chatroom_name %}"
-                        hx-swap="none"
-                        onclick="event.preventDefault(); event.stopPropagation();"
-                        title="Pin/Unpin">📌</button>
-                <button type="button"
-                        class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0"
-                        hx-post="{% url 'chat-mute' item.chatroom_name %}"
-                        hx-swap="none"
-                        onclick="event.preventDefault(); event.stopPropagation();"
-                        title="Mute/Unmute">🔇</button>
-              </div>
-            {% endif %}
           </a>
+
+          {% if item.chatroom_name %}
+            <button type="button" class="chat-actions-ellipsis" aria-label="Chat actions">⋯</button>
+            <div class="hidden group-actions gap-1">
+              <button type="button"
+                      class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0"
+                      hx-post="{% url 'chat-pin' item.chatroom_name %}"
+                      hx-swap="none"
+                      title="Pin/Unpin">📌</button>
+              <button type="button"
+                      class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0"
+                      hx-post="{% url 'chat-mute' item.chatroom_name %}"
+                      hx-swap="none"
+                      title="Mute/Unmute">🔇</button>
+            </div>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>

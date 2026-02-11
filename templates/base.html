@@ -25,7 +25,7 @@
   <!-- ✅ Tailwind output built by CLI (local / offline) -->
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
-  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=5">
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="{% block class %}{% endblock %}">
@@ -41,6 +41,13 @@
       </form>
     </footer>
   {% endif %}
+
+  <div id="sidebar_chat_actions_menu" class="fixed hidden z-[9998]">
+    <div class="min-w-[170px] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/10">
+      <button type="button" data-action="pin" class="w-full px-4 py-3 text-right text-sm text-gray-800 hover:bg-gray-50 active:bg-gray-100">پین</button>
+      <button type="button" data-action="mute" class="w-full px-4 py-3 text-right text-sm text-gray-800 hover:bg-gray-50 active:bg-gray-100">بی‌صدا</button>
+    </div>
+  </div>
 
   <script>
     // ---------- Tabs ----------
@@ -96,22 +103,136 @@
     // ---------- Hover actions (Pin/Mute) with delegation ----------
     function bindSidebarHoverActions() {
       const list = document.getElementById('chats-list');
-      if (!list || list.dataset.bound === "1") return;
-      list.dataset.bound = "1";
+      if (!list) return;
+
+      const supportsHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      if (!supportsHover) return;
+
+      if (list.dataset.hoverBound === "1") return;
+      list.dataset.hoverBound = "1";
 
       list.addEventListener('mouseover', (e) => {
         const a = e.target.closest('a.chat-item');
         if (!a) return;
-        const actions = a.querySelector('.group-actions');
+        const li = a.closest('li');
+        const actions = (li ? li.querySelector('.group-actions') : null) || a.querySelector('.group-actions');
         if (actions) actions.style.display = 'flex';
       });
 
       list.addEventListener('mouseout', (e) => {
         const a = e.target.closest('a.chat-item');
         if (!a) return;
-        const actions = a.querySelector('.group-actions');
+        const li = a.closest('li');
+        const actions = (li ? li.querySelector('.group-actions') : null) || a.querySelector('.group-actions');
         if (actions) actions.style.display = 'none';
       });
+    }
+
+    function bindSidebarChatActionsMenu() {
+      const list = document.getElementById('chats-list');
+      const menu = document.getElementById('sidebar_chat_actions_menu');
+      if (!list || !menu) return;
+
+      const isTouchPointer =
+        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+        (typeof navigator !== 'undefined' && (navigator.maxTouchPoints || 0) > 0);
+      if (!isTouchPointer) return;
+
+      if (list.dataset.actionsBound === "1") return;
+      list.dataset.actionsBound = "1";
+
+      const btnPin = menu.querySelector('[data-action="pin"]');
+      const btnMute = menu.querySelector('[data-action="mute"]');
+      let currentItem = null;
+
+      function closeMenu() {
+        menu.classList.add('hidden');
+        menu.style.left = '';
+        menu.style.top = '';
+        currentItem = null;
+      }
+
+      function positionMenuNear(rect) {
+        const vw = window.innerWidth || 0;
+        const vh = window.innerHeight || 0;
+        const margin = 8;
+
+        const mw = menu.offsetWidth || 0;
+        const mh = menu.offsetHeight || 0;
+
+        let left = rect.right - mw;
+        let top = rect.bottom + 8;
+
+        if (left + mw + margin > vw) left = vw - mw - margin;
+        if (left < margin) left = margin;
+        if (top + mh + margin > vh) top = rect.top - mh - 8;
+        if (top < margin) top = margin;
+
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+      }
+
+      function syncMenuLabels(a) {
+        const pinned = a && a.getAttribute('data-chat-pinned') === '1';
+        const muted = a && a.getAttribute('data-chat-muted') === '1';
+        if (btnPin) btnPin.textContent = pinned ? 'برداشتن پین' : 'پین';
+        if (btnMute) btnMute.textContent = muted ? 'فعال کردن صدا' : 'بی‌صدا';
+      }
+
+      list.addEventListener('click', (e) => {
+        const btn = e.target.closest('button.chat-actions-ellipsis');
+        if (!btn) return;
+
+        const li = btn.closest('li');
+        const a = li ? li.querySelector('a.chat-item') : null;
+        if (!li || !a) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!menu.classList.contains('hidden') && currentItem === li) {
+          closeMenu();
+          return;
+        }
+
+        currentItem = li;
+        syncMenuLabels(a);
+        menu.classList.remove('hidden');
+        positionMenuNear(btn.getBoundingClientRect());
+      });
+
+      menu.addEventListener('click', (e) => {
+        const actionBtn = e.target.closest('button[data-action]');
+        if (!actionBtn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!currentItem) return;
+
+        const action = actionBtn.getAttribute('data-action');
+        const actions = currentItem.querySelector('.group-actions');
+        if (!actions) return closeMenu();
+
+        if (action === 'pin') {
+          const pinBtn = actions.querySelector('button[hx-post*="/chat/pin/"]');
+          if (pinBtn) pinBtn.click();
+        }
+        if (action === 'mute') {
+          const muteBtn = actions.querySelector('button[hx-post*="/chat/mute/"]');
+          if (muteBtn) muteBtn.click();
+        }
+        closeMenu();
+      });
+
+      document.addEventListener('click', (e) => {
+        if (menu.classList.contains('hidden')) return;
+        const insideMenu = e.target.closest('#sidebar_chat_actions_menu');
+        const insideBtn = e.target.closest('button.chat-actions-ellipsis');
+        if (!insideMenu && !insideBtn) closeMenu();
+      });
+
+      window.addEventListener('resize', closeMenu);
+      const container = document.getElementById('tg-sidebar');
+      if (container) container.addEventListener('scroll', closeMenu, { passive: true });
     }
 
     function normalizeSearchText(text) {
@@ -188,6 +309,7 @@
       bindSidebarTabs();
       bindSidebarSearch();
       bindSidebarHoverActions();
+      bindSidebarChatActionsMenu();
 
       const tab = localStorage.getItem('sidebarTab') || 'chats';
       setSidebarTab(tab);

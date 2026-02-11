@@ -1,0 +1,32 @@
+@media (pointer: coarse) {
+  input.text-xs,
+  textarea.text-xs,
+  select.text-xs,
+  input.text-sm,
+  textarea.text-sm,
+  select.text-sm {
+    font-size: 16px !important;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  input.text-xs,
+  textarea.text-xs,
+  select.text-xs,
+  input.text-sm,
+  textarea.text-sm,
+  select.text-sm {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  input.text-xs,
+  textarea.text-xs,
+  select.text-xs,
+  input.text-sm,
+  textarea.text-sm,
+  select.text-sm {
+    font-size: 16px !important;
+  }
+}

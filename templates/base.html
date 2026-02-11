@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="description" content="Django Template">
   <title>Pesk Messenger</title>
 
@@ -25,6 +25,7 @@
   <!-- ✅ Tailwind output built by CLI (local / offline) -->
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2">
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="{% block class %}{% endblock %}">

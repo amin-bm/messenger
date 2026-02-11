@@ -29,6 +29,11 @@
   select.text-sm {
     font-size: 16px !important;
   }
+
+  .text-sm {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
 }
 
 #chats-list .chat-actions-ellipsis {

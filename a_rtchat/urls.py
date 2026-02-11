@@ -12,6 +12,7 @@ urlpatterns = [
     path('chat/message/<int:message_id>/edit', chat_message_edit, name='chat-message-edit'),
     path('chat/message/<int:message_id>/forward', chat_message_forward, name='chat-message-forward'),
     path('chat/message/<int:message_id>/delete', chat_message_delete, name='chat-message-delete'),
+    path('chat/message/<int:message_id>/transcode', chat_message_transcode, name='chat-message-transcode'),
     path('chat/edit/<chatroom_name>', chatroom_edit_view, name='edit-chatroom'),
     path('chat/delete/<chatroom_name>', chatroom_delete_view, name='chatroom-delete'),
     path('chat/leave/<chatroom_name>', chatroom_leave_view, name='chatroom-leave'),

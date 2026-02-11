@@ -12,8 +12,8 @@
       loading="lazy"
     />
   {% elif message.is_audio %}
-    <div class="mt-2 w-full js-audio-msg" data-audio-src="{{ message.file.url }}">
-      <audio class="hidden js-audio" preload="metadata">
+    <div class="mt-2 w-full js-audio-msg" data-audio-src="{{ message.file.url }}" data-message-id="{{ message.id }}">
+      <audio class="sr-only js-audio" preload="metadata">
         <source src="{{ message.file.url }}" type="{{ message.mime_type }}">
       </audio>
 

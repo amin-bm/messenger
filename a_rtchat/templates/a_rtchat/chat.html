@@ -1066,6 +1066,7 @@
 
         const src = block.dataset.audioSrc || "";
         if (src && !audio.src) audio.src = src;
+        let transcodeAttempted = false;
 
         function setPlayingUI(isPlaying) {
           if (isPlaying) {
@@ -1093,6 +1094,34 @@
           });
         }
 
+        async function tryTranscodeAndReload() {
+          if (transcodeAttempted) return false;
+          transcodeAttempted = true;
+          const id = block.dataset.messageId || "";
+          if (!id) return false;
+          try {
+            const res = await fetch(`/chat/message/${encodeURIComponent(id)}/transcode`, {
+              method: "GET",
+              credentials: "same-origin",
+              headers: { "HX-Request": "true" },
+            });
+            if (!res.ok) return false;
+            const data = await res.json().catch(() => null);
+            if (!data || !data.ok || !data.url) {
+              if (data && data.reason === "ffmpeg_missing") durationEl.textContent = "نیاز به تبدیل";
+              return false;
+            }
+            const u = String(data.url || "");
+            if (!u) return false;
+            audio.src = `${u}${u.includes("?") ? "&" : "?"}v=${Date.now()}`;
+            audio.load();
+            updateProgress();
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+
         audio.addEventListener("loadedmetadata", () => {
           durationEl.textContent = formatDuration(audio.duration);
           updateProgress();
@@ -1108,10 +1137,40 @@
           setPlayingUI(false);
           updateProgress();
         });
+        audio.addEventListener("error", async () => {
+          const did = await tryTranscodeAndReload();
+          if (did) {
+            try {
+              const p = audio.play();
+              if (p && typeof p.then === "function") await p;
+            } catch (e) {}
+          }
+        });
 
-        toggle.addEventListener("click", () => {
-          if (audio.paused) audio.play();
-          else audio.pause();
+        toggle.addEventListener("click", async () => {
+          try {
+            if (audio.paused) {
+              pauseAllOtherAudios();
+              const p = audio.play();
+              if (p && typeof p.then === "function") await p;
+            } else {
+              audio.pause();
+            }
+          } catch (e) {
+            const did = await tryTranscodeAndReload();
+            if (did) {
+              try {
+                pauseAllOtherAudios();
+                const p = audio.play();
+                if (p && typeof p.then === "function") await p;
+                return;
+              } catch (e2) {}
+            }
+
+            audio.classList.remove("sr-only");
+            audio.classList.remove("hidden");
+            audio.controls = true;
+          }
         });
 
         seek.addEventListener("click", (e) => {
@@ -1156,6 +1215,9 @@
 
     function pickMimeType() {
       const candidates = [
+        "audio/mp4;codecs=mp4a.40.2",
+        "audio/mp4",
+        "audio/aac",
         "audio/webm;codecs=opus",
         "audio/webm",
         "audio/ogg;codecs=opus",
@@ -1165,6 +1227,16 @@
         if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
       }
       return "";
+    }
+
+    function extensionForMime(mime) {
+      const t = (mime || "").toLowerCase();
+      if (t.includes("audio/mp4")) return "m4a";
+      if (t.includes("audio/mpeg")) return "mp3";
+      if (t.includes("audio/aac")) return "aac";
+      if (t.includes("audio/ogg")) return "ogg";
+      if (t.includes("audio/webm")) return "webm";
+      return "webm";
     }
 
     function formatTimer(ms) {
@@ -1288,8 +1360,9 @@
       const csrfInput = fileForm.querySelector('input[name="csrfmiddlewaretoken"]');
       const csrfToken = csrfInput ? csrfInput.value : "";
 
-      const ext = (recordedBlob.type || "").includes("ogg") ? "ogg" : "webm";
-      const file = new File([recordedBlob], `voice-${Date.now()}.${ext}`, { type: recordedBlob.type || "audio/webm" });
+      const mime = recordedBlob.type || "audio/webm";
+      const ext = extensionForMime(mime);
+      const file = new File([recordedBlob], `voice-${Date.now()}.${ext}`, { type: mime });
 
       const formData = new FormData();
       formData.append("file", file);

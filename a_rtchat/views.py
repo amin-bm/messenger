@@ -1,3 +1,7 @@
+import os
+import shutil
+import subprocess
+import tempfile
 from os import remove
 from functools import wraps
 from django.contrib import messages
@@ -5,7 +9,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.http import Http404
 from django.template import context
 from django.utils import timezone
@@ -114,6 +118,55 @@ def _build_highlight_snippet(text: str, q: str, radius: int = 40):
         after,
         suffix,
     )
+
+
+def _maybe_transcode_audio_message_to_mp3(message: GroupMessage) -> tuple[bool, str]:
+    if not message or not getattr(message, "file", None):
+        return False, "no_file"
+    name = getattr(message.file, "name", "") or ""
+    ext = os.path.splitext(name)[1].lower()
+    if ext not in {".webm", ".ogg"}:
+        return True, "noop"
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        return False, "ffmpeg_missing"
+
+    try:
+        input_path = message.file.path
+    except Exception:
+        return False, "no_path"
+    tmp_path = ""
+    try:
+        tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+        tmp_path = tmp.name
+        tmp.close()
+
+        subprocess.run(
+            [ffmpeg, "-y", "-i", input_path, "-vn", "-ac", "1", "-ar", "48000", "-b:a", "64k", tmp_path],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        base = os.path.splitext(os.path.basename(name))[0]
+        folder = os.path.dirname(name)
+        target_name = os.path.join(folder, f"{base}.mp3").replace("\\", "/")
+        with open(tmp_path, "rb") as f:
+            message.file.save(target_name, File(f), save=False)
+        message.save(update_fields=["file"])
+        try:
+            message.file.storage.delete(name)
+        except Exception:
+            pass
+    except Exception:
+        return False, "transcode_failed"
+    finally:
+        if tmp_path:
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
+    return True, "converted"
 
 
 
@@ -452,6 +505,7 @@ def chat_file_upload(request, chatroom_name):
             author = request.user,
             reply_to=reply_to,
         )
+        _maybe_transcode_audio_message_to_mp3(message)
         transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
         channel_layer = get_channel_layer()
         event_type = "message_handler"
@@ -476,6 +530,32 @@ def chat_file_upload(request, chatroom_name):
 
     
         return HttpResponse()
+
+@messenger_required
+def chat_message_transcode(request, message_id):
+    message = get_object_or_404(GroupMessage.objects.select_related("group"), id=message_id)
+    chat_group = message.group
+
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
+
+    if getattr(chat_group, "is_private", False):
+        if not chat_group.members.filter(id=request.user.id).exists():
+            raise Http404
+    elif chat_group.groupchat_name and chat_group.group_name != "public_chat":
+        if request.user == chat_group.admin and not chat_group.members.filter(id=request.user.id).exists():
+            chat_group.members.add(request.user)
+        if not chat_group.members.filter(id=request.user.id).exists():
+            raise Http404
+
+    ok, reason = _maybe_transcode_audio_message_to_mp3(message)
+    return JsonResponse(
+        {
+            "ok": bool(ok),
+            "reason": reason,
+            "url": (message.file.url if getattr(message, "file", None) else ""),
+        }
+    )
 
 @messenger_required
 def chat_message_edit(request, message_id):

@@ -25,7 +25,7 @@
   <!-- ✅ Tailwind output built by CLI (local / offline) -->
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
-  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=5">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=6">
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="{% block class %}{% endblock %}">
@@ -105,26 +105,80 @@
       const list = document.getElementById('chats-list');
       if (!list) return;
 
-      const supportsHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      const supportsHover = Boolean(
+        window.matchMedia &&
+          (window.matchMedia('(hover: hover)').matches || window.matchMedia('(any-hover: hover)').matches)
+      );
       if (!supportsHover) return;
 
       if (list.dataset.hoverBound === "1") return;
       list.dataset.hoverBound = "1";
 
+      function showActions(li) {
+        const actions = li ? li.querySelector('.group-actions') : null;
+        if (actions) {
+          actions.classList.remove('hidden');
+          actions.style.display = 'flex';
+        }
+        const ellipsis = li ? li.querySelector('.chat-actions-ellipsis') : null;
+        if (ellipsis) ellipsis.style.display = 'none';
+      }
+
+      function hideActions(li) {
+        const actions = li ? li.querySelector('.group-actions') : null;
+        if (actions) {
+          actions.style.display = 'none';
+          actions.classList.add('hidden');
+        }
+        const ellipsis = li ? li.querySelector('.chat-actions-ellipsis') : null;
+        if (ellipsis) ellipsis.style.display = '';
+      }
+
       list.addEventListener('mouseover', (e) => {
-        const a = e.target.closest('a.chat-item');
-        if (!a) return;
-        const li = a.closest('li');
-        const actions = (li ? li.querySelector('.group-actions') : null) || a.querySelector('.group-actions');
-        if (actions) actions.style.display = 'flex';
+        const li = e.target.closest('li.chat-row');
+        if (!li || !list.contains(li)) return;
+        showActions(li);
       });
 
       list.addEventListener('mouseout', (e) => {
-        const a = e.target.closest('a.chat-item');
-        if (!a) return;
-        const li = a.closest('li');
-        const actions = (li ? li.querySelector('.group-actions') : null) || a.querySelector('.group-actions');
-        if (actions) actions.style.display = 'none';
+        const li = e.target.closest('li.chat-row');
+        if (!li || !list.contains(li)) return;
+        const related = e.relatedTarget;
+        if (related && li.contains(related)) return;
+        hideActions(li);
+      });
+    }
+
+    function bindSidebarPinMuteOptimisticUI() {
+      if (document.body.dataset.pinMuteBound === "1") return;
+      document.body.dataset.pinMuteBound = "1";
+
+      document.body.addEventListener('htmx:afterRequest', (e) => {
+        const detail = e.detail || {};
+        if (!detail.successful) return;
+
+        const elt = detail.elt;
+        if (!elt) return;
+
+        const btn = elt.closest('button[hx-post]');
+        if (!btn) return;
+
+        const url = (btn.getAttribute('hx-post') || '').toString();
+        const isPin = url.includes('/chat/pin/');
+        const isMute = url.includes('/chat/mute/');
+        if (!isPin && !isMute) return;
+
+        const li = btn.closest('li.chat-row');
+        const a = li ? li.querySelector('a.chat-item') : null;
+        if (!li || !a) return;
+
+        const key = isPin ? 'data-chat-pinned' : 'data-chat-muted';
+        const current = a.getAttribute(key) === '1';
+        const next = !current;
+        a.setAttribute(key, next ? '1' : '0');
+
+        const indicator = li.querySelector(isPin ? '[data-indicator="pinned"]' : '[data-indicator="muted"]');
+        if (indicator) indicator.classList.toggle('hidden', !next);
       });
     }
 
@@ -309,6 +363,7 @@
       bindSidebarTabs();
       bindSidebarSearch();
       bindSidebarHoverActions();
+      bindSidebarPinMuteOptimisticUI();
       bindSidebarChatActionsMenu();
 
       const tab = localStorage.getItem('sidebarTab') || 'chats';

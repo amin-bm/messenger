@@ -31,20 +31,6 @@
   }
 }
 
-@media (pointer: coarse) {
-  #chats-list .chat-actions-ellipsis {
-    display: flex !important;
-  }
-
-  #chats-list .group-actions {
-    display: none !important;
-  }
-
-  #chats-list li {
-    overflow: visible;
-  }
-}
-
 #chats-list .chat-actions-ellipsis {
   display: none;
   width: 34px;
@@ -60,7 +46,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (hover: hover) and (pointer: fine) {
+@media (any-hover: hover) {
   #chats-list li:hover .chat-actions-ellipsis {
     display: flex;
   }
@@ -70,7 +56,7 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
-@media (pointer: coarse) {
+@media (any-hover: none) {
   #chats-list .group-actions {
     display: none !important;
   }
@@ -78,10 +64,8 @@
   #chats-list .chat-actions-ellipsis {
     display: grid !important;
   }
-}
 
-@media (pointer: fine) {
-  #chats-list .chat-actions-ellipsis {
-    display: none !important;
+  #chats-list li {
+    overflow: visible;
   }
 }

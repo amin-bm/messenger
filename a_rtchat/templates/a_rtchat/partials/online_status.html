@@ -64,8 +64,8 @@
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
                   <div dir="auto" class="text-sm font-medium text-gray-900 truncate">{{ item.title }}</div>
-                  {% if item.is_muted %}<span class="text-[11px] text-gray-400">🔇</span>{% endif %}
-                  {% if item.is_pinned %}<span class="text-[11px] text-gray-400">📌</span>{% endif %}
+                  <span data-indicator="muted" class="text-[11px] text-gray-400{% if not item.is_muted %} hidden{% endif %}">🔇</span>
+                  <span data-indicator="pinned" class="text-[11px] text-gray-400{% if not item.is_pinned %} hidden{% endif %}">📌</span>
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">

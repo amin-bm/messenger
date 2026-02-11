@@ -3,6 +3,21 @@ from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils import timezone
 
+
+class ContactCategory(models.Model):
+    name = models.CharField(max_length=64, unique=True)
+    members = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name="contact_categories",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Profile(models.Model):
     CONTACT_VISIBILITY_ALL = "all"
     CONTACT_VISIBILITY_SELECTED = "selected"
@@ -28,6 +43,11 @@ class Profile(models.Model):
         User,
         blank=True,
         related_name="contact_visible_to_profiles",
+    )
+    contact_visible_categories = models.ManyToManyField(
+        ContactCategory,
+        blank=True,
+        related_name="visible_profiles",
     )
     
     def __str__(self):

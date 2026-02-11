@@ -128,6 +128,44 @@ def _user_is_manager_or_staff(user) -> bool:
     return bool(getattr(profile, "is_manager", False))
 
 
+def _contact_users_for_user(user: User):
+    contact_users = (
+        User.objects
+        .exclude(id=user.id)
+        .select_related("profile")
+    )
+
+    if _user_is_manager_or_staff(user):
+        return contact_users
+
+    viewer_profile = getattr(user, "profile", None)
+    viewer_mode = getattr(viewer_profile, "contact_visibility_mode", Profile.CONTACT_VISIBILITY_ALL)
+    if viewer_mode == Profile.CONTACT_VISIBILITY_SELECTED:
+        allowed_ids = getattr(viewer_profile, "contact_visible_to", None)
+        allowed_ids = allowed_ids.values_list("id", flat=True) if allowed_ids is not None else []
+        allowed_category_ids = getattr(viewer_profile, "contact_visible_categories", None)
+        allowed_category_ids = allowed_category_ids.values_list("id", flat=True) if allowed_category_ids is not None else []
+        viewer_ids = (
+            User.objects
+            .filter(
+                Q(is_staff=True)
+                | Q(is_superuser=True)
+                | Q(profile__is_manager=True)
+                | Q(id__in=allowed_ids)
+                | Q(contact_categories__id__in=allowed_category_ids)
+            )
+            .values_list("id", flat=True)
+        )
+        return contact_users.filter(id__in=viewer_ids).distinct()
+
+    return contact_users.filter(
+        Q(profile__contact_visibility_mode=Profile.CONTACT_VISIBILITY_ALL)
+        | Q(profile__contact_visible_to=user)
+        | Q(profile__contact_visible_categories__members=user)
+    ).distinct()
+
+
+
 def _public_chat_visible_to_user(user: User, public_chat: ChatGroup) -> bool:
     if bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False)):
         return True
@@ -539,21 +577,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
         online_in_chats = any(i["is_online"] for i in sidebar_items)
 
         # ---------- Contacts (all users except me) ----------
-        contact_users = (
-            User.objects
-            .exclude(id=self.user.id)
-            .select_related('profile')
-        )
-        can_see_all_contacts = bool(
-            getattr(self.user, "is_staff", False)
-            or getattr(self.user, "is_superuser", False)
-            or getattr(getattr(self.user, "profile", None), "is_manager", False)
-        )
-        if not can_see_all_contacts:
-            contact_users = contact_users.filter(
-                Q(profile__contact_visibility_mode=Profile.CONTACT_VISIBILITY_ALL)
-                | Q(profile__contact_visible_to=self.user)
-            ).distinct()
+        contact_users = _contact_users_for_user(self.user)
 
         contacts = []
         for u in contact_users:

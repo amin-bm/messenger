@@ -29,6 +29,20 @@
             <button type="submit" class="button block !bg-gray-800 w-fit">ذخیره</button>
         </div>
 
+        <div class="border rounded-lg p-3 bg-gray-50">
+            <div class="text-sm font-semibold text-gray-900 mb-2">دسته‌بندی‌ها</div>
+            <div class="flex flex-wrap gap-3">
+                {% for c in categories %}
+                    <label class="flex items-center gap-2 text-sm text-gray-800">
+                        <input type="checkbox" name="visible_categories" value="{{ c.id }}" class="rounded border" :disabled="mode !== 'selected'" {% if c.id in selected_category_ids %}checked{% endif %} />
+                        <span>{{ c.name }}</span>
+                    </label>
+                {% empty %}
+                    <div class="text-xs text-gray-500">دسته‌بندی‌ای تعریف نشده است.</div>
+                {% endfor %}
+            </div>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left text-gray-500">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50">
@@ -49,6 +63,52 @@
                             <td class="px-4 py-3">{{ u.profile.name }}</td>
                         </tr>
                         {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+
+{% elif contact_category %}
+<div class="mb-6">
+    <a href="{% url 'profile-manager' %}" class="button block !bg-gray-800 w-fit">بازگشت</a>
+</div>
+
+<h2 class="text-base font-bold text-gray-900 mb-3">دسته‌بندی مخاطبین: {{ contact_category.name }}</h2>
+
+<form method="post" action="{% url 'profile-manager-contact-category' contact_category.id %}" class="border rounded-lg p-4 bg-white" x-data="{ q: '' }">
+    {% csrf_token %}
+    <div class="flex flex-col gap-4">
+        <div class="flex flex-col md:flex-row gap-3 items-start md:items-center">
+            <div class="w-full md:w-[260px]">
+                <input name="category_name" value="{{ contact_category.name }}" class="w-full rounded-lg border px-3 py-2" placeholder="نام دسته‌بندی" />
+            </div>
+            <div class="w-full flex-1">
+                <input x-model="q" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو کاربر برای فیلتر" />
+            </div>
+            <button type="submit" class="button block !bg-gray-800 w-fit">ذخیره</button>
+            <button type="submit" name="action" value="delete_category" class="button block !bg-red-700 w-fit">حذف</button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">عضو</th>
+                        <th scope="col" class="px-4 py-3">کاربر</th>
+                        <th scope="col" class="px-4 py-3">نام</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in viewer_users %}
+                        <tr class="bg-white border-b" data-search="{{ u.username|lower }} {{ u.profile.name|lower }}" x-show="!q || ($el.dataset.search || '').includes(q.toLowerCase())">
+                            <td class="px-4 py-3">
+                                <input type="checkbox" name="members" value="{{ u.id }}" class="rounded border" {% if u.id in selected_member_ids %}checked{% endif %} />
+                            </td>
+                            <th scope="row" class="px-4 py-3 text-gray-900 font-medium">@{{ u.username }}</th>
+                            <td class="px-4 py-3">{{ u.profile.name }}</td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -215,6 +275,45 @@
         {% empty %}
         <tr>
             <td class="py-4 text-sm text-gray-500" colspan="4">مخاطبی پیدا نشد.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br>
+<h2 class="text-base font-bold text-gray-900 mt-10 mb-3">دسته‌بندی مخاطبین</h2>
+
+<form method="post" action="{% url 'profile-manager' %}" class="flex flex-col md:flex-row gap-2 mb-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create_contact_category">
+    <input name="category_name" class="w-full rounded-lg border px-3 py-2" placeholder="نام دسته‌بندی جدید (مثلا کارمندان)" />
+    <button type="submit" class="button block !bg-gray-800 w-fit">ایجاد</button>
+</form>
+
+<form method="get" class="flex gap-2 mb-4">
+    <input name="gq" value="{{ gq }}" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو دسته‌بندی" />
+    {% if q %}<input type="hidden" name="q" value="{{ q }}" />{% endif %}
+    {% if cq %}<input type="hidden" name="cq" value="{{ cq }}" />{% endif %}
+    <button type="submit" class="button block !bg-gray-800">جستجو</button>
+</form>
+
+<table class="w-full text-sm text-left text-gray-500">
+    <tbody>
+        {% for c in contact_categories %}
+        <tr class="border-b">
+            <th scope="row" class="py-4 text-gray-900 font-medium">
+                {{ c.name }}
+            </th>
+            <td class="py-4 pl-4">
+                {{ c.member_count }} عضو
+            </td>
+            <td class="py-4 pl-4">
+                <a href="{% url 'profile-manager-contact-category' c.id %}" class="button block !bg-gray-800 w-fit">تنظیم اعضا</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td class="py-4 text-sm text-gray-500" colspan="3">دسته‌بندی‌ای وجود ندارد.</td>
         </tr>
         {% endfor %}
     </tbody>

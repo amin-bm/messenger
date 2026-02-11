@@ -10,14 +10,14 @@ from django.core.management import call_command
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from django.db.models import Q
+from django.db.models import Q, Count
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import io
 import os
 import tempfile
 from .forms import *
-from .models import Profile
+from .models import Profile, ContactCategory
 
 def profile_view(request, username=None):
     if username:
@@ -85,6 +85,15 @@ def manager_panel_view(request):
 
     if request.method == "POST":
         action = request.POST.get("action")
+        if action == "create_contact_category":
+            name = (request.POST.get("category_name") or "").strip()
+            if not name:
+                messages.warning(request, "نام دسته‌بندی خالی است.")
+                return redirect("profile-manager")
+            ContactCategory.objects.get_or_create(name=name)
+            messages.success(request, "دسته‌بندی ایجاد شد.")
+            return redirect("profile-manager")
+
         user_id = request.POST.get("user_id")
         if not user_id:
             messages.warning(request, "کاربر انتخاب نشده است.")
@@ -132,6 +141,11 @@ def manager_panel_view(request):
         contact_profiles = contact_profiles.filter(user__username__icontains=cq)
     contact_profiles = contact_profiles[:50]
 
+    gq = (request.GET.get("gq") or "").strip()
+    contact_categories = ContactCategory.objects.annotate(member_count=Count("members")).order_by("name")
+    if gq:
+        contact_categories = contact_categories.filter(name__icontains=gq)
+
     return render(
         request,
         "a_users/manager.html",
@@ -142,6 +156,8 @@ def manager_panel_view(request):
             "q": q,
             "contact_profiles": contact_profiles,
             "cq": cq,
+            "contact_categories": contact_categories,
+            "gq": gq,
         },
     )
 
@@ -175,6 +191,7 @@ def manager_contact_visibility_view(request, user_id: int):
         .distinct()
         .order_by("username")
     )
+    categories = ContactCategory.objects.order_by("name")
 
     if request.method == "POST":
         mode = (request.POST.get("visibility_mode") or "").strip().lower()
@@ -186,12 +203,19 @@ def manager_contact_visibility_view(request, user_id: int):
             if str(raw).isdigit():
                 allowed_ids.append(int(raw))
 
+        allowed_category_ids = []
+        for raw in request.POST.getlist("visible_categories"):
+            if str(raw).isdigit():
+                allowed_category_ids.append(int(raw))
+
         target_profile.contact_visibility_mode = mode
         target_profile.save(update_fields=["contact_visibility_mode"])
         if mode == Profile.CONTACT_VISIBILITY_SELECTED:
             target_profile.contact_visible_to.set(User.objects.filter(id__in=allowed_ids))
+            target_profile.contact_visible_categories.set(ContactCategory.objects.filter(id__in=allowed_category_ids))
         else:
             target_profile.contact_visible_to.clear()
+            target_profile.contact_visible_categories.clear()
 
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)("online-status", {"type": "online_status_handler"})
@@ -200,16 +224,83 @@ def manager_contact_visibility_view(request, user_id: int):
         return redirect("profile-manager-contact-visibility", user_id=target_user.id)
 
     selected_ids = set(target_profile.contact_visible_to.values_list("id", flat=True))
+    selected_category_ids = set(target_profile.contact_visible_categories.values_list("id", flat=True))
     return render(
         request,
         "a_users/manager.html",
         {
             "target_profile": target_profile,
             "viewer_users": viewer_users,
+            "categories": categories,
             "selected_ids": selected_ids,
+            "selected_category_ids": selected_category_ids,
         },
     )
 
+
+@login_required
+def manager_contact_category_view(request, category_id: int):
+    current_profile = getattr(request.user, "profile", None)
+    can_approve = bool(
+        getattr(request.user, "is_staff", False)
+        or getattr(request.user, "is_superuser", False)
+        or getattr(current_profile, "is_manager", False)
+    )
+    if not can_approve:
+        messages.warning(request, "شما به این بخش دسترسی ندارید.")
+        return redirect("profile")
+
+    category = get_object_or_404(ContactCategory, id=category_id)
+
+    viewer_users = (
+        User.objects
+        .select_related("profile")
+        .filter(
+            Q(is_staff=True)
+            | Q(is_superuser=True)
+            | Q(profile__is_manager=True)
+            | Q(profile__approved=True)
+        )
+        .distinct()
+        .order_by("username")
+    )
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip().lower()
+        if action == "delete_category":
+            category.delete()
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)("online-status", {"type": "online_status_handler"})
+            messages.success(request, "دسته‌بندی حذف شد.")
+            return redirect("profile-manager")
+
+        name = (request.POST.get("category_name") or "").strip()
+        if name and name != category.name:
+            category.name = name
+            category.save(update_fields=["name"])
+
+        member_ids = []
+        for raw in request.POST.getlist("members"):
+            if str(raw).isdigit():
+                member_ids.append(int(raw))
+        category.members.set(User.objects.filter(id__in=member_ids))
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)("online-status", {"type": "online_status_handler"})
+
+        messages.success(request, "اعضای دسته‌بندی به‌روزرسانی شد.")
+        return redirect("profile-manager-contact-category", category_id=category.id)
+
+    selected_member_ids = set(category.members.values_list("id", flat=True))
+    return render(
+        request,
+        "a_users/manager.html",
+        {
+            "contact_category": category,
+            "viewer_users": viewer_users,
+            "selected_member_ids": selected_member_ids,
+        },
+    )
 
 @login_required
 @require_http_methods(["GET"])

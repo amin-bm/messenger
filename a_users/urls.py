@@ -8,6 +8,7 @@ urlpatterns = [
     path('settings/', profile_settings_view, name="profile-settings"),
     path('manager/', manager_panel_view, name="profile-manager"),
     path('manager/contacts/<int:user_id>/', manager_contact_visibility_view, name="profile-manager-contact-visibility"),
+    path('manager/contact-categories/<int:category_id>/', manager_contact_category_view, name="profile-manager-contact-category"),
     path('manager/backup/', manager_backup_view, name="profile-manager-backup"),
     path('manager/restore/', manager_restore_view, name="profile-manager-restore"),
     path('emailchange/', profile_emailchange, name="profile-emailchange"),

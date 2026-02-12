@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import uuid
 from os import remove
 from functools import wraps
 from django.contrib import messages
@@ -51,6 +52,19 @@ def _public_chat_visible_to_user(user: User, public_chat: ChatGroup) -> bool:
     if _user_is_manager_or_staff(user):
         return True
     return public_chat.members.filter(id=user.id).exists()
+
+def _assert_user_can_access_chat_group(request, chat_group: ChatGroup) -> None:
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
+    if getattr(chat_group, "is_private", False):
+        if not chat_group.members.filter(id=request.user.id).exists():
+            raise Http404
+        return
+    if getattr(chat_group, "groupchat_name", None) and chat_group.group_name != "public_chat":
+        if request.user.id == getattr(chat_group, "admin_id", None) and not chat_group.members.filter(id=request.user.id).exists():
+            chat_group.members.add(request.user)
+        if not chat_group.members.filter(id=request.user.id).exists():
+            raise Http404
 
 
 def messenger_required(view_func):
@@ -485,9 +499,7 @@ def chatroom_leave_view(request, chatroom_name):
 @messenger_required
 def chat_file_upload(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
-
-    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
-        raise Http404
+    _assert_user_can_access_chat_group(request, chat_group)
     
     if request.htmx and request.FILES:
         file = request.FILES['file']
@@ -530,6 +542,153 @@ def chat_file_upload(request, chatroom_name):
 
     
         return HttpResponse()
+
+@messenger_required
+def chat_file_upload_chunk(request, chatroom_name):
+    chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
+    _assert_user_can_access_chat_group(request, chat_group)
+
+    if request.method != "POST" or "file" not in request.FILES:
+        return JsonResponse({"ok": False, "error": "bad_request"}, status=400)
+
+    upload_id_raw = (request.POST.get("upload_id") or "").strip()
+    try:
+        upload_uuid = uuid.UUID(upload_id_raw)
+    except Exception:
+        return JsonResponse({"ok": False, "error": "invalid_upload_id"}, status=400)
+
+    try:
+        chunk_index = int(request.POST.get("chunk_index") or 0)
+        total_chunks = int(request.POST.get("total_chunks") or 0)
+    except Exception:
+        return JsonResponse({"ok": False, "error": "invalid_chunk_meta"}, status=400)
+
+    if total_chunks < 1 or total_chunks > 20000:
+        return JsonResponse({"ok": False, "error": "invalid_total_chunks"}, status=400)
+    if chunk_index < 0 or chunk_index >= total_chunks:
+        return JsonResponse({"ok": False, "error": "invalid_chunk_index"}, status=400)
+
+    original_name = os.path.basename((request.POST.get("file_name") or "").strip() or "file")
+    if len(original_name) > 160:
+        original_name = original_name[:160]
+
+    reply_to_id = (request.POST.get("reply_to") or "").strip()
+    reply_to = None
+    if reply_to_id.isdigit():
+        reply_to = (
+            GroupMessage.objects
+            .filter(group=chat_group, id=int(reply_to_id))
+            .first()
+        )
+
+    base_dir = os.path.join(settings.MEDIA_ROOT, "chunk_uploads")
+    os.makedirs(base_dir, exist_ok=True)
+    upload_dir = os.path.join(base_dir, str(upload_uuid))
+    os.makedirs(upload_dir, exist_ok=True)
+
+    meta_path = os.path.join(upload_dir, "meta.json")
+    if os.path.exists(meta_path):
+        try:
+            import json
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f) or {}
+        except Exception:
+            meta = {}
+        if meta.get("user_id") != request.user.id or meta.get("group_name") != chat_group.group_name:
+            return JsonResponse({"ok": False, "error": "upload_owner_mismatch"}, status=403)
+        if int(meta.get("total_chunks") or total_chunks) != total_chunks:
+            return JsonResponse({"ok": False, "error": "upload_meta_mismatch"}, status=400)
+    else:
+        try:
+            import json
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "user_id": request.user.id,
+                        "group_name": chat_group.group_name,
+                        "total_chunks": total_chunks,
+                        "file_name": original_name,
+                    },
+                    f,
+                )
+        except Exception:
+            pass
+
+    chunk_file = request.FILES["file"]
+    chunk_path = os.path.join(upload_dir, f"{chunk_index:06d}.part")
+    with open(chunk_path, "wb") as out:
+        for part in chunk_file.chunks():
+            out.write(part)
+
+    received = 0
+    try:
+        for entry in os.scandir(upload_dir):
+            if entry.is_file() and entry.name.endswith(".part") and len(entry.name) == 11:
+                received += 1
+    except Exception:
+        received = 0
+
+    if received < total_chunks:
+        return JsonResponse({"ok": True, "done": False, "received": received, "total": total_chunks})
+
+    lock_path = os.path.join(upload_dir, "assembling.lock")
+    try:
+        fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.close(fd)
+    except Exception:
+        return JsonResponse({"ok": True, "done": False, "received": received, "total": total_chunks})
+
+    assembled_path = os.path.join(upload_dir, "assembled.bin")
+    cleanup_dir = False
+    try:
+        with open(assembled_path, "wb") as out:
+            for i in range(total_chunks):
+                p = os.path.join(upload_dir, f"{i:06d}.part")
+                if not os.path.exists(p):
+                    try:
+                        os.remove(lock_path)
+                    except Exception:
+                        pass
+                    return JsonResponse({"ok": True, "done": False, "received": received, "total": total_chunks})
+                with open(p, "rb") as inp:
+                    shutil.copyfileobj(inp, out, length=1024 * 1024)
+
+        message = GroupMessage(group=chat_group, author=request.user, reply_to=reply_to)
+        with open(assembled_path, "rb") as f:
+            message.file.save(original_name, File(f), save=False)
+        message.save()
+        cleanup_dir = True
+        _maybe_transcode_audio_message_to_mp3(message)
+        transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
+
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            chatroom_name,
+            {"type": "message_handler", "message_id": message.id},
+        )
+
+        target_user_ids = list(chat_group.members.values_list("id", flat=True))
+        if (
+            not target_user_ids
+            and chat_group.group_name == "public_chat"
+            and bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False))
+        ):
+            refresh_event = {"type": "online_status_handler"}
+        else:
+            refresh_event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [request.user.id])}
+        async_to_sync(channel_layer.group_send)("online-status", refresh_event)
+
+        return JsonResponse({"ok": True, "done": True, "message_id": message.id})
+    finally:
+        try:
+            os.remove(lock_path)
+        except Exception:
+            pass
+        if cleanup_dir:
+            try:
+                shutil.rmtree(upload_dir, ignore_errors=True)
+            except Exception:
+                pass
 
 @messenger_required
 def chat_message_transcode(request, message_id):

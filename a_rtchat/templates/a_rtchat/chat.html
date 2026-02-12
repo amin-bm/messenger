@@ -219,6 +219,23 @@
         </div>
       </div>
 
+      <div id="upload_progress_wrapper" class="hidden px-3 pb-2">
+        <div class="flex items-center gap-3">
+          <div class="flex-1 min-w-0">
+            <div id="upload_file_name" class="text-xs text-gray-700 truncate mb-1"></div>
+            <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
+              <div id="upload_progress_bar" class="h-full rounded-full bg-blue-500 transition-all duration-150" style="width: 0%"></div>
+            </div>
+          </div>
+          <span id="upload_progress_text" class="text-xs text-gray-500 tabular-nums w-10 text-right">0%</span>
+          <button id="upload_cancel_btn" type="button" class="shrink-0 rounded-lg p-1 text-gray-400 hover:text-red-500 hover:bg-red-50">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
       <form id="chat_file_form"
             enctype="multipart/form-data"
             class="sr-only"
@@ -1383,30 +1400,57 @@
       cancelBtn.disabled = true;
       errorEl.textContent = "";
 
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          body: formData,
-          headers: {
-            "HX-Request": "true",
-            ...(csrfToken ? { "X-CSRFToken": csrfToken } : {}),
-          },
-          credentials: "same-origin",
+      const progressWrapper = document.getElementById("upload_progress_wrapper");
+      const progressBar = document.getElementById("upload_progress_bar");
+      const progressText = document.getElementById("upload_progress_text");
+      const uploadFileName = document.getElementById("upload_file_name");
+
+      if (progressWrapper) {
+        if (uploadFileName) uploadFileName.textContent = "ارسال پیام صوتی...";
+        if (progressBar) progressBar.style.width = "0%";
+        if (progressText) progressText.textContent = "0%";
+        progressWrapper.classList.remove("hidden");
+      }
+
+      return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        window.rtchatCurrentUploadXhr = xhr;
+        const totalBytes = Number(file.size || 0);
+
+        xhr.upload.addEventListener("progress", (e) => {
+          const denom = totalBytes > 0 ? totalBytes : Number(e.total || 0);
+          if (!(denom > 0)) return;
+          const p = Math.min(100, Math.max(0, (Number(e.loaded || 0) / denom) * 100));
+          if (progressBar) progressBar.style.width = `${p}%`;
+          if (progressText) progressText.textContent = (p >= 99.95 ? "100%" : `${p.toFixed(1)}%`);
         });
 
-        if (!res.ok) {
-          errorEl.textContent = "ارسال پیام صوتی ناموفق بود.";
-          return;
+        function cleanup(ok) {
+          if (progressWrapper) progressWrapper.classList.add("hidden");
+          try {
+            if (window.rtchatCurrentUploadXhr === xhr) delete window.rtchatCurrentUploadXhr;
+          } catch (e) {}
+          if (ok) {
+            resetPreview();
+            if (typeof window.rtchatClearReply === "function") window.rtchatClearReply();
+          } else {
+            errorEl.textContent = "ارسال پیام صوتی ناموفق بود.";
+          }
+          sendBtn.disabled = false;
+          cancelBtn.disabled = false;
+          resolve();
         }
 
-        resetPreview();
-        if (typeof window.rtchatClearReply === "function") window.rtchatClearReply();
-      } catch (e) {
-        errorEl.textContent = "ارسال پیام صوتی ناموفق بود.";
-      } finally {
-        sendBtn.disabled = false;
-        cancelBtn.disabled = false;
-      }
+        xhr.addEventListener("load", () => cleanup(xhr.status >= 200 && xhr.status < 300));
+        xhr.addEventListener("error", () => cleanup(false));
+        xhr.addEventListener("abort", () => cleanup(false));
+
+        xhr.open("POST", url, true);
+        if (csrfToken) xhr.setRequestHeader("X-CSRFToken", csrfToken);
+        xhr.setRequestHeader("HX-Request", "true");
+        xhr.withCredentials = true;
+        xhr.send(formData);
+      });
     }
 
     recordBtn.addEventListener("click", startRecording);
@@ -1429,9 +1473,20 @@
     const previewEl = document.getElementById("voice_preview");
     const sendBtn = document.getElementById("chat_send_btn");
 
+    const progressWrapper = document.getElementById("upload_progress_wrapper");
+    const progressBar = document.getElementById("upload_progress_bar");
+    const progressText = document.getElementById("upload_progress_text");
+    const uploadFileName = document.getElementById("upload_file_name");
+    const uploadCancelBtn = document.getElementById("upload_cancel_btn");
+
     if (!messageForm || !fileForm || !recordBtn || !sendBtn || !fileInput) return;
 
     const originalPlaceholder = bodyInput ? (bodyInput.getAttribute("placeholder") || "") : "";
+    let currentXhr = null;
+    let uploadAborted = false;
+    const CHUNK_SIZE = 512 * 1024;
+    const CHUNK_THRESHOLD = 1024 * 1024;
+    const CHUNK_UPLOAD_URL = "{% url 'chat-file-upload-chunk' chat_group.group_name %}";
 
     function isVisible(el) {
       return Boolean(el) && !el.classList.contains("hidden") && !el.classList.contains("sr-only");
@@ -1455,9 +1510,7 @@
 
     function fileSummary(file) {
       if (!file) return "";
-      const name = truncateName(file.name || "file");
-      const size = formatBytes(file.size || 0);
-      return `${name} • ${size}`;
+      return `${truncateName(file.name || "file")} • ${formatBytes(file.size || 0)}`;
     }
 
     function hasText() {
@@ -1474,21 +1527,196 @@
       if (typeof bodyInput.dataset.origValue !== "string") bodyInput.dataset.origValue = bodyInput.value || "";
       bodyInput.value = "";
       bodyInput.readOnly = true;
-      bodyInput.classList.add("cursor-not-allowed");
-      bodyInput.classList.add("select-none");
+      bodyInput.classList.add("cursor-not-allowed", "select-none");
       bodyInput.setAttribute("placeholder", summary || bodyInput.dataset.origPlaceholder || "");
     }
 
     function unlockTypingAfterFile() {
       if (!bodyInput) return;
       bodyInput.readOnly = false;
-      bodyInput.classList.remove("cursor-not-allowed");
-      bodyInput.classList.remove("select-none");
-      const p = bodyInput.dataset.origPlaceholder || originalPlaceholder;
-      bodyInput.setAttribute("placeholder", p || "");
+      bodyInput.classList.remove("cursor-not-allowed", "select-none");
+      bodyInput.setAttribute("placeholder", bodyInput.dataset.origPlaceholder || originalPlaceholder || "");
       const v = bodyInput.dataset.origValue;
       if (typeof v === "string") bodyInput.value = v;
       delete bodyInput.dataset.origValue;
+    }
+
+    function showProgress(label) {
+      if (!progressWrapper) return;
+      if (uploadFileName) uploadFileName.textContent = label || "Uploading...";
+      if (progressBar) progressBar.style.width = "0%";
+      if (progressText) progressText.textContent = "0%";
+      progressWrapper.classList.remove("hidden");
+    }
+
+    function updateProgress(percent) {
+      const p = Math.min(100, Math.max(0, Number(percent || 0)));
+      if (progressBar) progressBar.style.width = `${p}%`;
+      if (progressText) progressText.textContent = (p >= 99.95 ? "100%" : `${p.toFixed(1)}%`);
+    }
+
+    function hideProgress() {
+      if (!progressWrapper) return;
+      progressWrapper.classList.add("hidden");
+      if (progressBar) progressBar.style.width = "0%";
+      if (progressText) progressText.textContent = "0%";
+      if (uploadFileName) uploadFileName.textContent = "";
+      currentXhr = null;
+      try {
+        delete window.rtchatCurrentUploadXhr;
+      } catch (e) {}
+    }
+
+    function cancelUpload() {
+      uploadAborted = true;
+      const xhr = window.rtchatCurrentUploadXhr || currentXhr;
+      if (xhr) {
+        try {
+          xhr.abort();
+        } catch (e) {}
+      }
+      hideProgress();
+      fileInput.value = "";
+      update();
+    }
+
+    if (uploadCancelBtn) uploadCancelBtn.addEventListener("click", cancelUpload);
+
+    function generateUploadId() {
+      try {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+      } catch (e) {}
+      const s = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
+      return s.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === "x" ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
+
+    function sendChunk(url, formData, csrfToken) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        currentXhr = xhr;
+        window.rtchatCurrentUploadXhr = xhr;
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve();
+          else reject(new Error(`HTTP_${xhr.status}`));
+        });
+        xhr.addEventListener("error", () => reject(new Error("NETWORK_ERROR")));
+        xhr.addEventListener("abort", () => reject(new Error("ABORTED")));
+
+        xhr.open("POST", url, true);
+        if (csrfToken) xhr.setRequestHeader("X-CSRFToken", csrfToken);
+        xhr.setRequestHeader("HX-Request", "true");
+        xhr.withCredentials = true;
+        xhr.send(formData);
+      });
+    }
+
+    async function uploadFileChunked(file, replyTo, csrfToken) {
+      const totalSize = Number(file.size || 0);
+      const totalChunks = Math.max(1, Math.ceil(totalSize / CHUNK_SIZE));
+      const uploadId = generateUploadId();
+
+      for (let i = 0; i < totalChunks; i++) {
+        if (uploadAborted) return;
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, totalSize);
+        const blob = file.slice(start, end);
+
+        const formData = new FormData();
+        formData.append("file", blob, file.name || "file");
+        formData.append("upload_id", uploadId);
+        formData.append("chunk_index", String(i));
+        formData.append("total_chunks", String(totalChunks));
+        formData.append("file_name", file.name || "file");
+        if (replyTo) formData.append("reply_to", replyTo);
+        if (csrfToken) formData.append("csrfmiddlewaretoken", csrfToken);
+
+        await sendChunk(CHUNK_UPLOAD_URL, formData, csrfToken);
+        updateProgress(((i + 1) / totalChunks) * 100);
+      }
+    }
+
+    function uploadFileWithProgress() {
+      if (!hasFile()) return;
+
+      const file = fileInput.files[0];
+      const url = fileForm.getAttribute("hx-post");
+      if (!url) return;
+
+      const csrfInput = fileForm.querySelector('input[name="csrfmiddlewaretoken"]');
+      const csrfToken = csrfInput ? csrfInput.value : "";
+      const replyInput = document.getElementById("reply_to_input");
+      const replyTo = replyInput ? (replyInput.value || "").trim() : "";
+
+      uploadAborted = false;
+      showProgress(fileSummary(file));
+      sendBtn.classList.add("hidden");
+
+      if (Number(file.size || 0) >= CHUNK_THRESHOLD) {
+        uploadFileChunked(file, replyTo, csrfToken)
+          .then(() => {
+            if (uploadAborted) return;
+            hideProgress();
+            fileInput.value = "";
+            if (typeof window.rtchatClearReply === "function") window.rtchatClearReply();
+            update();
+          })
+          .catch((err) => {
+            if (String(err && err.message) === "ABORTED") return;
+            hideProgress();
+            fileInput.value = "";
+            update();
+            alert("آپلود فایل ناموفق بود. دوباره تلاش کنید.");
+          });
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      if (replyTo) formData.append("reply_to", replyTo);
+      if (csrfToken) formData.append("csrfmiddlewaretoken", csrfToken);
+
+      const xhr = new XMLHttpRequest();
+      currentXhr = xhr;
+      window.rtchatCurrentUploadXhr = xhr;
+      const totalBytes = Number(file.size || 0);
+
+      xhr.upload.addEventListener("progress", (e) => {
+        const denom = totalBytes > 0 ? totalBytes : Number(e.total || 0);
+        if (!(denom > 0)) return;
+        updateProgress((Number(e.loaded || 0) / denom) * 100);
+      });
+
+      xhr.addEventListener("load", () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        hideProgress();
+        fileInput.value = "";
+        if (ok && typeof window.rtchatClearReply === "function") window.rtchatClearReply();
+        update();
+        if (!ok) alert("آپلود فایل ناموفق بود. دوباره تلاش کنید.");
+      });
+
+      xhr.addEventListener("error", () => {
+        hideProgress();
+        fileInput.value = "";
+        update();
+        alert("آپلود فایل ناموفق بود. دوباره تلاش کنید.");
+      });
+
+      xhr.addEventListener("abort", () => {
+        hideProgress();
+        update();
+      });
+
+      xhr.open("POST", url, true);
+      if (csrfToken) xhr.setRequestHeader("X-CSRFToken", csrfToken);
+      xhr.setRequestHeader("HX-Request", "true");
+      xhr.withCredentials = true;
+      xhr.send(formData);
     }
 
     function update() {
@@ -1516,8 +1744,8 @@
 
     sendBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      if (hasText()) trySubmit(messageForm);
-      if (hasFile()) trySubmit(fileForm);
+      if (hasFile()) uploadFileWithProgress();
+      else if (hasText()) trySubmit(messageForm);
       update();
     });
 

@@ -137,6 +137,14 @@
     </div>
   </div>
  
+  {% if user.is_authenticated %}
+    <footer hx-ext="ws" ws-connect="/ws/online-status/">
+      <form id="presence-ping-form" ws-send class="hidden">
+        <input type="hidden" name="type" value="ping">
+      </form>
+    </footer>
+  {% endif %}
+
 </content>
 {% endblock %}
 

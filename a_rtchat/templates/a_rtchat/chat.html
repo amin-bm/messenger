@@ -414,83 +414,18 @@
   })();
 
   (function () {
-    const lb = document.createElement("div");
-    lb.id = "rtchat_img_lightbox";
-    lb.className = "fixed inset-0 z-[80] hidden bg-black/90 flex items-center justify-center";
-    lb.innerHTML =
-      '<button type="button" class="absolute top-4 right-4 text-white/80 hover:text-white text-2xl z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10" data-lb-close>×</button>' +
-      '<img class="max-w-[92%] max-h-[92%] rounded-lg object-contain" data-lb-img src="" alt="">' +
-      '<div class="absolute text-white flex flex-col items-center gap-2" data-lb-spinner>' +
-      '<div class="w-8 h-8 border-[3px] border-white/30 border-t-white rounded-full animate-spin"></div>' +
-      '<span class="text-sm">در حال بارگذاری...</span>' +
-      "</div>";
-    document.body.appendChild(lb);
-
-    const lbImg = lb.querySelector("[data-lb-img]");
-    const lbSpinner = lb.querySelector("[data-lb-spinner]");
-    const closeBtn = lb.querySelector("[data-lb-close]");
-
-    function close() {
-      lb.classList.add("hidden");
-      if (lbImg) lbImg.src = "";
-      if (lbSpinner) lbSpinner.classList.add("hidden");
-    }
-
-    function open(thumbSrc, fullSrc) {
-      lb.classList.remove("hidden");
-      if (lbSpinner) lbSpinner.classList.remove("hidden");
-      if (lbImg) {
-        lbImg.style.opacity = "1";
-        lbImg.src = thumbSrc || "";
-      }
-
-      const full = (fullSrc || "").trim();
-      if (full && full !== thumbSrc) {
-        const temp = new Image();
-        temp.onload = function () {
-          if (lbImg) lbImg.src = full;
-          if (lbSpinner) lbSpinner.classList.add("hidden");
-        };
-        temp.onerror = function () {
-          if (lbSpinner) lbSpinner.classList.add("hidden");
-        };
-        temp.src = full;
-      } else {
-        if (lbSpinner) lbSpinner.classList.add("hidden");
-      }
-    }
-
-    lb.addEventListener("click", (e) => {
-      if (e.target === lb) close();
-    });
-    if (closeBtn) closeBtn.addEventListener("click", close);
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") close();
-    });
-
-    document.addEventListener("click", (e) => {
-      const img = e.target.closest && e.target.closest("img[data-zoom-src]");
-      if (!img) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const thumb = (img.getAttribute("data-thumb-src") || img.currentSrc || img.src || "").trim();
-      const full = (img.getAttribute("data-zoom-src") || "").trim();
-      if (full) open(thumb, full);
-    });
-  })();
-
-  (function () {
     let observer = null;
 
     function triggerLoadOlder(el) {
       if (!el || el.dataset.loading === "1") return;
       if (!el.getAttribute("hx-get")) return;
       el.dataset.loading = "1";
+      const hxTrigger = (el.getAttribute("hx-trigger") || "").trim();
+      const evt = hxTrigger && hxTrigger !== "revealed" ? "rtchat-load-older" : (hxTrigger || "rtchat-load-older");
       if (window.htmx && typeof window.htmx.trigger === "function") {
-        window.htmx.trigger(el, "rtchat-load-older");
+        window.htmx.trigger(el, evt);
       } else {
-        el.dispatchEvent(new Event("rtchat-load-older", { bubbles: true }));
+        el.dispatchEvent(new Event(evt, { bubbles: true }));
       }
     }
 
@@ -501,6 +436,19 @@
 
       if (observer) observer.disconnect();
       observer = null;
+
+      if (container.dataset.loadOlderScrollBound !== "1") {
+        container.dataset.loadOlderScrollBound = "1";
+        container.addEventListener(
+          "scroll",
+          () => {
+            const cur = document.getElementById("load_older");
+            if (!cur) return;
+            if (container.scrollTop <= 120) triggerLoadOlder(cur);
+          },
+          { passive: true }
+        );
+      }
 
       if ("IntersectionObserver" in window) {
         observer = new IntersectionObserver(
@@ -513,6 +461,14 @@
           { root: container, rootMargin: "200px 0px", threshold: 0.01 }
         );
         observer.observe(el);
+        requestAnimationFrame(() => {
+          const cur = document.getElementById("load_older");
+          if (!cur) return;
+          const r = cur.getBoundingClientRect();
+          const cr = container.getBoundingClientRect();
+          const visible = r.bottom > cr.top && r.top < cr.bottom;
+          if (visible && container.scrollTop <= 160) triggerLoadOlder(cur);
+        });
       } else {
         const onScroll = () => {
           if (container.scrollTop <= 80) triggerLoadOlder(el);
@@ -626,7 +582,12 @@
 
     const recheck = () => requestAnimationFrame(update);
     document.body.addEventListener("htmx:oobAfterSwap", recheck);
-    document.body.addEventListener("htmx:wsAfterMessage", recheck);
+    document.body.addEventListener("htmx:wsAfterMessage", (e) => {
+      const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
+      if (elt && elt.id && elt.id !== "chat_message_form") return;
+      if (isNearBottom()) scrollToBottom(0);
+      recheck();
+    });
     document.body.addEventListener("htmx:afterSwap", (e) => {
       const t = e && e.target ? e.target : null;
       if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) recheck();

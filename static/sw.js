@@ -1,10 +1,10 @@
-const CACHE_NAME = "pesk-messenger-v11.2";
+const CACHE_NAME = "pesk-messenger-v11.3";
 
 const APP_SHELL = [
   "/",
   "/static/css/tailwind.css?v=3",
   "/static/css/fonts.css",
-  "/static/css/style.css?v=8.2",
+  "/static/css/style.css?v=8.3",
   "/static/vendor/htmx.min.js",
   "/static/vendor/ws.min.js",
   "/static/vendor/alpine.min.js",
@@ -25,6 +25,11 @@ self.addEventListener("activate", (event) => {
       .then((keys) => Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k)))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener("message", (event) => {
+  const data = event && event.data;
+  if (data === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("fetch", (event) => {

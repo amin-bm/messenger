@@ -347,12 +347,15 @@ def chat_messages_older(request, chatroom_identifier):
     if not before_msg:
         raise Http404
 
+    before_created = before_msg.created
+    before_id = before_msg.id
+
     page_size = 30
     qs = (
         chat_group.chat_messages
-        .filter(created__lt=before_msg.created)
+        .filter(Q(created__lt=before_created) | Q(created=before_created, id__lt=before_id))
         .select_related(*_MSG_RELATED)
-        .order_by("-created")[: page_size + 1]
+        .order_by("-created", "-id")[: page_size + 1]
     )
     raw = list(qs)
     has_more = len(raw) > page_size

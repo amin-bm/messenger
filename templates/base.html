@@ -13,6 +13,7 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#0ea5e9">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Pesk Messenger">
   <link rel="apple-touch-icon" href="{% static 'logo-large.png' %}">
@@ -25,7 +26,7 @@
   <!-- ✅ Tailwind output built by CLI (local / offline) -->
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
-  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=8.2">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}?v=8.3">
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="{% block class %}{% endblock %}">
@@ -33,14 +34,6 @@
   {% include 'includes/messages.html' %}
 
   {% block layout %}{% endblock %}
-
-  {% if user.is_authenticated %}
-    <footer hx-ext="ws" ws-connect="/ws/online-status/">
-      <form id="presence-ping-form" ws-send class="hidden">
-        <input type="hidden" name="type" value="ping">
-      </form>
-    </footer>
-  {% endif %}
 
   <div id="sidebar_chat_actions_menu" class="fixed hidden z-[9998]">
     <div class="min-w-[170px] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/10">
@@ -579,8 +572,36 @@
       async function registerServiceWorker() {
         if (!("serviceWorker" in navigator)) return null;
         try {
-          const reg = await navigator.serviceWorker.register("/sw.js");
+          const reg = await navigator.serviceWorker.register("/sw.js?v=pesk-messenger-v11.3");
           swRegistration = reg;
+          try {
+            await reg.update();
+          } catch (e) {
+            // ignore
+          }
+
+          function tryActivateWaiting() {
+            if (!reg.waiting) return;
+            try {
+              reg.waiting.postMessage("SKIP_WAITING");
+            } catch (e) {
+              return;
+            }
+          }
+
+          if (reg.installing) {
+            reg.installing.addEventListener("statechange", () => {
+              if (reg.installing && reg.installing.state === "installed") tryActivateWaiting();
+            });
+          }
+          tryActivateWaiting();
+
+          if (!document.body.dataset.swReloadBound) {
+            document.body.dataset.swReloadBound = "1";
+            navigator.serviceWorker.addEventListener("controllerchange", () => {
+              window.location.reload();
+            });
+          }
           return reg;
         } catch (e) {
           return null;

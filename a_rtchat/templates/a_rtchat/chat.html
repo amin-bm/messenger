@@ -413,85 +413,128 @@
     document.body.addEventListener("htmx:afterSwap", (e) => initLazyImages(e && e.target ? e.target : document));
   })();
 
-  (function () {
+// ---------- IIFE مربوط به load older ----------
+(function () {
     let observer = null;
+    let lastLoadTime = 0;
+    const LOAD_COOLDOWN_MS = 800;
 
     function triggerLoadOlder(el) {
-      if (!el || el.dataset.loading === "1") return;
-      if (!el.getAttribute("hx-get")) return;
-      el.dataset.loading = "1";
-      const hxTrigger = (el.getAttribute("hx-trigger") || "").trim();
-      const evt = hxTrigger && hxTrigger !== "revealed" ? "rtchat-load-older" : (hxTrigger || "rtchat-load-older");
-      if (window.htmx && typeof window.htmx.trigger === "function") {
-        window.htmx.trigger(el, evt);
-      } else {
-        el.dispatchEvent(new Event(evt, { bubbles: true }));
-      }
+        if (!el || el.dataset.loading === "1") return;
+        if (!el.getAttribute("hx-get")) return;
+
+        // ✅ cooldown — جلوگیری از لود آبشاری
+        const now = Date.now();
+        if (now - lastLoadTime < LOAD_COOLDOWN_MS) return;
+
+        if (window.htmx && typeof window.htmx.process === "function") {
+            window.htmx.process(el);
+        }
+
+        el.dataset.loading = "1";
+        lastLoadTime = now;
+
+        setTimeout(() => {
+            const cur = document.getElementById("load_older");
+            if (cur && cur.dataset.loading === "1") {
+                delete cur.dataset.loading;
+            }
+        }, 10000);
+
+        const hxTrigger = (el.getAttribute("hx-trigger") || "").trim();
+        const evt = hxTrigger && hxTrigger !== "revealed"
+            ? "rtchat-load-older"
+            : (hxTrigger || "rtchat-load-older");
+
+        if (window.htmx && typeof window.htmx.trigger === "function") {
+            window.htmx.trigger(el, evt);
+        } else {
+            el.dispatchEvent(new Event(evt, { bubbles: true }));
+        }
     }
 
     function initLoadOlder() {
-      const container = document.getElementById("chat_container");
-      const el = document.getElementById("load_older");
-      if (!container || !el) return;
+        const container = document.getElementById("chat_container");
+        const el = document.getElementById("load_older");
+        if (!container || !el) return;
 
-      if (observer) observer.disconnect();
-      observer = null;
+        if (observer) observer.disconnect();
+        observer = null;
 
-      if (container.dataset.loadOlderScrollBound !== "1") {
-        container.dataset.loadOlderScrollBound = "1";
-        container.addEventListener(
-          "scroll",
-          () => {
-            const cur = document.getElementById("load_older");
-            if (!cur) return;
-            if (container.scrollTop <= 120) triggerLoadOlder(cur);
-          },
-          { passive: true }
-        );
-      }
+        if (window.htmx && typeof window.htmx.process === "function") {
+            window.htmx.process(el);
+        }
 
-      if ("IntersectionObserver" in window) {
-        observer = new IntersectionObserver(
-          (entries) => {
-            entries.forEach((entry) => {
-              if (!entry.isIntersecting) return;
-              triggerLoadOlder(entry.target);
-            });
-          },
-          { root: container, rootMargin: "200px 0px", threshold: 0.01 }
-        );
-        observer.observe(el);
-        requestAnimationFrame(() => {
-          const cur = document.getElementById("load_older");
-          if (!cur) return;
-          const r = cur.getBoundingClientRect();
-          const cr = container.getBoundingClientRect();
-          const visible = r.bottom > cr.top && r.top < cr.bottom;
-          if (visible && container.scrollTop <= 160) triggerLoadOlder(cur);
-        });
-      } else {
-        const onScroll = () => {
-          if (container.scrollTop <= 80) triggerLoadOlder(el);
-        };
-        container.addEventListener("scroll", onScroll, { passive: true });
-        onScroll();
-      }
+        if (container.dataset.loadOlderScrollBound !== "1") {
+            container.dataset.loadOlderScrollBound = "1";
+            container.addEventListener(
+                "scroll",
+                () => {
+                    const cur = document.getElementById("load_older");
+                    if (!cur) return;
+                    if (container.scrollTop <= 120) triggerLoadOlder(cur);
+                },
+                { passive: true }
+            );
+        }
+
+        if ("IntersectionObserver" in window) {
+            observer = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach((entry) => {
+                        if (!entry.isIntersecting) return;
+                        triggerLoadOlder(entry.target);
+                    });
+                },
+                { root: container, rootMargin: "200px 0px", threshold: 0.01 }
+            );
+            observer.observe(el);
+
+            // ✅ تأخیر بیشتر — صبر کن scroll adjustment تموم بشه
+            setTimeout(() => {
+                const cur = document.getElementById("load_older");
+                if (!cur) return;
+                const r = cur.getBoundingClientRect();
+                const cr = container.getBoundingClientRect();
+                const visible = r.bottom > cr.top && r.top < cr.bottom;
+                if (visible && container.scrollTop <= 160) triggerLoadOlder(cur);
+            }, 400);
+        } else {
+            const onScroll = () => {
+                if (container.scrollTop <= 80) triggerLoadOlder(el);
+            };
+            container.addEventListener("scroll", onScroll, { passive: true });
+            onScroll();
+        }
     }
 
     document.body.addEventListener("htmx:afterRequest", (e) => {
-      const t = (e && e.detail && e.detail.elt) ? e.detail.elt : (e && e.target ? e.target : null);
-      if (t && t.id === "load_older") delete t.dataset.loading;
+        const t = (e && e.detail && e.detail.elt) ? e.detail.elt : (e && e.target ? e.target : null);
+        if (t && t.id === "load_older") delete t.dataset.loading;
+        const cur = document.getElementById("load_older");
+        if (cur && cur.dataset.loading === "1") delete cur.dataset.loading;
     });
+
     document.body.addEventListener("htmx:responseError", (e) => {
-      const t = (e && e.detail && e.detail.elt) ? e.detail.elt : (e && e.target ? e.target : null);
-      if (t && t.id === "load_older") delete t.dataset.loading;
+        const t = (e && e.detail && e.detail.elt) ? e.detail.elt : (e && e.target ? e.target : null);
+        if (t && t.id === "load_older") delete t.dataset.loading;
+        const cur = document.getElementById("load_older");
+        if (cur && cur.dataset.loading === "1") delete cur.dataset.loading;
     });
 
     document.body.addEventListener("htmx:oobAfterSwap", initLoadOlder);
     document.body.addEventListener("htmx:afterSwap", initLoadOlder);
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initLoadOlder);
+    document.body.addEventListener("htmx:afterSettle", (e) => {
+        const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
+        if (elt && elt.id === "load_older") {
+            setTimeout(initLoadOlder, 50);
+        }
+    });
+
+    if (document.readyState === "loading")
+        document.addEventListener("DOMContentLoaded", initLoadOlder);
     else initLoadOlder();
-  })();
+})();
 
   (function () {
     const container = document.getElementById("chat_container");

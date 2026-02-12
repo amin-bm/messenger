@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<div class="flex h-full flex-col">
+<div class="flex h-full min-h-0 flex-col" style="position: relative;">
 
   <!-- Chat header (Telegram-like) -->
   <div class="flex items-center justify-between border-b bg-white px-4 py-3">
@@ -70,13 +70,19 @@
   </div>
 
   <!-- Messages area -->
-  <div id="chat_container" class="flex-1 overflow-y-auto p-4 bg-slate-100">
+  <div id="chat_container" class="flex-1 min-h-0 overflow-y-auto p-4 bg-slate-100">
     <ul id="chat_messages" class="flex flex-col gap-2">
       {% for message in chat_messages %}
         {% include 'a_rtchat/chat_message.html' %}
       {% endfor %}
     </ul>
   </div>
+
+  <button id="scroll_to_bottom_btn" type="button" aria-label="رفتن به انتهای چت" class="absolute right-4 bottom-24 z-[65] h-12 w-12 rounded-full bg-white/90 shadow-lg ring-1 ring-black/10 text-gray-700 backdrop-blur transition-opacity duration-150 opacity-0 pointer-events-none">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" class="mx-auto">
+      <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </button>
 
   <div id="message_action_menu" class="fixed z-[60] hidden inline-flex flex-col overflow-hidden rounded-md bg-white shadow-lg ring-1 ring-black/10">
     <div class="flex flex-col p-0.5">
@@ -92,6 +98,13 @@
             <path d="M20 9H9a6 6 0 0 0-6 6v4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
           <span>Forward</span>
+      </button>
+      <button type="button" data-menu-action="copy" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600">
+            <path d="M9 9h10v12H9V9Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"></path>
+            <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+          </svg>
+          <span>Copy</span>
       </button>
       <button type="button" data-menu-action="edit" class="hidden flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600">
@@ -300,6 +313,52 @@
       container.scrollTop = container.scrollHeight;
     }, time);
   }
+
+  (function () {
+    const container = document.getElementById("chat_container");
+    const btn = document.getElementById("scroll_to_bottom_btn");
+    if (!container || !btn) return;
+
+    const thresholdPx = 100;
+
+    function isNearBottom() {
+      const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
+      return remaining <= thresholdPx;
+    }
+
+    function update() {
+      const near = isNearBottom();
+      btn.classList.toggle("opacity-0", near);
+      btn.classList.toggle("pointer-events-none", near);
+    }
+
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+      requestAnimationFrame(update);
+    });
+
+    container.addEventListener("scroll", update, { passive: true });
+
+    const recheck = () => requestAnimationFrame(update);
+    document.body.addEventListener("htmx:oobAfterSwap", recheck);
+    document.body.addEventListener("htmx:wsAfterMessage", recheck);
+    document.body.addEventListener("htmx:afterSwap", (e) => {
+      const t = e && e.target ? e.target : null;
+      if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) recheck();
+    });
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        update();
+        setTimeout(recheck, 150);
+      });
+    } else {
+      update();
+      setTimeout(recheck, 150);
+    }
+  })();
 
   (function () {
     function normalizeDateKey(key) {
@@ -674,6 +733,50 @@
     let menuMessageEl = null;
     let forwardMessageEl = null;
 
+    async function copyToClipboard(text) {
+      const value = String(text || "");
+      if (!value) return false;
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        try {
+          await navigator.clipboard.writeText(value);
+          return true;
+        } catch (e) {
+        }
+      }
+
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = value;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        ta.style.top = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        ta.remove();
+        return ok;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function getCopyTextFromMessageEl(messageEl) {
+      if (!messageEl) return "";
+      const body = (messageEl.getAttribute("data-message-body") || "").trim();
+      if (body) return body;
+
+      const img = messageEl.querySelector("img[data-zoom-src]");
+      const imgSrc = img ? (img.getAttribute("data-zoom-src") || "") : "";
+      if (imgSrc) return imgSrc;
+
+      const audio = messageEl.querySelector(".js-audio-msg[data-audio-src]");
+      const audioSrc = audio ? (audio.getAttribute("data-audio-src") || "") : "";
+      if (audioSrc) return audioSrc;
+
+      return (messageEl.getAttribute("data-message-preview") || "").trim();
+    }
+
     function closeMessageMenu() {
       if (!menu) return;
       menu.classList.add("hidden");
@@ -839,6 +942,11 @@
           closeMessageMenu();
           return;
         }
+        if (action === "copy") {
+          copyToClipboard(getCopyTextFromMessageEl(menuMessageEl));
+          closeMessageMenu();
+          return;
+        }
         if (action === "edit") {
           openEditFromMessageEl(menuMessageEl);
           closeMessageMenu();
@@ -892,7 +1000,7 @@
       }
 
       list.addEventListener("click", (e) => {
-        const interactive = e.target.closest("a,button,input,textarea,select,label");
+        const interactive = e.target.closest("a,button,input,textarea,select,label,img[data-zoom-src],.js-audio-msg,.js-audio-seek");
         if (interactive) return;
 
         const messageEl = e.target.closest('li[data-message-id]');

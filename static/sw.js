@@ -1,10 +1,10 @@
-const CACHE_NAME = "pesk-messenger-v11";
+const CACHE_NAME = "pesk-messenger-v11.2";
 
 const APP_SHELL = [
   "/",
   "/static/css/tailwind.css?v=3",
   "/static/css/fonts.css",
-  "/static/css/style.css?v=8",
+  "/static/css/style.css?v=8.2",
   "/static/vendor/htmx.min.js",
   "/static/vendor/ws.min.js",
   "/static/vendor/alpine.min.js",

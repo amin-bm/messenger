@@ -74,3 +74,41 @@
     overflow: visible;
   }
 }
+
+@media (pointer: coarse) {
+  #chat_messages li[data-message-id] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.min-h-0 {
+  min-height: 0;
+}
+
+.opacity-0 {
+  opacity: 0;
+}
+
+.pointer-events-none {
+  pointer-events: none;
+}
+
+#scroll_to_bottom_btn {
+  position: absolute;
+  right: 16px;
+  bottom: 96px;
+  z-index: 65;
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #374151;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: opacity 150ms ease;
+}

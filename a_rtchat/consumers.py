@@ -282,7 +282,16 @@ class ChatroomConsumer(WebsocketConsumer):
 
     def message_handler(self, event):
         _touch_last_seen(self.user)
-        message = GroupMessage.objects.get(id=event['message_id'])
+        message = (
+            GroupMessage.objects
+            .select_related(
+                "group",
+                "author", "author__profile",
+                "reply_to", "reply_to__author", "reply_to__author__profile",
+                "forwarded_from", "forwarded_from__profile",
+            )
+            .get(id=event['message_id'])
+        )
 
         context = {
             'message': message,
@@ -304,7 +313,16 @@ class ChatroomConsumer(WebsocketConsumer):
         )
 
     def message_edited_handler(self, event):
-        message = GroupMessage.objects.get(id=event['message_id'])
+        message = (
+            GroupMessage.objects
+            .select_related(
+                "group",
+                "author", "author__profile",
+                "reply_to", "reply_to__author", "reply_to__author__profile",
+                "forwarded_from", "forwarded_from__profile",
+            )
+            .get(id=event['message_id'])
+        )
 
         context = {
             'message': message,
@@ -334,10 +352,12 @@ class ChatroomConsumer(WebsocketConsumer):
 
     def online_count_handler(self, event):
         online_count = event['online_count']
-
-        chat_messages = ChatGroup.objects.get(group_name=self.chatroom_name).chat_messages.all()[:30]
-        author_ids = set([m.author_id for m in chat_messages])
-        users = User.objects.filter(id__in=author_ids)
+        author_ids = set(
+            self.chatroom.chat_messages
+            .order_by('-created')
+            .values_list('author_id', flat=True)[:30]
+        )
+        users = User.objects.filter(id__in=author_ids).select_related('profile')
 
         context = {
             'online_count': online_count,

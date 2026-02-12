@@ -78,6 +78,11 @@ class GroupMessage(models.Model):
    created = models.DateTimeField(auto_now_add=True)
    edited = models.DateTimeField(null=True, blank=True)
 
+   IMAGE_EXTENSIONS = frozenset({
+      ".jpg", ".jpeg", ".png", ".gif",
+      ".webp", ".bmp", ".tiff", ".svg",
+   })
+
    
    @property
    def filename(self):
@@ -115,22 +120,12 @@ class GroupMessage(models.Model):
       ordering = ['-created']
 
 
-   @property
+   @cached_property
    def is_image(self):
       if not self.file:
          return False
-      try:
-         self.file.open('rb')
-         img = Image.open(self.file)
-         img.verify()
-         return True
-      except Exception:
-         return False
-      finally:
-         try:
-               self.file.close()
-         except Exception:
-               pass
+      ext = os.path.splitext(self.file.name or "")[1].lower()
+      return ext in self.IMAGE_EXTENSIONS
          
 
    

@@ -1,6 +1,7 @@
 venv/
 node/
 media/
+review.txt
 frontend/node_modules/
 __pycache__/
 db.sqlite3

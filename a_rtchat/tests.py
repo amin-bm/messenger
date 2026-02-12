@@ -3,6 +3,10 @@ from django.contrib.auth.models import User
 
 from a_users.models import Profile, ContactCategory
 from a_rtchat.consumers import _contact_users_for_user
+from a_rtchat.models import ChatGroup, GroupMessage
+from django.urls import reverse
+from django.utils import timezone
+import datetime
 
 
 class ContactVisibilityTests(TestCase):
@@ -68,3 +72,30 @@ class ContactVisibilityTests(TestCase):
         qs = _contact_users_for_user(manager)
         ids = set(qs.values_list("id", flat=True))
         self.assertEqual(ids, {u1.id, u2.id})
+
+
+class ChatPaginationTests(TestCase):
+    def test_chat_loads_older_messages(self):
+        u = User.objects.create_user(username="u", password="pass")
+        u.profile.approved = True
+        u.profile.save(update_fields=["approved"])
+        self.client.login(username="u", password="pass")
+
+        g = ChatGroup.objects.create(group_name="g1", group_slug="g1", groupchat_name="G1", admin=u, is_private=False)
+        g.members.add(u)
+
+        base = timezone.now() - datetime.timedelta(days=1)
+        for i in range(45):
+            m = GroupMessage.objects.create(group=g, author=u, body=f"m{i}")
+            GroupMessage.objects.filter(id=m.id).update(created=base + datetime.timedelta(seconds=i))
+
+        res = self.client.get(reverse("chatroom", args=["g1"]))
+        self.assertEqual(res.status_code, 200)
+        msgs = list(res.context["chat_messages"])
+        self.assertEqual(len(msgs), 30)
+        before_id = msgs[0].id
+
+        older_url = reverse("chat-messages-older", args=["g1"])
+        res2 = self.client.get(f"{older_url}?before={before_id}", HTTP_HX_REQUEST="true")
+        self.assertEqual(res2.status_code, 200)
+        self.assertIn("msg-", res2.content.decode("utf-8"))

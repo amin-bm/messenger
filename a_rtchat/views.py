@@ -1,3 +1,5 @@
+import io
+import hashlib
 import os
 import shutil
 import subprocess
@@ -14,13 +16,15 @@ from django.http import HttpResponse, JsonResponse
 from django.http import Http404
 from django.template import context
 from django.utils import timezone
-from django.core.files.base import File
+from django.core.files.base import File, ContentFile
+from django.core.files.storage import default_storage
 from django.utils.text import slugify
 from django.db.models import Q
 from django.urls import reverse
 from django.utils.html import escape, format_html
 from django.db import transaction
 from django.conf import settings
+from PIL import Image, ImageOps
 from .models import *
 from .forms import *
 from .consumers import _send_push_notifications_for_message
@@ -212,6 +216,11 @@ def chat_view(request, chatroom_identifier='public_chat'):
         raise Http404
 
     chatroom_identifier = chat_group.group_slug or chat_group.group_name
+    _MSG_RELATED = (
+        "author", "author__profile",
+        "reply_to", "reply_to__author", "reply_to__author__profile",
+        "forwarded_from", "forwarded_from__profile",
+    )
     focus_raw = (request.GET.get("focus") or "").strip()
     focus_message = None
     if focus_raw.isdigit():
@@ -226,16 +235,22 @@ def chat_view(request, chatroom_identifier='public_chat'):
         older = list(
             chat_group.chat_messages
             .filter(created__lt=focus_message.created)
+            .select_related(*_MSG_RELATED)
             .order_by("-created")[:15]
         )
         newer = list(
             chat_group.chat_messages
             .filter(created__gte=focus_message.created)
+            .select_related(*_MSG_RELATED)
             .order_by("created")[:15]
         )
         chat_messages = older[::-1] + newer
     else:
-        chat_messages = list(chat_group.chat_messages.order_by("-created")[:30])[::-1]
+        chat_messages = list(
+            chat_group.chat_messages
+            .select_related(*_MSG_RELATED)
+            .order_by("-created")[:30]
+        )[::-1]
     form = ChatmessageCreateForm()
 
     other_user = None;
@@ -304,6 +319,58 @@ def chat_view(request, chatroom_identifier='public_chat'):
     }
 
     return render(request, 'a_rtchat/chat.html', context)
+
+@messenger_required
+def chat_messages_older(request, chatroom_identifier):
+    if request.method != "GET":
+        return HttpResponse(status=405)
+
+    chat_group = get_chat_group_by_identifier(chatroom_identifier)
+    _assert_user_can_access_chat_group(request, chat_group)
+
+    chatroom_identifier = chat_group.group_slug or chat_group.group_name
+    _MSG_RELATED = (
+        "author", "author__profile",
+        "reply_to", "reply_to__author", "reply_to__author__profile",
+        "forwarded_from", "forwarded_from__profile",
+    )
+    before_raw = (request.GET.get("before") or "").strip()
+    if not before_raw.isdigit():
+        return HttpResponse(status=400)
+
+    before_msg = (
+        GroupMessage.objects
+        .filter(group=chat_group, id=int(before_raw))
+        .only("id", "created")
+        .first()
+    )
+    if not before_msg:
+        raise Http404
+
+    page_size = 30
+    qs = (
+        chat_group.chat_messages
+        .filter(created__lt=before_msg.created)
+        .select_related(*_MSG_RELATED)
+        .order_by("-created")[: page_size + 1]
+    )
+    raw = list(qs)
+    has_more = len(raw) > page_size
+    if has_more:
+        raw = raw[:page_size]
+    chat_messages = raw[::-1]
+
+    next_before = (chat_messages[0].id if (has_more and chat_messages) else "")
+
+    context = {
+        "chat_messages": chat_messages,
+        "chat_group": chat_group,
+        "chatroom_identifier": chatroom_identifier,
+        "user": request.user,
+        "has_more": has_more,
+        "next_before": next_before,
+    }
+    return render(request, "a_rtchat/partials/chat_messages_older.html", context)
 
 
 @messenger_required
@@ -715,6 +782,90 @@ def chat_message_transcode(request, message_id):
             "url": (message.file.url if getattr(message, "file", None) else ""),
         }
     )
+
+@messenger_required
+def chat_message_image_thumb(request, message_id):
+    if request.method != "GET":
+        return HttpResponse(status=405)
+
+    message = get_object_or_404(GroupMessage.objects.select_related("group"), id=message_id)
+    chat_group = message.group
+    _assert_user_can_access_chat_group(request, chat_group)
+
+    if not getattr(message, "file", None) or not message.is_image:
+        raise Http404
+
+    name = getattr(message.file, "name", "") or ""
+    size = int(getattr(message.file, "size", 0) or 0)
+    digest = hashlib.sha256(f"{message_id}:{name}:{size}:thumb-v1".encode("utf-8")).hexdigest()[:16]
+    etag = f'"{digest}"'
+
+    if request.META.get("HTTP_IF_NONE_MATCH", "").strip() == etag:
+        r = HttpResponse(status=304)
+        r["ETag"] = etag
+        r["Cache-Control"] = "private, max-age=31536000, immutable"
+        return r
+
+    thumb_webp_rel_path = f"files/thumbs/{message_id}_{digest}.webp"
+    thumb_jpg_rel_path = f"files/thumbs/{message_id}_{digest}.jpg"
+
+    if default_storage.exists(thumb_webp_rel_path):
+        with default_storage.open(thumb_webp_rel_path, "rb") as f:
+            data = f.read()
+        res = HttpResponse(data, content_type="image/webp")
+        res["ETag"] = etag
+        res["Cache-Control"] = "private, max-age=31536000, immutable"
+        return res
+    if default_storage.exists(thumb_jpg_rel_path):
+        with default_storage.open(thumb_jpg_rel_path, "rb") as f:
+            data = f.read()
+        res = HttpResponse(data, content_type="image/jpeg")
+        res["ETag"] = etag
+        res["Cache-Control"] = "private, max-age=31536000, immutable"
+        return res
+
+    max_px = 480
+    try:
+        message.file.open("rb")
+        try:
+            img = Image.open(message.file)
+        except Exception:
+            raise Http404
+        img = ImageOps.exif_transpose(img)
+        img.thumbnail((max_px, max_px), Image.Resampling.LANCZOS)
+
+        if img.mode == "RGBA":
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[-1])
+            img = bg
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
+
+        try:
+            buf = io.BytesIO()
+            img.save(buf, format="WEBP", quality=70, method=6)
+            data = buf.getvalue()
+            if not default_storage.exists(thumb_webp_rel_path):
+                default_storage.save(thumb_webp_rel_path, ContentFile(data))
+            res = HttpResponse(data, content_type="image/webp")
+            res["ETag"] = etag
+            res["Cache-Control"] = "private, max-age=31536000, immutable"
+            return res
+        except Exception:
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=75, optimize=True, progressive=True)
+            data = buf.getvalue()
+            if not default_storage.exists(thumb_jpg_rel_path):
+                default_storage.save(thumb_jpg_rel_path, ContentFile(data))
+            res = HttpResponse(data, content_type="image/jpeg")
+            res["ETag"] = etag
+            res["Cache-Control"] = "private, max-age=31536000, immutable"
+            return res
+    finally:
+        try:
+            message.file.close()
+        except Exception:
+            pass
 
 @messenger_required
 def chat_message_edit(request, message_id):

@@ -4,13 +4,18 @@
 
 {% if message.file %}
   {% if message.is_image %}
-    <img
-      src="{{ message.file.url }}"
-      data-zoom-src="{{ message.file.url }}"
-      alt="{{ message.filename }}"
-      class="mt-2 max-h-64 w-auto rounded-xl object-cover cursor-zoom-in select-none"
-      loading="lazy"
-    />
+    <div class="mt-2 h-48 w-48 sm:h-56 sm:w-56 max-h-64 rounded-xl overflow-hidden bg-gray-200/60">
+      <img
+        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+        data-src="{% url 'chat-message-thumb' message.id %}"
+        data-thumb-src="{% url 'chat-message-thumb' message.id %}"
+        data-zoom-src="{{ message.file.url }}"
+        alt="{{ message.filename }}"
+        class="w-full h-full object-contain cursor-zoom-in select-none js-lazy-img"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
   {% elif message.is_audio %}
     <div class="mt-2 w-full js-audio-msg" data-audio-src="{{ message.file.url }}" data-message-id="{{ message.id }}">
       <audio class="sr-only js-audio" preload="metadata">

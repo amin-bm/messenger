@@ -1,0 +1,19 @@
+{% if has_more and next_before %}
+<li id="load_older"
+    hx-get="{% url 'chat-messages-older' chatroom_identifier %}?before={{ next_before }}"
+    hx-trigger="rtchat-load-older"
+    hx-target="this"
+    hx-swap="outerHTML"
+    class="w-full flex justify-center py-2 text-xs text-gray-500 select-none">
+  در حال بارگذاری...
+</li>
+{% else %}
+<li id="load_older"
+    class="w-full flex justify-center py-2 text-xs text-gray-400 select-none">
+  پیام قدیمی‌تری وجود ندارد
+</li>
+{% endif %}
+
+{% for message in chat_messages %}
+  {% include 'a_rtchat/chat_message.html' %}
+{% endfor %}

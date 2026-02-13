@@ -79,6 +79,10 @@ def _env_csv(name: str) -> list[str]:
 # Project title displayed in the header
 PROJECT_TITLE = "Pesk Messenger"
 
+APP_VERSION = (_strip_wrapping_quotes(os.getenv("APP_VERSION", "dev")) or "").strip() or "dev"
+APP_RESET_REQUIRED = _env_bool("APP_RESET_REQUIRED", "0")
+APP_RESET_MESSAGE = (_strip_wrapping_quotes(os.getenv("APP_RESET_MESSAGE", "")) or "").strip()
+
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv(

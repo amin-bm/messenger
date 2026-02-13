@@ -8,6 +8,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
 
 from a_core import settings as project_settings
+from django.conf import settings
 from a_users.models import PushSubscription
 
 def home_view(request):
@@ -29,7 +30,8 @@ def pwa_manifest(request):
             content = f.read()
 
     response = HttpResponse(content, content_type="application/manifest+json")
-    response["Cache-Control"] = "no-cache"
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response["Pragma"] = "no-cache"
     return response
 
 
@@ -47,8 +49,23 @@ def pwa_service_worker(request):
             content = f.read()
 
     response = HttpResponse(content, content_type="application/javascript")
-    response["Cache-Control"] = "no-cache"
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response["Pragma"] = "no-cache"
     response["Service-Worker-Allowed"] = "/"
+    return response
+
+
+@require_GET
+def pwa_version(request):
+    response = JsonResponse(
+        {
+            "version": getattr(settings, "APP_VERSION", "dev"),
+            "reset_required": bool(getattr(settings, "APP_RESET_REQUIRED", False)),
+            "reset_message": getattr(settings, "APP_RESET_MESSAGE", ""),
+        }
+    )
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response["Pragma"] = "no-cache"
     return response
 
 

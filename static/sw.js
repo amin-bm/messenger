@@ -1,36 +1,132 @@
-const CACHE_NAME = "pesk-messenger-v11.3";
+const SW_VERSION = (() => {
+  try {
+    return new URL(self.location.href).searchParams.get("v") || "dev";
+  } catch (e) {
+    return "dev";
+  }
+})();
+
+const CACHE_PREFIX = "pesk-messenger-";
+const CACHE_NAME = `${CACHE_PREFIX}${SW_VERSION}`;
+
+function versioned(url) {
+  if (!SW_VERSION) return url;
+  if (url.includes("?")) return `${url}&v=${encodeURIComponent(SW_VERSION)}`;
+  return `${url}?v=${encodeURIComponent(SW_VERSION)}`;
+}
 
 const APP_SHELL = [
   "/",
-  "/static/css/tailwind.css?v=3",
+  "/static/css/tailwind.css",
   "/static/css/fonts.css",
-  "/static/css/style.css?v=8.3",
+  "/static/css/style.css",
   "/static/vendor/htmx.min.js",
   "/static/vendor/ws.min.js",
   "/static/vendor/alpine.min.js",
   "/static/vendor/hyperscript.min.js",
   "/static/logo.png",
-  "/static/logo-large.png"
-];
+  "/static/logo-large.png",
+].map(versioned);
+
+async function notifyClients(message) {
+  const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  for (const client of clientList) {
+    try {
+      client.postMessage(message);
+    } catch (e) {
+      continue;
+    }
+  }
+}
+
+async function cacheAppShell() {
+  const cache = await caches.open(CACHE_NAME);
+  const failed = [];
+
+  for (const url of APP_SHELL) {
+    try {
+      const req = new Request(url, { cache: "reload" });
+      const res = await fetch(req);
+      if (!res || !res.ok) {
+        failed.push(url);
+        continue;
+      }
+      await cache.put(url, res.clone());
+    } catch (e) {
+      failed.push(url);
+    }
+  }
+  return { ok: failed.length === 0, failed };
+}
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())
-  );
+  event.waitUntil(Promise.resolve());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k)))))
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.map((k) => {
+            if (!k.startsWith(CACHE_PREFIX)) return null;
+            if (k === CACHE_NAME) return null;
+            return caches.delete(k);
+          })
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("message", (event) => {
   const data = event && event.data;
-  if (data === "SKIP_WAITING") self.skipWaiting();
+
+  if (data === "SKIP_WAITING") {
+    self.skipWaiting();
+    return;
+  }
+
+  if (data === "PREPARE_UPDATE") {
+    event.waitUntil(
+      cacheAppShell().then((result) =>
+        notifyClients({ type: "PWA_UPDATE_PREPARED", version: SW_VERSION, ...result })
+      )
+    );
+  }
 });
+
+async function cacheFirst(req) {
+  const cached = await caches.match(req);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(req);
+    if (res && res.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(req, res.clone());
+    }
+    return res;
+  } catch (e) {
+    return cached || new Response("", { status: 408 });
+  }
+}
+
+async function networkFirstNavigation(req) {
+  try {
+    const res = await fetch(req);
+    if (res && res.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.put(req, res.clone());
+    }
+    return res;
+  } catch (e) {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    return (await caches.match(versioned("/"))) || new Response("", { status: 503 });
+  }
+}
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
@@ -39,31 +135,23 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
+  if (url.pathname.startsWith("/ws/") || url.pathname.startsWith("/api/") || url.pathname.startsWith("/pwa/")) {
+    return;
+  }
+
   const isNavigation = req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html");
   if (isNavigation) {
-    event.respondWith(
-      fetch(req)
-        .catch(() => caches.match("/"))
-    );
+    event.respondWith(networkFirstNavigation(req));
     return;
   }
 
   const isStatic = url.pathname.startsWith("/static/");
-  if (!isStatic) {
-    event.respondWith(fetch(req));
+  if (isStatic) {
+    event.respondWith(cacheFirst(req));
     return;
   }
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
-        return res;
-      });
-    })
-  );
+  event.respondWith(fetch(req));
 });
 
 self.addEventListener("push", (event) => {

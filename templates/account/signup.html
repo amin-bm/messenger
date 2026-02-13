@@ -77,3 +77,38 @@
     {% endif %}
     </div>
 {% endblock content %}
+
+{% block javascript %}
+<script>
+  (function () {
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+    if (!isMobile) return;
+
+    const home = '/';
+
+    document.querySelectorAll('input[type="hidden"][name="next"]').forEach((el) => {
+      const current = (el.value || '').trim();
+      if (!current || current.includes('/profile/onboarding') || current.startsWith('/profile/')) {
+        el.value = home;
+      }
+    });
+
+    document.querySelectorAll('a[href]').forEach((a) => {
+      const href = a.getAttribute('href') || '';
+      if (!href.includes('next=')) return;
+      let url;
+      try {
+        url = new URL(href, window.location.origin);
+      } catch (e) {
+        return;
+      }
+      const next = (url.searchParams.get('next') || '').trim();
+      if (!next) return;
+      if (next.includes('/profile/onboarding') || next.startsWith('/profile/')) {
+        url.searchParams.set('next', home);
+        a.setAttribute('href', `${url.pathname}${url.search}${url.hash}`);
+      }
+    });
+  })();
+</script>
+{% endblock javascript %}

@@ -1,8 +1,4 @@
 {
-  "scripts": {
-    "tailwind:build": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify",
-    "tailwind:watch": "tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --watch"
-  },
   "devDependencies": {
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",

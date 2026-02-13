@@ -435,9 +435,33 @@
 
     function goToLastChatOrHome(e) {
       const lastChatUrl = localStorage.getItem('lastChatUrl') || '';
-      const target = lastChatUrl.startsWith('/chat/room/') ? lastChatUrl : '/';
       if (e) e.preventDefault();
-      window.location.href = target;
+      const home = '/';
+      const target = lastChatUrl.startsWith('/chat/room/') ? lastChatUrl : home;
+
+      if (target === home) {
+        window.location.href = home;
+        return false;
+      }
+
+      fetch(target, { method: 'GET', credentials: 'same-origin', redirect: 'follow' })
+        .then((res) => {
+          if (!res || !res.ok) {
+            localStorage.removeItem('lastChatUrl');
+            window.location.href = home;
+            return;
+          }
+          try {
+            const u = new URL(res.url || home, window.location.origin);
+            window.location.href = `${u.pathname}${u.search}${u.hash}`;
+          } catch (err) {
+            window.location.href = home;
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('lastChatUrl');
+          window.location.href = home;
+        });
       return false;
     }
   </script>

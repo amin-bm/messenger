@@ -26,6 +26,23 @@ const APP_SHELL = [
   "/static/vendor/hyperscript.min.js",
   "/static/logo.png",
   "/static/logo-large.png",
+  "/static/favicon.ico",
+  "/static/favicon-128.ico",
+  "/static/favicon-16.png",
+  "/static/favicon-32.png",
+  "/static/pwa-icon-48.png",
+  "/static/pwa-icon-72.png",
+  "/static/pwa-icon-96.png",
+  "/static/pwa-icon-128.png",
+  "/static/pwa-icon-144.png",
+  "/static/pwa-icon-152.png",
+  "/static/pwa-icon-192.png",
+  "/static/pwa-icon-256.png",
+  "/static/pwa-icon-384.png",
+  "/static/pwa-icon-512.png",
+  "/static/pwa-maskable-192.png",
+  "/static/pwa-maskable-512.png",
+  "/static/pwa-apple-touch-180.png",
 ].map(versioned);
 
 async function notifyClients(message) {
@@ -100,6 +117,23 @@ self.addEventListener("message", (event) => {
 async function cacheFirst(req) {
   const cached = await caches.match(req);
   if (cached) return cached;
+
+  let url;
+  try {
+    url = new URL(req.url);
+  } catch (e) {
+    url = null;
+  }
+
+  if (url && url.origin === self.location.origin) {
+    if (!url.search) {
+      const alt = await caches.match(versioned(url.pathname));
+      if (alt) return alt;
+    } else {
+      const alt = await caches.match(url.pathname);
+      if (alt) return alt;
+    }
+  }
 
   try {
     const res = await fetch(req);

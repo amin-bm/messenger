@@ -9,14 +9,14 @@
   <meta name="description" content="Django Template">
   <title>Pesk Messenger</title>
 
-  <link rel="icon" type="image/x-icon" href="{% static 'logo.png' %}?v={{ APP_VERSION|urlencode }}">
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}?v={{ APP_VERSION|urlencode }}">
   <link rel="manifest" href="/manifest.webmanifest?v={{ APP_VERSION|urlencode }}">
   <meta name="theme-color" content="#0ea5e9">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Pesk Messenger">
-  <link rel="apple-touch-icon" href="{% static 'logo-large.png' %}?v={{ APP_VERSION|urlencode }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'pwa-apple-touch-180.png' %}?v={{ APP_VERSION|urlencode }}">
   <meta name="app-version" content="{{ APP_VERSION|escape }}">
   <meta name="app-reset-required" content="{% if APP_RESET_REQUIRED %}1{% else %}0{% endif %}">
   <meta name="app-reset-message" content="{{ APP_RESET_MESSAGE|default:''|escape }}">
@@ -613,6 +613,184 @@
       let pwaStatusText = "";
       let pwaStatusKind = "info";
       let pwaPrepareResolver = null;
+      let pwaInstallPrompt = null;
+
+      function isStandaloneDisplay() {
+        try {
+          if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+        } catch (e) {
+        }
+        try {
+          if (window.navigator && window.navigator.standalone) return true;
+        } catch (e) {
+        }
+        return false;
+      }
+
+      function isIOS() {
+        const ua = String((navigator && navigator.userAgent) || "").toLowerCase();
+        return /iphone|ipad|ipod/.test(ua);
+      }
+
+      function isIOSStandaloneCapable() {
+        if (!isIOS()) return false;
+        try {
+          return typeof window.navigator.standalone !== "undefined";
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function ensureInstallModal() {
+        let modal = document.getElementById("pwa-install-modal");
+        if (modal) return modal;
+
+        modal = document.createElement("div");
+        modal.id = "pwa-install-modal";
+        modal.style.cssText = [
+          "position:fixed",
+          "inset:0",
+          "background:rgba(17,24,39,.45)",
+          "z-index:99999",
+          "display:none",
+          "align-items:center",
+          "justify-content:center",
+          "padding:16px",
+        ].join(";");
+
+        modal.innerHTML = `
+          <div style="
+            width:min(520px,100%);
+            background:#fff;
+            border-radius:8px;
+            box-shadow:0 24px 80px rgba(0,0,0,.35);
+            padding:16px;
+            direction:rtl;
+          ">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+              <div>
+                <div style="font-weight:800;font-size:16px;color:#111827;letter-spacing:-.2px">نصب برنامه</div>
+                <div id="pwa-install-subtitle" style="margin-top:6px;font-size:13px;color:#4b5563;line-height:1.7"></div>
+              </div>
+              <button id="pwa-install-close" type="button" style="
+                border:none;background:transparent;color:#6b7280;
+                font-size:22px;line-height:1;cursor:pointer;padding:0 4px
+              ">×</button>
+            </div>
+
+            <div id="pwa-install-body" style="
+              margin-top:12px;
+              background:#f9fafb;
+              border:1px solid #e5e7eb;
+              border-radius:8px;
+              padding:12px;
+              font-size:13px;
+              color:#111827;
+              white-space:pre-line;
+              line-height:1.8;
+            "></div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px">
+              <button id="pwa-install-later" type="button" style="
+                border:none;background:transparent;color:#6b7280;
+                padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px
+              ">بعداً</button>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+                <button id="pwa-install-action" type="button" style="
+                  border:none;background:#2563eb;color:#fff;
+                  padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px
+                ">نصب</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        const close = () => {
+          try {
+            sessionStorage.setItem("pwaInstallDismissed", "1");
+          } catch (e) {
+          }
+          hideInstallModal();
+        };
+
+        modal.querySelector("#pwa-install-close").addEventListener("click", close);
+        modal.querySelector("#pwa-install-later").addEventListener("click", close);
+        modal.addEventListener("click", (e) => {
+          if (e.target === modal) close();
+        });
+
+        modal.querySelector("#pwa-install-action").addEventListener("click", async () => {
+          if (isStandaloneDisplay()) {
+            close();
+            return;
+          }
+
+          if (pwaInstallPrompt && typeof pwaInstallPrompt.prompt === "function") {
+            try {
+              pwaInstallPrompt.prompt();
+              await pwaInstallPrompt.userChoice;
+            } catch (e) {
+            }
+            pwaInstallPrompt = null;
+            close();
+            return;
+          }
+
+          close();
+        });
+
+        return modal;
+      }
+
+      function renderInstallModal() {
+        const modal = ensureInstallModal();
+        const subtitle = modal.querySelector("#pwa-install-subtitle");
+        const body = modal.querySelector("#pwa-install-body");
+        const btnInstall = modal.querySelector("#pwa-install-action");
+
+        if (isStandaloneDisplay()) {
+          subtitle.textContent = "این برنامه همین حالا در حالت اپ نصب‌شده اجرا می‌شود.";
+          body.textContent = "اگر آیکن روی صفحه اصلی دارید، نیازی به نصب مجدد نیست.";
+          btnInstall.style.display = "none";
+          return;
+        }
+
+        if (pwaInstallPrompt) {
+          subtitle.textContent = "می‌توانید برنامه را روی گوشی نصب کنید.";
+          body.textContent = "با زدن «نصب»، برنامه به صفحه اصلی اضافه می‌شود و مثل اپ اجرا می‌شود.";
+          btnInstall.style.display = "";
+          return;
+        }
+
+        if (isIOSStandaloneCapable()) {
+          subtitle.textContent = "در iOS پنجره نصب خودکار نمایش داده نمی‌شود.";
+          body.textContent =
+            "برای نصب:\n" +
+            "۱) دکمه Share (اشتراک‌گذاری) را بزنید.\n" +
+            "۲) گزینه Add to Home Screen (افزودن به صفحه اصلی) را انتخاب کنید.";
+          btnInstall.style.display = "none";
+          return;
+        }
+
+        subtitle.textContent = "نصب در این مرورگر در دسترس نیست.";
+        body.textContent =
+          "اگر داخل مرورگرهای داخلی (مثل تلگرام/اینستاگرام) باز کرده‌اید، لینک را در Chrome یا Safari باز کنید.\n" +
+          "همچنین نصب PWA روی موبایل معمولاً نیاز به HTTPS دارد.";
+        btnInstall.style.display = "none";
+      }
+
+      function showInstallModal() {
+        const modal = ensureInstallModal();
+        modal.style.display = "flex";
+        renderInstallModal();
+      }
+
+      function hideInstallModal() {
+        const modal = document.getElementById("pwa-install-modal");
+        if (modal) modal.style.display = "none";
+      }
 
       function ensureUpdateModal() {
         let modal = document.getElementById("pwa-update-modal");
@@ -635,10 +813,9 @@
           <div style="
             width:min(520px,100%);
             background:#fff;
-            border-radius:18px;
+            border-radius:8px;
             box-shadow:0 24px 80px rgba(0,0,0,.35);
             padding:16px;
-            font-family:Vazirmatn,Tahoma,sans-serif;
             direction:rtl;
           ">
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
@@ -1124,11 +1301,38 @@
         saveSnapshot(nextSnapshot);
       }
 
+      window.addEventListener("beforeinstallprompt", (e) => {
+        if (isStandaloneDisplay()) return;
+        try {
+          if (sessionStorage.getItem("pwaInstallDismissed") === "1") return;
+        } catch (err) {
+        }
+        try {
+          e.preventDefault();
+        } catch (err) {
+        }
+        pwaInstallPrompt = e;
+        showInstallModal();
+      });
+
+      window.addEventListener("appinstalled", () => {
+        pwaInstallPrompt = null;
+        hideInstallModal();
+      });
+
       document.addEventListener("DOMContentLoaded", async () => {
         lastSnapshot = loadSnapshot() || readSnapshotFromDom();
         await cleanupSiteDataIfNeeded();
         await registerServiceWorker();
         if (canNotify()) await ensurePushSubscription();
+        if (!isStandaloneDisplay() && !pwaInstallPrompt) {
+          try {
+            if (sessionStorage.getItem("pwaInstallDismissed") !== "1" && isIOSStandaloneCapable()) {
+              showInstallModal();
+            }
+          } catch (e) {
+          }
+        }
       });
 
       document.body.addEventListener("htmx:wsAfterMessage", () => {

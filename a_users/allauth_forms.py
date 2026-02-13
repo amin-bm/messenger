@@ -59,7 +59,7 @@ class PhoneSignupForm(SignupForm):
             username.label = "نام کاربری (انگلیسی)"
             _apply_widget_attrs(
                 username,
-                {"class": _INPUT_CLASS, "placeholder": "amin_moghaddam", "dir": "ltr", "autocomplete": "username"},
+                {"class": _INPUT_CLASS, "placeholder": "user_nsme", "dir": "ltr", "autocomplete": "username"},
             )
             username.error_messages = {
                 **getattr(username, "error_messages", {}),
@@ -152,13 +152,13 @@ class PhoneLoginForm(LoginForm):
             login.label = "نام کاربری (انگلیسی)"
             _apply_widget_attrs(
                 login,
-                {"class": _INPUT_CLASS, "placeholder": "amin_moghaddam", "dir": "ltr", "autocomplete": "username"},
+                {"class": _INPUT_CLASS, "placeholder": "user_name", "dir": "ltr", "autocomplete": "username"},
             )
 
         password = self.fields.get("password")
         if password:
             password.label = "رمز عبور"
-            _apply_widget_attrs(password, {"class": _INPUT_CLASS, "placeholder": "رمز عبور"})
+            _apply_widget_attrs(password, {"class": _INPUT_CLASS, "dir": "ltr","placeholder": "Password"})
 
         remember = self.fields.get("remember")
         if remember:

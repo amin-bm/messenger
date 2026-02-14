@@ -484,9 +484,55 @@
       const modal = document.getElementById('img-modal');
       const modalImg = document.getElementById('img-modal-src');
       const closeBtn = document.getElementById('img-modal-close');
+      const MIN_SCALE = 1;
+      const MAX_SCALE = 4;
+      let scale = 1;
+      let translateX = 0;
+      let translateY = 0;
+      let panStartX = 0;
+      let panStartY = 0;
+      let panOriginX = 0;
+      let panOriginY = 0;
+      let pinchStartDistance = 0;
+      let pinchStartScale = 1;
+      let pinchStartMidX = 0;
+      let pinchStartMidY = 0;
+
+      function clamp(n, min, max) {
+        return Math.max(min, Math.min(max, n));
+      }
+
+      function distance(t1, t2) {
+        const dx = t2.clientX - t1.clientX;
+        const dy = t2.clientY - t1.clientY;
+        return Math.hypot(dx, dy);
+      }
+
+      function midpoint(t1, t2) {
+        return {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+      }
+
+      function applyTransform() {
+        if (!modalImg) return;
+        modalImg.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`;
+      }
+
+      function resetTransform() {
+        scale = 1;
+        translateX = 0;
+        translateY = 0;
+        if (!modalImg) return;
+        modalImg.style.transformOrigin = 'center center';
+        modalImg.style.touchAction = 'none';
+        applyTransform();
+      }
 
       function openModal(src) {
         modalImg.src = src;
+        resetTransform();
         modal.classList.remove('hidden');
         modal.classList.add('flex');
         document.body.style.overflow = 'hidden';
@@ -496,10 +542,72 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
         modalImg.src = '';
+        resetTransform();
         document.body.style.overflow = '';
       }
 
       if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+      if (modalImg) {
+        modalImg.addEventListener('touchstart', (e) => {
+          if (modal.classList.contains('hidden')) return;
+          if (!e.touches || e.touches.length === 0) return;
+
+          if (e.touches.length === 2) {
+            e.preventDefault();
+            pinchStartDistance = distance(e.touches[0], e.touches[1]) || 1;
+            pinchStartScale = scale;
+            const mid = midpoint(e.touches[0], e.touches[1]);
+            pinchStartMidX = mid.x;
+            pinchStartMidY = mid.y;
+            panOriginX = translateX;
+            panOriginY = translateY;
+            return;
+          }
+
+          if (e.touches.length === 1 && scale > 1) {
+            e.preventDefault();
+            panStartX = e.touches[0].clientX;
+            panStartY = e.touches[0].clientY;
+            panOriginX = translateX;
+            panOriginY = translateY;
+          }
+        }, { passive: false });
+
+        modalImg.addEventListener('touchmove', (e) => {
+          if (modal.classList.contains('hidden')) return;
+          if (!e.touches || e.touches.length === 0) return;
+
+          if (e.touches.length === 2) {
+            e.preventDefault();
+            const d = distance(e.touches[0], e.touches[1]) || 1;
+            const nextScale = clamp((pinchStartScale * d) / pinchStartDistance, MIN_SCALE, MAX_SCALE);
+
+            const mid = midpoint(e.touches[0], e.touches[1]);
+            const dx = mid.x - pinchStartMidX;
+            const dy = mid.y - pinchStartMidY;
+
+            scale = nextScale;
+            translateX = panOriginX + dx;
+            translateY = panOriginY + dy;
+            applyTransform();
+            return;
+          }
+
+          if (e.touches.length === 1 && scale > 1) {
+            e.preventDefault();
+            const dx = e.touches[0].clientX - panStartX;
+            const dy = e.touches[0].clientY - panStartY;
+            translateX = panOriginX + dx;
+            translateY = panOriginY + dy;
+            applyTransform();
+          }
+        }, { passive: false });
+
+        modalImg.addEventListener('touchend', () => {
+          if (scale <= 1) resetTransform();
+        });
+      }
 
       document.addEventListener('click', (e) => {
         const img = e.target.closest('img[data-zoom-src]');

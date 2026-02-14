@@ -628,6 +628,41 @@
     if (!container || !btn) return;
 
     const thresholdPx = 100;
+    let ownMessageScrollPending = false;
+    let ownMessageScrollExpiresAt = 0;
+
+    function markOwnMessageScrollPending(ttlMs = 2500) {
+      const ttl = Math.max(0, Number(ttlMs || 0));
+      ownMessageScrollPending = true;
+      ownMessageScrollExpiresAt = Date.now() + ttl;
+    }
+
+    function clearOwnMessageScrollPending() {
+      ownMessageScrollPending = false;
+      ownMessageScrollExpiresAt = 0;
+    }
+
+    window.rtchatMarkOwnMessageScrollPending = markOwnMessageScrollPending;
+
+    function lastMessageIsMine() {
+      const list = document.getElementById("chat_messages");
+      if (!list) return false;
+      const nodes = list.querySelectorAll('li[id^="msg-"][data-message-id]');
+      const last = nodes.length ? nodes[nodes.length - 1] : null;
+      return Boolean(last && last.dataset && last.dataset.messageAuthor === "شما");
+    }
+
+    const messageForm = document.getElementById("chat_message_form");
+    if (messageForm) {
+      messageForm.addEventListener("htmx:wsAfterSend", () => {
+        markOwnMessageScrollPending(2500);
+      });
+    }
+
+    const fileForm = document.getElementById("chat_file_form");
+    if (fileForm) {
+      fileForm.addEventListener("htmx:beforeRequest", () => markOwnMessageScrollPending(120000));
+    }
 
     function isNearBottom() {
       const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
@@ -652,14 +687,27 @@
     const recheck = () => requestAnimationFrame(update);
     document.body.addEventListener("htmx:oobAfterSwap", recheck);
     document.body.addEventListener("htmx:wsAfterMessage", (e) => {
-      const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
-      if (elt && elt.id && elt.id !== "chat_message_form") return;
-      if (isNearBottom()) scrollToBottom(0);
+      if (ownMessageScrollPending) {
+        if (Date.now() > ownMessageScrollExpiresAt) clearOwnMessageScrollPending();
+        else if (lastMessageIsMine()) {
+          clearOwnMessageScrollPending();
+          scrollToBottom(0);
+        }
+      }
       recheck();
     });
     document.body.addEventListener("htmx:afterSwap", (e) => {
       const t = e && e.target ? e.target : null;
-      if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) recheck();
+      if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) {
+        if (ownMessageScrollPending) {
+          if (Date.now() > ownMessageScrollExpiresAt) clearOwnMessageScrollPending();
+          else if (lastMessageIsMine()) {
+            clearOwnMessageScrollPending();
+            scrollToBottom(0);
+          }
+        }
+        recheck();
+      }
     });
 
     if (document.readyState === "loading") {
@@ -1866,7 +1914,6 @@
         audioEl.src = previewUrl;
         previewEl.classList.remove("hidden");
         setRecordingUI(false);
-        scrollToBottom(0);
       });
 
       startTs = Date.now();
@@ -1967,6 +2014,7 @@
         if (csrfToken) xhr.setRequestHeader("X-CSRFToken", csrfToken);
         xhr.setRequestHeader("HX-Request", "true");
         xhr.withCredentials = true;
+        if (typeof window.rtchatMarkOwnMessageScrollPending === "function") window.rtchatMarkOwnMessageScrollPending(120000);
         xhr.send(formData);
       });
     }
@@ -2210,6 +2258,7 @@
       if (fileOverride) lockTypingForFile(fileSummary(file));
       showProgress(fileSummary(file));
       sendBtn.classList.add("hidden");
+      if (typeof window.rtchatMarkOwnMessageScrollPending === "function") window.rtchatMarkOwnMessageScrollPending(120000);
 
       if (Number(file.size || 0) >= CHUNK_THRESHOLD) {
         uploadFileChunked(file, replyTo, csrfToken)

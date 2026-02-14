@@ -470,6 +470,12 @@
   </script>
 
   <div id="img-modal" class="fixed inset-0 hidden z-[9999] bg-black/70 p-4 items-center justify-center">
+    <button id="img-modal-close" type="button" aria-label="بستن" class="absolute top-4 right-4 z-10 inline-flex items-center justify-center h-11 w-11 rounded-full bg-black/55 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70 active:bg-black/80">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </button>
     <img id="img-modal-src" class="max-h-[90vh] max-w-[90vw] rounded-2xl shadow-2xl" alt="Preview" />
   </div>
 
@@ -477,6 +483,7 @@
     (function () {
       const modal = document.getElementById('img-modal');
       const modalImg = document.getElementById('img-modal-src');
+      const closeBtn = document.getElementById('img-modal-close');
 
       function openModal(src) {
         modalImg.src = src;
@@ -491,6 +498,8 @@
         modalImg.src = '';
         document.body.style.overflow = '';
       }
+
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
 
       document.addEventListener('click', (e) => {
         const img = e.target.closest('img[data-zoom-src]');

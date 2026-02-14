@@ -34,7 +34,7 @@
   <div class="flex items-center justify-between border-b bg-white px-4 py-3">
     <div class="flex items-center gap-3 min-w-0">
       <button id="tg-back-btn" type="button" class="hidden -ml-2 !p-2 !rounded-lg !bg-transparent !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0" onclick="telegramBack()">
-        <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
           <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
         </svg>
       </button>
@@ -199,7 +199,7 @@
         </div>
         <div class="relative flex items-center gap-2 rounded-xl bg-gray-100 border border-gray-200 px-3 focus-within:bg-white focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-200" style="align-items: center; padding-top: 2px; padding-bottom: 2px;">
           <button id="file_pick_btn" type="button" class="text-gray-500 hover:text-gray-700" aria-label="Attach file">
-            <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <path d="M21.44 11.05 12 20.5a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.19 9.19a2 2 0 1 1-2.83-2.83l8.49-8.49" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
@@ -211,7 +211,7 @@
           <div class="flex items-center gap-3 text-gray-500">
             <div style="position: relative; display: flex; align-items: center;">
               <button id="emoji_btn" type="button" class="hover:text-gray-700" aria-label="Emoji">
-                <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                   <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" stroke="currentColor" stroke-width="2"/>
                   <path d="M8.5 10a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM15.5 10a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" fill="currentColor"/>
                   <path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -225,14 +225,14 @@
             </div>
 
             <button id="chat_send_btn" type="button" class="hidden text-blue-600 hover:text-blue-700" aria-label="Send">
-              <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                 <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M22 2L15 22l-4-9-9-4 20-7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
 
             <button id="voice_record_btn" type="button" class="hover:text-gray-700" aria-label="Record voice">
-              <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                 <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v4a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/>
                 <path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 <path d="M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -240,8 +240,8 @@
               </svg>
             </button>
 
-            <button id="voice_stop_btn" type="button" class="hidden hover:text-gray-700" aria-label="Stop recording">
-              <svg width="25" height="25" viewBox="0 0 24 24" fill="none">
+            <button id="voice_stop_btn" type="button" class="hidden rounded-xl bg-red-600 p-2.5 text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300" aria-label="Stop recording">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                 <rect x="7" y="7" width="10" height="10" rx="2" stroke="currentColor" stroke-width="2"/>
               </svg>
             </button>
@@ -250,6 +250,10 @@
       </form>
 
       <div class="flex items-center gap-2 px-3">
+        <span id="voice_recording_indicator" class="hidden items-center gap-2 text-xs font-semibold text-red-600" aria-live="polite">
+          <span class="rtchat-rec-dot"></span>
+          <span>در حال ضبط</span>
+        </span>
         <span id="voice_timer" class="hidden text-xs text-gray-500">00:00</span>
         <span id="voice_error" class="text-xs text-red-600"></span>
       </div>
@@ -341,6 +345,21 @@
 {% endblock %}
 
 {% block javascript %}
+<style>
+  .rtchat-rec-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: #ef4444;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+    animation: rtchatRecPulse 1.2s ease-out infinite;
+  }
+  @keyframes rtchatRecPulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+</style>
 <script>
   function scrollToBottom(time=0) {
     setTimeout(() => {
@@ -1785,6 +1804,7 @@
   (function () {
     const recordBtn = document.getElementById('voice_record_btn');
     const stopBtn = document.getElementById('voice_stop_btn');
+    const recordingIndicatorEl = document.getElementById('voice_recording_indicator');
     const timerEl = document.getElementById('voice_timer');
     const errorEl = document.getElementById('voice_error');
     const previewEl = document.getElementById('voice_preview');
@@ -1796,7 +1816,7 @@
     const fileInput = document.getElementById('id_file');
     const replyInput = document.getElementById('reply_to_input');
 
-    if (!recordBtn || !stopBtn || !timerEl || !errorEl || !previewEl || !audioEl || !sendBtn || !cancelBtn || !fileForm) return;
+    if (!recordBtn || !stopBtn || !recordingIndicatorEl || !timerEl || !errorEl || !previewEl || !audioEl || !sendBtn || !cancelBtn || !fileForm) return;
 
     let mediaRecorder = null;
     let recordedChunks = [];
@@ -1842,11 +1862,15 @@
       if (isRecording) {
         recordBtn.classList.add('hidden');
         stopBtn.classList.remove('hidden');
+        recordingIndicatorEl.classList.remove('hidden');
+        recordingIndicatorEl.classList.add('flex');
         timerEl.classList.remove('hidden');
         errorEl.textContent = "";
       } else {
         recordBtn.classList.remove('hidden');
         stopBtn.classList.add('hidden');
+        recordingIndicatorEl.classList.add('hidden');
+        recordingIndicatorEl.classList.remove('flex');
         timerEl.classList.add('hidden');
       }
     }
@@ -1868,12 +1892,41 @@
       }
     }
 
+    function isProbablySecureContext() {
+      const host = String(location.hostname || "").toLowerCase();
+      if (host === "localhost" || host === "127.0.0.1" || host === "::1") return true;
+      return Boolean(window.isSecureContext);
+    }
+
+    async function getMicPermissionState() {
+      try {
+        if (!navigator.permissions || typeof navigator.permissions.query !== "function") return "unknown";
+        const res = await navigator.permissions.query({ name: "microphone" });
+        const s = String(res && res.state ? res.state : "");
+        if (s === "granted" || s === "prompt" || s === "denied") return s;
+        return "unknown";
+      } catch (e) {
+        return "unknown";
+      }
+    }
+
     async function startRecording() {
       resetPreview();
       errorEl.textContent = "";
 
+      if (!isProbablySecureContext()) {
+        errorEl.textContent = "برای ضبط صدا، سایت باید روی HTTPS باز شود.";
+        return;
+      }
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         errorEl.textContent = "مرورگر از ضبط صدا پشتیبانی نمی‌کند.";
+        return;
+      }
+
+      const perm = await getMicPermissionState();
+      if (perm === "denied") {
+        errorEl.textContent = "دسترسی میکروفون در تنظیمات مرورگر مسدود است. از تنظیمات سایت آن را Allow کنید.";
         return;
       }
 
@@ -1881,9 +1934,20 @@
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (e) {
-        errorEl.textContent = "اجازه دسترسی به میکروفون داده نشد.";
+        const name = e && e.name ? String(e.name) : "";
+        if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
+          errorEl.textContent = "اجازه دسترسی به میکروفون داده نشد. اگر هر بار سوال می‌پرسد، دسترسی میکروفون را روی Always allow تنظیم کنید.";
+        } else if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+          errorEl.textContent = "میکروفن پیدا نشد.";
+        } else {
+          errorEl.textContent = "اجازه دسترسی به میکروفون داده نشد.";
+        }
         return;
       }
+
+      try {
+        localStorage.setItem("rtchatMicPermissionGranted", "1");
+      } catch (e) {}
 
       const mimeType = pickMimeType();
       try {

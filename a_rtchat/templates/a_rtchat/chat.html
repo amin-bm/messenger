@@ -2,7 +2,33 @@
 
 {% block content %}
 
-<div class="flex h-full min-h-0 flex-col" style="position: relative;">
+<div id="chat_root" class="flex h-full min-h-0 flex-col" style="position: relative;">
+
+  <div id="chat_drop_overlay" class="pointer-events-none absolute inset-0 z-[75] hidden">
+    <div class="absolute inset-0 bg-slate-900/25 backdrop-blur-[1px]"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+      <div class="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/10">
+        <div class="px-8 py-14 min-h-[420px] flex flex-col justify-center">
+          <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" class="opacity-90">
+              <path d="M7 16a4 4 0 0 1 0-8h1.2A5 5 0 0 1 18 10.2V11a3 3 0 0 1-1 5.8H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M9.5 14.5 12 12l2.5 2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="mt-6 text-center">
+            <div class="text-2xl font-bold tracking-tight text-blue-700">فایل را اینجا رها کنید</div>
+            <div class="mt-2 text-sm font-medium text-slate-500">برای ارسال سریع در همین چت</div>
+          </div>
+
+          <div class="mt-8 min-h-[160px] rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 px-6 py-10 text-center text-sm font-medium text-slate-600">
+            یا روی آیکون سنجاق کلیک کنید
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Chat header (Telegram-like) -->
   <div class="flex items-center justify-between border-b bg-white px-4 py-3">
@@ -1867,6 +1893,8 @@
     const stopBtn = document.getElementById("voice_stop_btn");
     const previewEl = document.getElementById("voice_preview");
     const sendBtn = document.getElementById("chat_send_btn");
+    const chatRoot = document.getElementById("chat_root");
+    const dropOverlay = document.getElementById("chat_drop_overlay");
 
     const progressWrapper = document.getElementById("upload_progress_wrapper");
     const progressBar = document.getElementById("upload_progress_bar");
@@ -1914,6 +1942,40 @@
 
     function hasFile() {
       return Boolean(fileInput.files && fileInput.files.length);
+    }
+
+    function hasInFlightUpload() {
+      return Boolean(window.rtchatCurrentUploadXhr) || isVisible(progressWrapper);
+    }
+
+    function isFileDragEvent(e) {
+      const dt = e && e.dataTransfer ? e.dataTransfer : null;
+      if (!dt) return false;
+      const types = dt.types ? Array.from(dt.types) : [];
+      if (types.includes("Files")) return true;
+      return Boolean(dt.files && dt.files.length);
+    }
+
+    function showDropOverlay() {
+      if (!dropOverlay) return;
+      dropOverlay.classList.remove("hidden");
+    }
+
+    function hideDropOverlay() {
+      if (!dropOverlay) return;
+      dropOverlay.classList.add("hidden");
+    }
+
+    function setFileInputToFile(file) {
+      try {
+        if (typeof DataTransfer !== "function") return false;
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        return true;
+      } catch (e) {
+        return false;
+      }
     }
 
     function lockTypingForFile(summary) {
@@ -2035,10 +2097,10 @@
       }
     }
 
-    function uploadFileWithProgress() {
-      if (!hasFile()) return;
+    function uploadFileWithProgress(fileOverride) {
+      const file = fileOverride || (fileInput.files ? fileInput.files[0] : null);
+      if (!file) return;
 
-      const file = fileInput.files[0];
       const url = fileForm.getAttribute("hx-post");
       if (!url) return;
 
@@ -2048,6 +2110,7 @@
       const replyTo = replyInput ? (replyInput.value || "").trim() : "";
 
       uploadAborted = false;
+      if (fileOverride) lockTypingForFile(fileSummary(file));
       showProgress(fileSummary(file));
       sendBtn.classList.add("hidden");
 
@@ -2058,12 +2121,14 @@
             hideProgress();
             fileInput.value = "";
             if (typeof window.rtchatClearReply === "function") window.rtchatClearReply();
+            if (fileOverride) unlockTypingAfterFile();
             update();
           })
           .catch((err) => {
             if (String(err && err.message) === "ABORTED") return;
             hideProgress();
             fileInput.value = "";
+            if (fileOverride) unlockTypingAfterFile();
             update();
             alert("آپلود فایل ناموفق بود. دوباره تلاش کنید.");
           });
@@ -2091,6 +2156,7 @@
         hideProgress();
         fileInput.value = "";
         if (ok && typeof window.rtchatClearReply === "function") window.rtchatClearReply();
+        if (fileOverride) unlockTypingAfterFile();
         update();
         if (!ok) alert("آپلود فایل ناموفق بود. دوباره تلاش کنید.");
       });
@@ -2098,12 +2164,14 @@
       xhr.addEventListener("error", () => {
         hideProgress();
         fileInput.value = "";
+        if (fileOverride) unlockTypingAfterFile();
         update();
         alert("آپلود فایل ناموفق بود. دوباره تلاش کنید.");
       });
 
       xhr.addEventListener("abort", () => {
         hideProgress();
+        if (fileOverride) unlockTypingAfterFile();
         update();
       });
 
@@ -2143,6 +2211,74 @@
       else if (hasText()) trySubmit(messageForm);
       update();
     });
+
+    if (chatRoot) {
+      let dragDepth = 0;
+
+      chatRoot.addEventListener(
+        "dragenter",
+        (e) => {
+          if (!isFileDragEvent(e)) return;
+          dragDepth += 1;
+          showDropOverlay();
+        },
+        false
+      );
+
+      chatRoot.addEventListener(
+        "dragover",
+        (e) => {
+          if (!isFileDragEvent(e)) return;
+          e.preventDefault();
+          try {
+            e.dataTransfer.dropEffect = "copy";
+          } catch (err) {}
+          showDropOverlay();
+        },
+        { passive: false }
+      );
+
+      chatRoot.addEventListener(
+        "dragleave",
+        (e) => {
+          if (dragDepth <= 0) return;
+          dragDepth = Math.max(0, dragDepth - 1);
+          if (dragDepth === 0) hideDropOverlay();
+        },
+        false
+      );
+
+      chatRoot.addEventListener(
+        "drop",
+        (e) => {
+          if (!isFileDragEvent(e)) return;
+          e.preventDefault();
+          dragDepth = 0;
+          hideDropOverlay();
+
+          const files = e.dataTransfer && e.dataTransfer.files ? Array.from(e.dataTransfer.files) : [];
+          const file = files[0] || null;
+          if (!file) return;
+
+          if (hasInFlightUpload()) {
+            alert("الان یک ارسال در حال انجام است. بعد از اتمام دوباره تلاش کنید.");
+            return;
+          }
+
+          if (files.length > 1) {
+            alert("فعلا فقط یک فایل را همزمان ارسال کنید.");
+          }
+
+          const setOk = setFileInputToFile(file);
+          if (!setOk) uploadFileWithProgress(file);
+          else {
+            update();
+            uploadFileWithProgress();
+          }
+        },
+        { passive: false }
+      );
+    }
 
     if (bodyInput) bodyInput.addEventListener("input", update);
     fileInput.addEventListener("change", update);

@@ -1291,12 +1291,109 @@
       }
     }
 
-    document.addEventListener("contextmenu", (e) => {
-      const messageEl = e.target.closest('li[data-message-id]');
-      if (!messageEl) return;
-      e.preventDefault();
-      openMessageMenu(messageEl, e.clientX, e.clientY);
-    });
+    function messageElFromNode(node) {
+      if (!node || node.nodeType !== 1) return null;
+      if (node.matches && node.matches('li[data-message-id]')) return node;
+      if (node.matches && node.matches('li[id^="msg-"]')) return node;
+      if (!node.closest) return null;
+      return node.closest('li[data-message-id], li[id^="msg-"]');
+    }
+
+    function messageElFromMessageId(messageId) {
+      const id = String(messageId || "").trim();
+      if (!id) return null;
+      try {
+        const byId = document.getElementById(`msg-${CSS.escape(id)}`);
+        return byId || null;
+      } catch (e) {
+        const byId = document.getElementById(`msg-${id}`);
+        return byId || null;
+      }
+    }
+
+    function getContextmenuInfo(e) {
+      const x = (e && Number.isFinite(e.clientX)) ? e.clientX : 0;
+      const y = (e && Number.isFinite(e.clientY)) ? e.clientY : 0;
+
+      const stack = [];
+      try {
+        if (document.elementsFromPoint) {
+          const els = document.elementsFromPoint(x, y) || [];
+          els.forEach((el) => stack.push(el));
+        } else if (document.elementFromPoint) {
+          const el = document.elementFromPoint(x, y);
+          if (el) stack.push(el);
+        }
+      } catch (err) {
+      }
+
+      const inChat =
+        Boolean(e && e.target && e.target.closest && e.target.closest("#chat_container")) ||
+        stack.some((el) => Boolean(el && el.closest && el.closest("#chat_container")));
+      if (!inChat) return { inChat: false, messageEl: null, x, y };
+
+      const path = (e && typeof e.composedPath === "function") ? e.composedPath() : [];
+      for (const node of path) {
+        const msg = messageElFromNode(node);
+        if (msg) return { inChat: true, messageEl: msg, x, y };
+        if (node && node.nodeType === 1 && node.getAttribute) {
+          const mid = node.getAttribute("data-message-id") || "";
+          const byId = messageElFromMessageId(mid);
+          if (byId) return { inChat: true, messageEl: byId, x, y };
+        }
+      }
+
+      for (const el of stack) {
+        const msg = messageElFromNode(el);
+        if (msg) return { inChat: true, messageEl: msg, x, y };
+        if (el && el.getAttribute) {
+          const mid = el.getAttribute("data-message-id") || "";
+          const byId = messageElFromMessageId(mid);
+          if (byId) return { inChat: true, messageEl: byId, x, y };
+        }
+      }
+
+      const fromTarget = messageElFromNode(e && e.target ? e.target : null);
+      if (fromTarget) return { inChat: true, messageEl: fromTarget, x, y };
+
+      const list = document.getElementById("chat_messages");
+      if (!list) return { inChat: true, messageEl: null, x, y };
+
+      const candidates = Array.from(list.querySelectorAll('li[data-message-id], li[id^="msg-"]'));
+      if (!candidates.length) return { inChat: true, messageEl: null, x, y };
+
+      let best = null;
+      let bestDist = Infinity;
+      candidates.forEach((li) => {
+        if (!li || typeof li.getBoundingClientRect !== "function") return;
+        const r = li.getBoundingClientRect();
+        if (!r || !Number.isFinite(r.top) || !Number.isFinite(r.bottom)) return;
+        const dist = y < r.top ? (r.top - y) : (y > r.bottom ? (y - r.bottom) : 0);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = li;
+        }
+      });
+
+      return { inChat: true, messageEl: best, x, y };
+    }
+
+    if (document.body && document.body.dataset.rtchatMsgMenuBound !== "1") {
+      document.body.dataset.rtchatMsgMenuBound = "1";
+      document.addEventListener(
+        "contextmenu",
+        (e) => {
+          const info = getContextmenuInfo(e);
+          if (!info.inChat) return;
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+          if (!info.messageEl) return;
+          openMessageMenu(info.messageEl, info.x, info.y);
+        },
+        { capture: true }
+      );
+    }
 
     (function bindTapToOpenMenuOnTouch() {
       const container = document.getElementById("chat_container");

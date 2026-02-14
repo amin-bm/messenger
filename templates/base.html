@@ -21,6 +21,49 @@
   <meta name="app-reset-required" content="{% if APP_RESET_REQUIRED %}1{% else %}0{% endif %}">
   <meta name="app-reset-message" content="{{ APP_RESET_MESSAGE|default:''|escape }}">
 
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const stored = (localStorage.getItem('theme') || '').toLowerCase();
+      const prefersDark =
+        typeof window !== 'undefined' &&
+        window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initial = stored === 'dark' || stored === 'light' ? stored : prefersDark ? 'dark' : 'light';
+
+      function syncLabel(theme) {
+        const el = document.getElementById('theme-toggle-label');
+        if (!el) return;
+        el.textContent = theme === 'dark' ? 'حالت روشن' : 'حالت تیره';
+      }
+
+      function apply(theme) {
+        root.dataset.theme = theme;
+        root.style.colorScheme = theme;
+        syncLabel(theme);
+        try {
+          window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
+        } catch (e) {
+          window.dispatchEvent(new Event('themechange'));
+        }
+      }
+
+      window.setTheme = function (theme) {
+        const next = theme === 'dark' ? 'dark' : 'light';
+        localStorage.setItem('theme', next);
+        apply(next);
+      };
+
+      window.toggleTheme = function () {
+        const cur = (root.dataset.theme || 'light') === 'dark' ? 'dark' : 'light';
+        window.setTheme(cur === 'dark' ? 'light' : 'dark');
+      };
+
+      apply(initial);
+      document.addEventListener('DOMContentLoaded', () => syncLabel(root.dataset.theme || initial));
+    })();
+  </script>
+
   <script src="{% static 'vendor/alpine.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
   <script src="{% static 'vendor/htmx.min.js' %}?v={{ APP_VERSION|urlencode }}"></script>
   <script src="{% static 'vendor/ws.min.js' %}?v={{ APP_VERSION|urlencode }}"></script>

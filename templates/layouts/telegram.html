@@ -5,7 +5,7 @@
 <content class="block w-full">
   <!-- ارتفاع کل صفحه منهای هدر -->
   <div class="mx-auto max-w-6xl px-0 md:px-4 py-0 md:py-4">
-    <div class="flex h-[100dvh] md:h-[calc(100dvh-2rem)] overflow-hidden md:rounded-2xl bg-white md:shadow-2xl">
+    <div class="tg-shell flex h-[100dvh] md:h-[calc(100dvh-2rem)] overflow-hidden md:rounded-2xl bg-white md:shadow-2xl">
 
       <!-- Sidebar (لیست چت‌ها) -->
       <aside id="tg-sidebar" class="{% if '/chat/room/' in request.path %}hidden md:flex{% else %}flex{% endif %} w-full md:w-[320px] shrink-0 border-b md:border-b-0 md:border-r bg-gray-50 flex-col">
@@ -63,6 +63,14 @@
                                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                               </svg>
                               <span>Settings</span>
+                            </a>
+                          </li>
+                          <li>
+                            <a class="gap-3" href="#" onclick="toggleTheme(); return false;">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">
+                                <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                              </svg>
+                              <span id="theme-toggle-label">حالت تیره</span>
                             </a>
                           </li>
                           {% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_manager %}

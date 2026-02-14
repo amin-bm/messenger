@@ -32,7 +32,7 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}?v={{ APP_VERSION|urlencode }}">
 </head>
 
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="{% block class %}{% endblock %}">
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' data-authenticated="{% if user.is_authenticated %}1{% else %}0{% endif %}" class="{% block class %}{% endblock %}">
 
   {% include 'includes/messages.html' %}
 
@@ -610,10 +610,43 @@
       let pwaPreparedOk = false;
       let pwaPrepareFailed = [];
       let pwaPreparing = false;
+      let pwaChecking = false;
+      let pwaFlowRunning = false;
       let pwaStatusText = "";
       let pwaStatusKind = "info";
       let pwaPrepareResolver = null;
       let pwaInstallPrompt = null;
+
+      function isAuthenticated() {
+        try {
+          return document.body && document.body.dataset && document.body.dataset.authenticated === "1";
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function isAccountRoute() {
+        const p = (window.location && window.location.pathname) ? String(window.location.pathname) : "";
+        return p === "/accounts" || p.startsWith("/accounts/");
+      }
+
+      function canShowPwaUpdateModal() {
+        return isAuthenticated() && !isAccountRoute();
+      }
+
+      function markPwaUpdatePending() {
+        try {
+          sessionStorage.setItem("pwaUpdatePending", "1");
+        } catch (e) {
+        }
+      }
+
+      function clearPwaUpdatePending() {
+        try {
+          sessionStorage.removeItem("pwaUpdatePending");
+        } catch (e) {
+        }
+      }
 
       function isStandaloneDisplay() {
         try {
@@ -866,20 +899,11 @@
                 border:none;background:transparent;color:#6b7280;
                 padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px
               ">بعداً</button>
-              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
-                <button id="pwa-update-check" type="button" style="
-                  border:1px solid #e5e7eb;background:#fff;color:#111827;
-                  padding:9px 12px;border-radius:12px;cursor:pointer;font-size:13px
-                ">بررسی</button>
-                <button id="pwa-update-prepare" type="button" style="
-                  border:none;background:#111827;color:#fff;
-                  padding:9px 12px;border-radius:12px;cursor:pointer;font-size:13px
-                ">دانلود</button>
-                <button id="pwa-update-apply" type="button" style="
-                  border:none;background:#2563eb;color:#fff;
-                  padding:9px 12px;border-radius:12px;cursor:pointer;font-size:13px
-                ">اعمال</button>
-              </div>
+              <button id="pwa-update-run" type="button" style="
+                border:none;background:#2563eb;color:#fff;
+                padding:10px 14px;border-radius:12px;cursor:pointer;font-size:13px;
+                min-width:110px
+              ">آپدیت</button>
             </div>
           </div>
         `;
@@ -893,20 +917,19 @@
 
         modal.querySelector("#pwa-update-later").addEventListener("click", () => hideUpdateModal());
 
-        modal.querySelector("#pwa-update-check").addEventListener("click", async () => {
-          await manualCheckForUpdate();
-        });
-        modal.querySelector("#pwa-update-prepare").addEventListener("click", async () => {
-          await prepareUpdate();
-        });
-        modal.querySelector("#pwa-update-apply").addEventListener("click", async () => {
-          await applyUpdate();
+        modal.querySelector("#pwa-update-run").addEventListener("click", async () => {
+          await runFullUpdate();
         });
 
         return modal;
       }
 
       function showUpdateModal() {
+        if (!canShowPwaUpdateModal()) {
+          markPwaUpdatePending();
+          return;
+        }
+        clearPwaUpdatePending();
         const modal = ensureUpdateModal();
         modal.style.display = "flex";
         renderUpdateModal();
@@ -918,13 +941,12 @@
       }
 
       function renderUpdateModal() {
+        if (!canShowPwaUpdateModal()) return;
         const modal = ensureUpdateModal();
         const subtitle = modal.querySelector("#pwa-update-subtitle");
         const alert = modal.querySelector("#pwa-update-alert");
         const status = modal.querySelector("#pwa-update-status");
-        const btnCheck = modal.querySelector("#pwa-update-check");
-        const btnPrepare = modal.querySelector("#pwa-update-prepare");
-        const btnApply = modal.querySelector("#pwa-update-apply");
+        const btnRun = modal.querySelector("#pwa-update-run");
         const note = modal.querySelector("#pwa-update-note");
 
         const resetRequired = RESET_REQUIRED_DEFAULT;
@@ -962,7 +984,7 @@
 
         const lines = [];
         const steps = [];
-        steps.push(`۱) بررسی: ${pwaWaitingWorker ? "✓" : "—"}`);
+        steps.push(`۱) بررسی: ${pwaWaitingWorker ? "✓" : pwaChecking ? "…" : "—"}`);
         steps.push(`۲) دانلود: ${pwaPreparedOk ? "✓" : pwaPreparing ? "…" : "—"}`);
         steps.push(`۳) اعمال: ${sessionStorage.getItem("pwaApplyUpdate") === "1" ? "…" : "—"}`);
         lines.push(steps.join("   "));
@@ -970,86 +992,80 @@
         if (pwaWaitingWorker && !pwaPreparedOk) lines.push("نسخه جدید دریافت شده است، اما دانلود کامل نشده.");
         if (pwaPreparedOk) lines.push("دانلود کامل شد. آماده اعمال بروزرسانی.");
         if (pwaPrepareFailed && pwaPrepareFailed.length) lines.push(`موارد ناموفق: ${pwaPrepareFailed.length}`);
-        if (!lines.length) lines.push("برای شروع، «بررسی بروزرسانی» را بزنید.");
+        if (!lines.length) lines.push("برای شروع، «آپدیت» را بزنید.");
 
         status.textContent = lines.join("\n");
-        btnPrepare.disabled = !pwaWaitingWorker || pwaPreparing;
-        btnApply.disabled = !pwaWaitingWorker || pwaPreparing;
-
-        if (btnCheck) {
-          btnCheck.style.opacity = "1";
-          btnCheck.style.cursor = "pointer";
-        }
-
-        if (btnPrepare) {
-          btnPrepare.style.opacity = btnPrepare.disabled ? "0.45" : "1";
-          btnPrepare.style.cursor = btnPrepare.disabled ? "not-allowed" : "pointer";
-        }
-        if (btnApply) {
-          btnApply.style.opacity = btnApply.disabled ? "0.45" : "1";
-          btnApply.style.cursor = btnApply.disabled ? "not-allowed" : "pointer";
+        if (btnRun) {
+          btnRun.disabled = pwaFlowRunning || pwaChecking || pwaPreparing || sessionStorage.getItem("pwaApplyUpdate") === "1";
+          btnRun.style.opacity = btnRun.disabled ? "0.55" : "1";
+          btnRun.style.cursor = btnRun.disabled ? "not-allowed" : "pointer";
+          btnRun.textContent = btnRun.disabled ? "در حال انجام..." : "آپدیت";
         }
       }
 
       async function manualCheckForUpdate() {
         if (!pwaUpdateReg) {
-          pwaStatusText = "Service Worker فعال نیست.";
+          pwaStatusText = "مرحله ۱ (بررسی): Service Worker فعال نیست.";
           pwaStatusKind = "error";
           showUpdateModal();
-          return;
+          return false;
         }
         if (!navigator.onLine) {
-          pwaStatusText = "اینترنت قطع است. بعد از وصل شدن دوباره تلاش کنید.";
+          pwaStatusText = "مرحله ۱ (بررسی): اینترنت قطع است. بعد از وصل شدن دوباره تلاش کنید.";
           pwaStatusKind = "error";
           showUpdateModal();
-          return;
+          return false;
         }
 
-        pwaStatusText = "در حال بررسی بروزرسانی...";
+        pwaChecking = true;
+        pwaStatusText = "مرحله ۱ (بررسی): در حال بررسی بروزرسانی...";
         pwaStatusKind = "info";
         showUpdateModal();
 
         try {
           await pwaUpdateReg.update();
         } catch (e) {
-          pwaStatusText = "بررسی بروزرسانی ناموفق بود. دوباره تلاش کنید.";
+          pwaChecking = false;
+          pwaStatusText = "مرحله ۱ (بررسی): بررسی بروزرسانی ناموفق بود. دوباره تلاش کنید.";
           pwaStatusKind = "error";
           renderUpdateModal();
-          return;
+          return false;
         }
 
         if (pwaUpdateReg.waiting) {
           pwaWaitingWorker = pwaUpdateReg.waiting;
           pwaPreparedOk = false;
           pwaPrepareFailed = [];
-          pwaStatusText = "نسخه جدید پیدا شد.";
+          pwaStatusText = "مرحله ۱ (بررسی): نسخه جدید پیدا شد.";
           pwaStatusKind = "success";
         } else {
-          pwaStatusText = "در حال حاضر بروزرسانی جدیدی آماده نیست.";
+          pwaStatusText = "مرحله ۱ (بررسی): در حال حاضر بروزرسانی جدیدی آماده نیست.";
           pwaStatusKind = "info";
         }
+        pwaChecking = false;
         renderUpdateModal();
+        return Boolean(pwaUpdateReg.waiting);
       }
 
       async function prepareUpdate() {
         if (!pwaWaitingWorker) {
-          pwaStatusText = "ابتدا بروزرسانی را بررسی کنید.";
+          pwaStatusText = "مرحله ۲ (دانلود): هنوز بروزرسانی پیدا نشده است. اول «آپدیت» را بزنید.";
           pwaStatusKind = "error";
           showUpdateModal();
-          return;
+          return false;
         }
         if (!navigator.onLine) {
-          pwaStatusText = "اینترنت قطع است. بعد از وصل شدن دوباره تلاش کنید.";
+          pwaStatusText = "مرحله ۲ (دانلود): اینترنت قطع است. بعد از وصل شدن دوباره تلاش کنید.";
           pwaStatusKind = "error";
           showUpdateModal();
-          return;
+          return false;
         }
-        if (pwaPreparing) return;
+        if (pwaPreparing) return false;
 
         pwaPreparing = true;
         pwaPreparedOk = false;
         pwaPrepareFailed = [];
-        pwaStatusText = "";
+        pwaStatusText = "مرحله ۲ (دانلود): در حال دانلود بروزرسانی...";
         pwaStatusKind = "info";
         showUpdateModal();
 
@@ -1071,30 +1087,31 @@
         pwaPreparedOk = Boolean(result && result.ok);
         pwaPrepareFailed = (result && result.failed) || [];
         if (pwaPreparedOk) {
-          pwaStatusText = "دانلود بروزرسانی کامل شد.";
+          pwaStatusText = "مرحله ۲ (دانلود): دانلود بروزرسانی کامل شد.";
           pwaStatusKind = "success";
         } else if (result && result.timeout) {
-          pwaStatusText = "دانلود بروزرسانی زمان‌بر شد. اینترنت ناپایدار است؛ دوباره تلاش کنید.";
+          pwaStatusText = "مرحله ۲ (دانلود): دانلود زمان‌بر شد. اینترنت ناپایدار است؛ دوباره تلاش کنید.";
           pwaStatusKind = "error";
         } else {
-          pwaStatusText = "دانلود بروزرسانی کامل نشد. دوباره تلاش کنید.";
+          pwaStatusText = "مرحله ۲ (دانلود): دانلود کامل نشد. دوباره تلاش کنید.";
           pwaStatusKind = "error";
         }
         renderUpdateModal();
+        return pwaPreparedOk;
       }
 
       async function applyUpdate() {
         if (!pwaWaitingWorker) {
-          pwaStatusText = "هیچ بروزرسانی آماده نیست.";
+          pwaStatusText = "مرحله ۳ (اعمال): هیچ بروزرسانی آماده نیست.";
           pwaStatusKind = "error";
           showUpdateModal();
-          return;
+          return false;
         }
         if (!pwaPreparedOk) {
-          pwaStatusText = "برای جلوگیری از خراب شدن برنامه در اینترنت ضعیف، ابتدا دانلود بروزرسانی را کامل کنید.";
+          pwaStatusText = "مرحله ۳ (اعمال): ابتدا دانلود بروزرسانی را کامل کنید.";
           pwaStatusKind = "error";
           showUpdateModal();
-          return;
+          return false;
         }
         const needsCleanup = RESET_REQUIRED_DEFAULT;
 
@@ -1102,15 +1119,49 @@
         if (needsCleanup) sessionStorage.setItem("pwaCleanupPending", "1");
         else sessionStorage.removeItem("pwaCleanupPending");
 
+        pwaStatusText = "مرحله ۳ (اعمال): در حال اعمال بروزرسانی...";
+        pwaStatusKind = "info";
+        renderUpdateModal();
+
         try {
           pwaWaitingWorker.postMessage("SKIP_WAITING");
         } catch (e) {
-          pwaStatusText = "اعمال بروزرسانی ناموفق بود. دوباره تلاش کنید.";
+          sessionStorage.removeItem("pwaApplyUpdate");
+          pwaStatusText = "مرحله ۳ (اعمال): اعمال بروزرسانی ناموفق بود. دوباره تلاش کنید.";
           pwaStatusKind = "error";
           showUpdateModal();
-          return;
+          return false;
         }
         hideUpdateModal();
+        return true;
+      }
+
+      async function runFullUpdate() {
+        if (!canShowPwaUpdateModal()) {
+          markPwaUpdatePending();
+          return;
+        }
+        if (pwaFlowRunning) return;
+        pwaFlowRunning = true;
+        pwaStatusText = "";
+        pwaStatusKind = "info";
+        showUpdateModal();
+
+        try {
+          if (!pwaWaitingWorker) {
+            const hasUpdate = await manualCheckForUpdate();
+            if (!hasUpdate) return;
+          }
+          if (!pwaPreparedOk) {
+            const ok = await prepareUpdate();
+            if (!ok) return;
+          }
+          await applyUpdate();
+        } finally {
+          pwaFlowRunning = false;
+          const modal = document.getElementById("pwa-update-modal");
+          if (modal && modal.style && modal.style.display !== "none") renderUpdateModal();
+        }
       }
 
       async function cleanupSiteDataIfNeeded() {
@@ -1324,6 +1375,12 @@
         lastSnapshot = loadSnapshot() || readSnapshotFromDom();
         await cleanupSiteDataIfNeeded();
         await registerServiceWorker();
+        try {
+          if (sessionStorage.getItem("pwaUpdatePending") === "1" && canShowPwaUpdateModal() && pwaWaitingWorker) {
+            showUpdateModal();
+          }
+        } catch (e) {
+        }
         if (canNotify()) await ensurePushSubscription();
         if (!isStandaloneDisplay() && !pwaInstallPrompt) {
           try {

@@ -36,6 +36,20 @@
   }
 }
 
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0b1220;
+  background-image:
+    radial-gradient(900px circle at 14% 18%, rgba(56, 189, 248, 0.18), transparent 60%),
+    radial-gradient(700px circle at 86% 22%, rgba(99, 102, 241, 0.14), transparent 58%),
+    radial-gradient(540px circle at 50% 100%, rgba(34, 211, 238, 0.10), transparent 62%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 8px);
+  background-attachment: fixed;
+}
+
 #chats-list .chat-actions-ellipsis {
   display: none;
   width: 34px;
@@ -51,6 +65,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html.dark #chats-list .chat-actions-ellipsis {
+  color: #cbd5e1;
+}
+
 @media (any-hover: hover) {
   #chats-list li:hover .chat-actions-ellipsis {
     display: flex;
@@ -59,6 +77,10 @@
 
 #chats-list .chat-actions-ellipsis:active {
   background: rgba(0, 0, 0, 0.06);
+}
+
+html.dark #chats-list .chat-actions-ellipsis:active {
+  background: rgba(255, 255, 255, 0.10);
 }
 
 
@@ -112,156 +134,4 @@
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   transition: opacity 150ms ease;
-}
-
-html[data-theme="dark"] body {
-  background-color: #071023;
-  background-image: radial-gradient(1200px 900px at 18% 12%, rgba(56, 189, 248, 0.16), rgba(0, 0, 0, 0) 55%),
-    radial-gradient(900px 700px at 86% 28%, rgba(99, 102, 241, 0.14), rgba(0, 0, 0, 0) 52%),
-    radial-gradient(800px 600px at 50% 100%, rgba(16, 185, 129, 0.1), rgba(0, 0, 0, 0) 60%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 1px, rgba(0, 0, 0, 0) 1px 10px);
-  background-attachment: fixed;
-  color: #e5e7eb;
-}
-
-html[data-theme="dark"] .tg-shell {
-  background: rgba(10, 16, 29, 0.35) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  backdrop-filter: blur(20px) saturate(140%);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
-}
-
-html[data-theme="dark"] #tg-sidebar {
-  background: rgba(12, 18, 32, 0.55) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-}
-
-html[data-theme="dark"] #tg-main {
-  background: rgba(7, 12, 22, 0.35) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-}
-
-html[data-theme="dark"] #sidebar-search {
-  background: rgba(17, 25, 40, 0.55) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  color: #e5e7eb !important;
-}
-
-html[data-theme="dark"] #sidebar-search::placeholder {
-  color: rgba(229, 231, 235, 0.55);
-}
-
-html[data-theme="dark"] #tg-sidebar div[x-show] {
-  background: rgba(12, 18, 32, 0.72) !important;
-  color: #e5e7eb !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-}
-
-html[data-theme="dark"] #tg-sidebar .hoverlist > * {
-  background: transparent;
-}
-
-html[data-theme="dark"] #tg-sidebar .hoverlist > *:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-html[data-theme="dark"] #chat_root > div.border-b,
-html[data-theme="dark"] #chat_root > div.border-t {
-  background: rgba(12, 18, 32, 0.55) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-}
-
-html[data-theme="dark"] #chat_container {
-  background: transparent !important;
-}
-
-html[data-theme="dark"] #message_action_menu,
-html[data-theme="dark"] #sidebar_chat_actions_menu > div,
-html[data-theme="dark"] #forward_modal .relative,
-html[data-theme="dark"] #chat_drop_overlay .rounded-3xl {
-  background: rgba(12, 18, 32, 0.78) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  color: #e5e7eb !important;
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-}
-
-html[data-theme="dark"] #forward_backdrop {
-  background: rgba(0, 0, 0, 0.55) !important;
-}
-
-html[data-theme="dark"] #forward_modal input,
-html[data-theme="dark"] #chat_message_form textarea,
-html[data-theme="dark"] #chat_message_form input[type="text"] {
-  background: rgba(17, 25, 40, 0.55) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  color: #e5e7eb !important;
-}
-
-html[data-theme="dark"] #emoji_picker {
-  background: rgba(12, 18, 32, 0.86) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-}
-
-html[data-theme="dark"] #emoji_picker > div:first-child {
-  background: rgba(12, 18, 32, 0.86) !important;
-  border-right-color: rgba(255, 255, 255, 0.12) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
-}
-
-html[data-theme="dark"] #scroll_to_bottom_btn {
-  background: rgba(12, 18, 32, 0.72) !important;
-  color: #e5e7eb !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-html[data-theme="dark"] #chats-list a.chat-item.bg-gray-200 {
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
-html[data-theme="dark"] #chat_messages li[data-message-id].flex > div {
-  background: rgba(37, 99, 235, 0.22) !important;
-  border: 1px solid rgba(96, 165, 250, 0.22);
-  color: #e5e7eb !important;
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  backdrop-filter: blur(14px) saturate(140%);
-}
-
-html[data-theme="dark"] #chat_messages li[data-message-id]:not(.flex) .group {
-  background: rgba(12, 18, 32, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e5e7eb !important;
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  backdrop-filter: blur(14px) saturate(140%);
-}
-
-html[data-theme="dark"] .text-gray-900,
-html[data-theme="dark"] .text-gray-800,
-html[data-theme="dark"] .text-gray-700 {
-  color: #e5e7eb !important;
-}
-
-html[data-theme="dark"] .text-gray-600,
-html[data-theme="dark"] .text-gray-500,
-html[data-theme="dark"] .text-slate-500 {
-  color: rgba(229, 231, 235, 0.7) !important;
-}
-
-html[data-theme="dark"] .text-gray-400,
-html[data-theme="dark"] .text-slate-600 {
-  color: rgba(229, 231, 235, 0.55) !important;
-}
-
-html[data-theme="dark"] .bg-white {
-  background-color: rgba(12, 18, 32, 0.78) !important;
 }

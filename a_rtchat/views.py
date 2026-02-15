@@ -480,6 +480,7 @@ def create_groupchat(request):
         if form.is_valid():
             new_groupchat = form.save(commit=False)
             new_groupchat.admin = request.user
+            new_groupchat.is_private = False
             new_groupchat.save()
             new_groupchat.members.add(request.user)
             return redirect('chatroom', new_groupchat.group_slug or new_groupchat.group_name)

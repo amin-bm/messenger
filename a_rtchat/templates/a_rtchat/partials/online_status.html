@@ -42,13 +42,13 @@
              data-chat-unread="{{ item.unread_count|default:0 }}"
              data-chat-pinned="{% if item.is_pinned %}1{% else %}0{% endif %}"
              data-chat-muted="{% if item.is_muted %}1{% else %}0{% endif %}"
-             class="chat-item flex flex-1 items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition min-w-0">
+             class="chat-item flex flex-1 items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition min-w-0 dark:hover:bg-white/10">
 
             <div class="relative shrink-0">
               {% if item.avatar_url %}
                 <img class="h-10 w-10 rounded-full object-cover" src="{{ item.avatar_url }}">
               {% else %}
-                <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600">
+                <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600 dark:bg-white/10 dark:text-slate-200">
                   {{ item.avatar_letter }}
                 </div>
               {% endif %}
@@ -63,24 +63,24 @@
             <div class="min-w-0 flex-1">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2 min-w-0">
-                  <div dir="auto" class="text-sm font-medium text-gray-900 truncate">{{ item.title }}</div>
-                  <span data-indicator="muted" class="text-[11px] text-gray-400{% if not item.is_muted %} hidden{% endif %}">🔇</span>
-                  <span data-indicator="pinned" class="text-[11px] text-gray-400{% if not item.is_pinned %} hidden{% endif %}">📌</span>
+                  <div dir="auto" class="text-sm font-medium text-gray-900 truncate dark:text-slate-100">{{ item.title }}</div>
+                  <span data-indicator="muted" class="text-[11px] text-gray-400 dark:text-slate-400{% if not item.is_muted %} hidden{% endif %}">🔇</span>
+                  <span data-indicator="pinned" class="text-[11px] text-gray-400 dark:text-slate-400{% if not item.is_pinned %} hidden{% endif %}">📌</span>
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
                   {% if item.unread_count and item.unread_count > 0 %}
-                    <div class="min-w-[22px] h-[18px] px-2 rounded-full bg-blue-600 text-white text-[11px] flex items-center justify-center">
+                    <div class="min-w-[22px] h-[18px] px-2 rounded-full bg-blue-600 text-white text-[11px] flex items-center justify-center dark:bg-sky-500">
                       {{ item.unread_count }}
                     </div>
                   {% endif %}
                   {% if item.last_time %}
-                    <div class="text-[11px] text-gray-500">{{ item.last_time|date:"H:i" }}</div>
+                    <div class="text-[11px] text-gray-500 dark:text-slate-400">{{ item.last_time|date:"H:i" }}</div>
                   {% endif %}
                 </div>
               </div>
 
-              <div class="text-xs text-gray-500 truncate">
+              <div class="text-xs text-gray-500 truncate dark:text-slate-400">
                 {% if item.last_text %}{{ item.last_text }}{% else %}{{ item.subtitle }}{% endif %}
               </div>
             </div>
@@ -91,12 +91,12 @@
             <button type="button" class="chat-actions-ellipsis" aria-label="Chat actions">⋯</button>
             <div class="hidden group-actions gap-1">
               <button type="button"
-                      class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0"
+                      class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0 dark:!text-slate-300 dark:hover:!text-white dark:hover:!bg-white/10 dark:active:!bg-white/15"
                       hx-post="{% url 'chat-pin' item.chatroom_name %}"
                       hx-swap="none"
                       title="Pin/Unpin">📌</button>
               <button type="button"
-                      class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0"
+                      class="h-7 w-7 grid place-items-center !p-0 !rounded-lg !bg-transparent !text-gray-500 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0 dark:!text-slate-300 dark:hover:!text-white dark:hover:!bg-white/10 dark:active:!bg-white/15"
                       hx-post="{% url 'chat-mute' item.chatroom_name %}"
                       hx-swap="none"
                       title="Mute/Unmute">🔇</button>
@@ -113,24 +113,24 @@
       {% for c in contacts %}
         <li>
           <a href="{{ c.url }}"
-             class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition">
+             class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition dark:hover:bg-white/10">
             <div class="relative shrink-0">
               <img class="h-10 w-10 rounded-full object-cover" src="{{ c.avatar }}">
               {% if c.is_online %}
-                <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-gray-50"></span>
+                <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-gray-50 dark:ring-slate-950/30"></span>
               {% else %}
-                <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-gray-300 ring-2 ring-gray-50"></span>
+                <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-gray-300 ring-2 ring-gray-50 dark:ring-slate-950/30"></span>
               {% endif %}
             </div>
 
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-medium text-gray-900 truncate">{{ c.name }}</div>
-              <div class="text-xs text-gray-500 truncate">@{{ c.username }}</div>
+              <div class="text-sm font-medium text-gray-900 truncate dark:text-slate-100">{{ c.name }}</div>
+              <div class="text-xs text-gray-500 truncate dark:text-slate-400">@{{ c.username }}</div>
             </div>
           </a>
         </li>
       {% empty %}
-        <li class="px-3 py-2 text-sm text-gray-500">No contacts</li>
+        <li class="px-3 py-2 text-sm text-gray-500 dark:text-slate-400">No contacts</li>
       {% endfor %}
     </ul>
   </div>

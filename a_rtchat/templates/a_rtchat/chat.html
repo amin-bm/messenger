@@ -7,9 +7,9 @@
   <div id="chat_drop_overlay" class="pointer-events-none absolute inset-0 z-[75] hidden">
     <div class="absolute inset-0 bg-slate-900/25 backdrop-blur-[1px]"></div>
     <div class="absolute inset-0 flex items-center justify-center p-4">
-      <div class="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/10">
+      <div class="w-full max-w-lg overflow-hidden rounded-3xl bg-white/85 shadow-2xl ring-1 ring-black/10 backdrop-blur-2xl dark:bg-slate-900/85 dark:ring-white/10">
         <div class="px-8 py-14 min-h-[420px] flex flex-col justify-center">
-          <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+          <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100 dark:bg-sky-500/15 dark:text-sky-300 dark:ring-sky-400/20">
             <svg width="34" height="34" viewBox="0 0 24 24" fill="none" class="opacity-90">
               <path d="M7 16a4 4 0 0 1 0-8h1.2A5 5 0 0 1 18 10.2V11a3 3 0 0 1-1 5.8H7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M12 12v7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -18,11 +18,11 @@
           </div>
 
           <div class="mt-6 text-center">
-            <div class="text-2xl font-bold tracking-tight text-blue-700">فایل را اینجا رها کنید</div>
-            <div class="mt-2 text-sm font-medium text-slate-500">برای ارسال سریع در همین چت</div>
+            <div class="text-2xl font-bold tracking-tight text-blue-700 dark:text-sky-300">فایل را اینجا رها کنید</div>
+            <div class="mt-2 text-sm font-medium text-slate-500 dark:text-slate-300">برای ارسال سریع در همین چت</div>
           </div>
 
-          <div class="mt-8 min-h-[160px] rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 px-6 py-10 text-center text-sm font-medium text-slate-600">
+          <div class="mt-8 min-h-[160px] rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 px-6 py-10 text-center text-sm font-medium text-slate-600 dark:border-sky-400/30 dark:bg-sky-500/10 dark:text-slate-200">
             یا روی آیکون سنجاق کلیک کنید
           </div>
         </div>
@@ -31,9 +31,9 @@
   </div>
 
   <!-- Chat header (Telegram-like) -->
-  <div class="flex items-center justify-between border-b bg-white px-4 py-3">
+  <div class="flex items-center justify-between border-b border-slate-200/70 bg-white/35 px-4 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25">
     <div class="flex items-center gap-3 min-w-0">
-      <button id="tg-back-btn" type="button" class="hidden -ml-2 !p-2 !rounded-lg !bg-transparent !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0" onclick="telegramBack()">
+      <button id="tg-back-btn" type="button" class="hidden -ml-2 !p-2 !rounded-lg !bg-transparent !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0 dark:!text-slate-300 dark:hover:!text-white dark:hover:!bg-white/10 dark:active:!bg-white/15" onclick="telegramBack()">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
           <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
         </svg>
@@ -45,10 +45,10 @@
         </div>
 
         <div class="min-w-0">
-          <div class="text-sm font-semibold text-gray-900 truncate">
+          <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
             {{ other_user.profile.name }}
           </div>
-          <div class="text-xs text-gray-500 truncate">
+          <div class="text-xs text-gray-500 truncate dark:text-slate-300">
             @{{ other_user.username }}
           </div>
         </div>
@@ -58,10 +58,10 @@
           <button id="group-members-trigger" type="button" class="flex items-center gap-3 min-w-0 text-left">
             <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
             <div class="min-w-0">
-              <div class="text-sm font-semibold text-gray-900 truncate">
+              <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
                 {{ chat_group.groupchat_name }}
               </div>
-              <div class="text-xs text-gray-500">
+              <div class="text-xs text-gray-500 dark:text-slate-300">
                 {{ chat_group.members.count }} members
               </div>
             </div>
@@ -69,10 +69,10 @@
         {% else %}
           <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
           <div class="min-w-0">
-            <div class="text-sm font-semibold text-gray-900 truncate">
+            <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
               Public chat
             </div>
-            <div class="text-xs text-gray-500">
+            <div class="text-xs text-gray-500 dark:text-slate-300">
               <span id="online-count" class="pr-1"></span>online
             </div>
           </div>
@@ -84,19 +84,22 @@
     <div class="flex items-center gap-2">
       {% if chat_group.groupchat_name and user == chat_group.admin %}
         <a href="{% url 'edit-chatroom' chat_group.group_name %}"
-           class="p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-0 group">
-          <svg class="fill-gray-500 group-hover:fill-gray-900" width="16" height="16">
+           class="p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-0 group dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 dark:active:bg-white/15">
+          <svg class="fill-gray-500 group-hover:fill-gray-900 dark:fill-slate-300 dark:group-hover:fill-white" width="16" height="16">
             <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"></path>
           </svg>
         </a>
       {% endif %}
 
       {# اگر modal leave داری، دکمه‌اش رو همینجا بذار (اختیاری) #}
+      {% if chat_group.members.exists %}
+        {% include 'a_rtchat/partials/modal_chat_leave.html' %}
+      {% endif %}
     </div>
   </div>
 
   <!-- Messages area -->
-  <div id="chat_container" class="flex-1 min-h-0 overflow-y-auto p-4 bg-slate-100">
+  <div id="chat_container" class="flex-1 min-h-0 overflow-y-auto p-4 bg-white/15 backdrop-blur-sm dark:bg-slate-950/15">
     <ul id="chat_messages" class="flex flex-col gap-2">
       {% if chat_messages %}
         <li id="load_older"
@@ -114,42 +117,42 @@
     </ul>
   </div>
 
-  <button id="scroll_to_bottom_btn" type="button" aria-label="رفتن به انتهای چت" class="absolute right-4 bottom-24 z-[65] h-12 w-12 rounded-full bg-white/90 shadow-lg ring-1 ring-black/10 text-gray-700 backdrop-blur transition-opacity duration-150 opacity-0 pointer-events-none">
+  <button id="scroll_to_bottom_btn" type="button" aria-label="رفتن به انتهای چت" class="absolute right-4 bottom-24 z-[65] h-12 w-12 rounded-full bg-white/80 shadow-lg ring-1 ring-black/10 text-gray-700 backdrop-blur transition-opacity duration-150 opacity-0 pointer-events-none dark:bg-slate-900/80 dark:text-slate-200 dark:ring-white/10">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" class="mx-auto">
       <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
     </svg>
   </button>
 
-  <div id="message_action_menu" class="fixed z-[60] hidden inline-flex flex-col overflow-hidden rounded-md bg-white shadow-lg ring-1 ring-black/10">
+  <div id="message_action_menu" class="fixed z-[60] hidden inline-flex flex-col overflow-hidden rounded-md bg-white/90 shadow-lg ring-1 ring-black/10 backdrop-blur-xl dark:bg-slate-900/90 dark:ring-white/10">
     <div class="flex flex-col p-0.5">
-      <button type="button" data-menu-action="reply" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600">
+      <button type="button" data-menu-action="reply" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
             <path d="M9 10V6L3 12l6 6v-4h6a6 6 0 0 1 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
           <span>Reply</span>
       </button>
-      <button type="button" data-menu-action="forward" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600">
+      <button type="button" data-menu-action="forward" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
             <path d="M15 14l5-5-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
             <path d="M20 9H9a6 6 0 0 0-6 6v4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
           <span>Forward</span>
       </button>
-      <button type="button" data-menu-action="copy" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600">
+      <button type="button" data-menu-action="copy" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
             <path d="M9 9h10v12H9V9Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"></path>
             <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
           </svg>
           <span>Copy</span>
       </button>
-      <button type="button" data-menu-action="edit" class="hidden flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600">
+      <button type="button" data-menu-action="edit" class="hidden flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
             <path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
             <path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
           <span>Edit</span>
       </button>
-      <button type="button" data-menu-action="delete" class="hidden flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 whitespace-nowrap">
+      <button type="button" data-menu-action="delete" class="hidden flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 whitespace-nowrap dark:hover:bg-red-500/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-red-600">
             <path d="M3 6h18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
             <path d="M8 6V4h8v2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -162,22 +165,22 @@
 
   <div id="forward_modal" class="fixed inset-0 z-[70] hidden">
     <div id="forward_backdrop" class="absolute inset-0 bg-black/40"></div>
-    <div class="relative mx-auto mt-20 w-[92%] max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
-      <div class="flex items-center justify-between border-b px-4 py-3">
-        <div class="text-sm font-semibold text-gray-900">Forward</div>
-        <button id="forward_close_btn" type="button" class="rounded-lg px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900">✕</button>
+    <div class="relative mx-auto mt-20 w-[92%] max-w-md overflow-hidden rounded-2xl bg-white/90 shadow-xl ring-1 ring-black/10 backdrop-blur-2xl dark:bg-slate-900/90 dark:ring-white/10">
+      <div class="flex items-center justify-between border-b border-slate-200/70 px-4 py-3 dark:border-white/10">
+        <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">Forward</div>
+        <button id="forward_close_btn" type="button" class="rounded-lg px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">✕</button>
       </div>
 
       <div class="p-4">
-        <input id="forward_search_input" type="text" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none" placeholder="Search chats..." />
-        <div id="forward_hint" class="mt-3 text-xs text-gray-500"></div>
+        <input id="forward_search_input" type="text" class="w-full rounded-xl border border-gray-200/80 bg-white/70 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="Search chats..." />
+        <div id="forward_hint" class="mt-3 text-xs text-gray-500 dark:text-slate-300"></div>
         <div id="forward_chat_list" class="mt-3 max-h-[420px] overflow-y-auto"></div>
       </div>
     </div>
   </div>
 
   <!-- Composer -->
-  <div class="border-t bg-white p-3 pb-4">
+  <div class="border-t border-slate-200/70 bg-white/35 p-3 pb-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25">
     <div class="flex flex-col gap-3">
 
       <form id="chat_message_form"
@@ -188,17 +191,17 @@
             _="on htmx:wsAfterSend reset() me">
         {% csrf_token %}
         <input type="hidden" name="reply_to" id="reply_to_input" value="">
-        <div id="reply_preview" class="hidden mb-2 rounded-2xl bg-slate-50 border border-slate-200 px-3 py-2">
+        <div id="reply_preview" class="hidden mb-2 rounded-2xl bg-white/60 border border-slate-200/70 px-3 py-2 backdrop-blur dark:bg-white/10 dark:border-white/10">
           <div class="flex items-start gap-2">
             <div class="flex-1 min-w-0">
-              <div id="reply_preview_author" class="text-xs font-semibold text-slate-700 truncate"></div>
-              <div id="reply_preview_text" class="text-xs text-slate-500 truncate"></div>
+              <div id="reply_preview_author" class="text-xs font-semibold text-slate-700 truncate dark:text-slate-100"></div>
+              <div id="reply_preview_text" class="text-xs text-slate-500 truncate dark:text-slate-300"></div>
             </div>
-            <button id="reply_cancel_btn" type="button" class="shrink-0 rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900">✕</button>
+            <button id="reply_cancel_btn" type="button" class="shrink-0 rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">✕</button>
           </div>
         </div>
-        <div class="relative flex items-center gap-2 rounded-xl bg-gray-100 border border-gray-200 px-3 focus-within:bg-white focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-200" style="align-items: center; padding-top: 2px; padding-bottom: 2px;">
-          <button id="file_pick_btn" type="button" class="text-gray-500 hover:text-gray-700" aria-label="Attach file">
+        <div class="relative flex items-center gap-2 rounded-xl bg-gray-100 border border-gray-200 px-3 focus-within:bg-white focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-200 dark:bg-white/10 dark:border-white/10 dark:focus-within:bg-white/10 dark:focus-within:border-sky-400/40 dark:focus-within:ring-sky-400/20" style="align-items: center; padding-top: 2px; padding-bottom: 2px;">
+          <button id="file_pick_btn" type="button" class="text-gray-500 hover:text-gray-700 dark:text-slate-300 dark:hover:text-white" aria-label="Attach file">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
               <path d="M21.44 11.05 12 20.5a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.19 9.19a2 2 0 1 1-2.83-2.83l8.49-8.49" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -208,9 +211,9 @@
             {{ form.body }}
           </div>
 
-          <div class="flex items-center gap-3 text-gray-500">
+          <div class="flex items-center gap-3 text-gray-500 dark:text-slate-300">
             <div style="position: relative; display: flex; align-items: center;">
-              <button id="emoji_btn" type="button" class="hover:text-gray-700" aria-label="Emoji">
+              <button id="emoji_btn" type="button" class="hover:text-gray-700 dark:hover:text-white" aria-label="Emoji">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                   <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" stroke="currentColor" stroke-width="2"/>
                   <path d="M8.5 10a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM15.5 10a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" fill="currentColor"/>
@@ -218,20 +221,20 @@
                 </svg>
               </button>
 
-              <div id="emoji_picker" class="hidden" style="position: absolute; bottom: calc(100% + 10px); right: 0; width: 320px; max-width: 90vw; border: 1px solid #e5e7eb; background: #ffffff; border-radius: 14px; padding: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); z-index: 50;">
-                <div style="position: absolute; bottom: -6px; right: 14px; width: 12px; height: 12px; background: #ffffff; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; transform: rotate(45deg);"></div>
-                <div id="emoji_picker_grid" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; font-size: 20px; line-height: 1; max-height: 220px; overflow: auto; padding: 2px;"></div>
+              <div id="emoji_picker" class="hidden absolute bottom-[calc(100%+10px)] right-0 z-50 w-[320px] max-w-[90vw] rounded-[14px] border border-slate-200/80 bg-white/90 p-2 shadow-[0_10px_25px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90">
+                <div class="absolute -bottom-1.5 right-3.5 h-3 w-3 rotate-45 border-r border-b border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-slate-900/90"></div>
+                <div id="emoji_picker_grid" class="grid grid-cols-8 gap-1 text-[20px] leading-none max-h-[220px] overflow-auto p-0.5"></div>
               </div>
             </div>
 
-            <button id="chat_send_btn" type="button" class="hidden text-blue-600 hover:text-blue-700" aria-label="Send">
+            <button id="chat_send_btn" type="button" class="hidden text-blue-600 hover:text-blue-700 dark:text-sky-400 dark:hover:text-sky-300" aria-label="Send">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                 <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M22 2L15 22l-4-9-9-4 20-7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
 
-            <button id="voice_record_btn" type="button" class="hover:text-gray-700" aria-label="Record voice">
+            <button id="voice_record_btn" type="button" class="hover:text-gray-700 dark:hover:text-white" aria-label="Record voice">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                 <path d="M12 14a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v4a3 3 0 0 0 3 3Z" stroke="currentColor" stroke-width="2"/>
                 <path d="M19 11a7 7 0 0 1-14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -254,11 +257,11 @@
           <span class="rtchat-rec-dot"></span>
           <span>در حال ضبط</span>
         </span>
-        <span id="voice_timer" class="hidden text-xs text-gray-500">00:00</span>
+        <span id="voice_timer" class="hidden text-xs text-gray-500 dark:text-slate-300">00:00</span>
         <span id="voice_error" class="text-xs text-red-600"></span>
       </div>
 
-      <div id="voice_preview" class="hidden rounded-2xl bg-slate-50 px-3 py-2">
+      <div id="voice_preview" class="hidden rounded-2xl bg-white/60 px-3 py-2 backdrop-blur dark:bg-white/10">
         <div class="flex items-center gap-3">
           <audio id="voice_audio" class="w-full" controls></audio>
           <button id="voice_send_btn" type="button"
@@ -266,7 +269,7 @@
             ارسال
           </button>
           <button id="voice_cancel_btn" type="button"
-                  class="shrink-0 rounded-xl bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-300">
+                  class="shrink-0 rounded-xl bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-300 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15">
             لغو
           </button>
         </div>
@@ -337,10 +340,6 @@
   </div>
 {% endif %}
 
-
-{% if chat_group.members.exists %}
-  {% include 'a_rtchat/partials/modal_chat_leave.html' %}
-{% endif %}
 
 {% endblock %}
 

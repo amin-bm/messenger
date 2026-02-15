@@ -23,44 +23,64 @@
 
   <script>
     (function () {
+      const storageKey = 'theme';
       const root = document.documentElement;
-      const stored = (localStorage.getItem('theme') || '').toLowerCase();
-      const prefersDark =
-        typeof window !== 'undefined' &&
-        window.matchMedia &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const initial = stored === 'dark' || stored === 'light' ? stored : prefersDark ? 'dark' : 'light';
+      const metaThemeColor = document.querySelector('meta[name="theme-color"]');
 
-      function syncLabel(theme) {
-        const el = document.getElementById('theme-toggle-label');
-        if (!el) return;
-        el.textContent = theme === 'dark' ? 'حالت روشن' : 'حالت تیره';
+      function systemPrefersDark() {
+        return Boolean(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
       }
 
-      function apply(theme) {
-        root.dataset.theme = theme;
-        root.style.colorScheme = theme;
-        syncLabel(theme);
-        try {
-          window.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
-        } catch (e) {
-          window.dispatchEvent(new Event('themechange'));
-        }
+      function getMode() {
+        const mode = localStorage.getItem(storageKey);
+        return mode === 'dark' || mode === 'light' ? mode : 'dark';
       }
 
-      window.setTheme = function (theme) {
-        const next = theme === 'dark' ? 'dark' : 'light';
-        localStorage.setItem('theme', next);
-        apply(next);
-      };
+      function setMode(mode) {
+        if (mode === 'dark' || mode === 'light') localStorage.setItem(storageKey, mode);
+        else localStorage.removeItem(storageKey);
+      }
 
-      window.toggleTheme = function () {
-        const cur = (root.dataset.theme || 'light') === 'dark' ? 'dark' : 'light';
-        window.setTheme(cur === 'dark' ? 'light' : 'dark');
-      };
+      function applyMode(mode) {
+        const isDark = mode === 'dark' || (mode === 'system' && systemPrefersDark());
+        root.classList.toggle('dark', isDark);
+        root.dataset.theme = mode;
+        if (metaThemeColor) metaThemeColor.setAttribute('content', isDark ? '#0b1220' : '#0ea5e9');
+      }
 
-      apply(initial);
-      document.addEventListener('DOMContentLoaded', () => syncLabel(root.dataset.theme || initial));
+      function toggleTheme() {
+        const isDark = root.classList.contains('dark');
+        const next = isDark ? 'light' : 'dark';
+        setMode(next);
+        applyMode(next);
+      }
+
+      const initial = getMode();
+      applyMode(initial);
+
+      if (window.matchMedia) {
+        const mql = window.matchMedia('(prefers-color-scheme: dark)');
+        const onChange = () => {
+          const current = getMode();
+          if (current === 'system') applyMode('system');
+        };
+        if (typeof mql.addEventListener === 'function') mql.addEventListener('change', onChange);
+        else if (typeof mql.addListener === 'function') mql.addListener(onChange);
+      }
+
+      window.setThemeMode = (mode) => {
+        const next = mode === 'dark' || mode === 'light' ? mode : 'system';
+        setMode(next);
+        applyMode(next);
+      };
+      window.toggleTheme = toggleTheme;
+
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-theme-toggle]');
+        if (!btn) return;
+        e.preventDefault();
+        toggleTheme();
+      });
     })();
   </script>
 
@@ -82,9 +102,9 @@
   {% block layout %}{% endblock %}
 
   <div id="sidebar_chat_actions_menu" class="fixed hidden z-[9998]">
-    <div class="min-w-[170px] overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-black/10">
-      <button type="button" data-action="pin" class="w-full px-4 py-3 text-right text-sm text-gray-800 hover:bg-gray-50 active:bg-gray-100">پین</button>
-      <button type="button" data-action="mute" class="w-full px-4 py-3 text-right text-sm text-gray-800 hover:bg-gray-50 active:bg-gray-100">بی‌صدا</button>
+    <div class="min-w-[170px] overflow-hidden rounded-xl bg-white/90 shadow-xl ring-1 ring-black/10 backdrop-blur-xl dark:bg-slate-900/90 dark:ring-white/10">
+      <button type="button" data-action="pin" class="w-full px-4 py-3 text-right text-sm text-gray-800 hover:bg-gray-50 active:bg-gray-100 dark:text-slate-100 dark:hover:bg-white/10 dark:active:bg-white/15">پین</button>
+      <button type="button" data-action="mute" class="w-full px-4 py-3 text-right text-sm text-gray-800 hover:bg-gray-50 active:bg-gray-100 dark:text-slate-100 dark:hover:bg-white/10 dark:active:bg-white/15">بی‌صدا</button>
     </div>
   </div>
 
@@ -109,10 +129,7 @@
 
       tabs.forEach(btn => {
         const isActive = btn.dataset.tab === tab;
-        btn.classList.toggle('bg-white', isActive);
-        btn.classList.toggle('text-gray-900', isActive);
-        btn.classList.toggle('shadow', isActive);
-        btn.classList.toggle('text-gray-600', !isActive);
+        btn.classList.toggle('active', isActive);
       });
 
       applySidebarSearch();
@@ -131,11 +148,14 @@
 
     // ---------- Active highlight ----------
     function highlightActiveChat() {
-      const path = window.location.pathname;
+      const normalizePath = (p) => {
+        const s = (p || '').toString().trim().replace(/\/+$/, '');
+        return s || '/';
+      };
+      const path = normalizePath(window.location.pathname);
       document.querySelectorAll('#chats-list a.chat-item').forEach(a => {
         const url = a.getAttribute('data-chat-url');
-        if (url && path === url) a.classList.add('bg-gray-200');
-        else a.classList.remove('bg-gray-200');
+        a.classList.toggle('highlight', Boolean(url && path === normalizePath(url)));
       });
     }
 
@@ -951,7 +971,7 @@
         }
 
         if (pwaInstallPrompt) {
-          subtitle.textContent = "می‌توانید برنامه را روی گوشی نصب کنید.";
+          subtitle.textContent = "می‌توانید برنامه را روی گوشی یا ویندوز نصب کنید.";
           body.textContent = "با زدن «نصب»، برنامه به صفحه اصلی اضافه می‌شود و مثل اپ اجرا می‌شود.";
           btnInstall.style.display = "";
           return;

@@ -1,18 +1,18 @@
 {% if message.author_id == user.id %}
 <li id="msg-{{ message.id }}"{% if oob_swap %} hx-swap-oob="{{ oob_swap }}"{% elif oob %} hx-swap-oob="outerHTML"{% endif %} data-message-id="{{ message.id }}" data-message-date="{{ message.created|date:'Y-m-d' }}" data-message-date-label="{{ message.created|date:'F j, Y' }}" data-message-author="شما" data-message-body="{% if message.body %}{{ message.body }}{% endif %}" data-message-preview="{% if message.body %}{{ message.body|truncatechars:80 }}{% elif message.file %}{{ message.filename|default:''|truncatechars:80 }}{% endif %}" data-forward-url="{% url 'chat-message-forward' message.id %}" data-delete-url="{% url 'chat-message-delete' message.id %}"{% if message.body and not message.file %} data-edit-url="{% url 'chat-message-edit' message.id %}"{% endif %} class="flex mb-2">
-  <div class="ml-auto group bg-[#dbeafe] text-gray-900 rounded-2xl px-4 py-2 {% if message.is_audio %}w-72 sm:w-80 md:w-96 max-w-[92%]{% else %}max-w-[85%]{% endif %} shadow-sm relative">
+  <div class="ml-auto group bg-[#dbeafe] text-gray-900 rounded-2xl px-4 py-2 {% if message.is_audio %}w-72 sm:w-80 md:w-96 max-w-[92%]{% else %}max-w-[85%]{% endif %} shadow-sm shadow-black/5 relative ring-1 ring-black/5 backdrop-blur-md dark:bg-[#17304a]/70 dark:text-slate-100 dark:ring-white/10 dark:shadow-none">
     <div class="pb-3 text-sm leading-relaxed" dir="auto" style="unicode-bidi: plaintext; text-align: start;">
       {% if message.forwarded_from %}
-        <div class="mb-1 text-[11px] font-semibold text-blue-700">
+        <div class="mb-1 text-[11px] font-semibold text-blue-700 dark:text-sky-300">
           Forwarded from {% if message.forwarded_from == user %}شما{% else %}{{ message.forwarded_from.profile.name|default:message.forwarded_from.username }}{% endif %}
         </div>
       {% endif %}
       {% if message.reply_to %}
-        <button type="button" data-reply-action="jump" data-reply-jump-id="{{ message.reply_to.id }}" class="mb-1 inline-block max-w-full text-left rounded-lg bg-black/5 px-2 py-1 border-l-2 border-blue-400">
-          <div class="text-[10px] font-semibold text-gray-700 truncate">
+        <button type="button" data-reply-action="jump" data-reply-jump-id="{{ message.reply_to.id }}" class="mb-1 inline-block max-w-full text-left rounded-lg bg-black/5 px-2 py-1 border-l-2 border-blue-400 dark:bg-white/10">
+          <div class="text-[10px] font-semibold text-gray-700 truncate dark:text-slate-100">
             {% if message.reply_to.author == user %}شما{% else %}{{ message.reply_to.author.profile.name|default:message.reply_to.author.username }}{% endif %}
           </div>
-          <div class="text-[10px] text-gray-600 truncate">
+          <div class="text-[10px] text-gray-600 truncate dark:text-slate-300">
             {% if message.reply_to.body %}
               {{ message.reply_to.body|truncatechars:60 }}
             {% elif message.reply_to.file %}
@@ -26,8 +26,8 @@
       </div>
     </div>
 
-    <span class="absolute bottom-2 right-2 text-[10px] text-gray-500">
-      {{ message.created|date:"H:i" }}{% if message.edited %}<span class="ml-1 text-[10px] text-gray-400">edited</span>{% endif %}
+    <span class="absolute bottom-2 right-2 text-[10px] text-gray-500 dark:text-slate-300">
+      {{ message.created|date:"H:i" }}{% if message.edited %}<span class="ml-1 text-[10px] text-gray-400 dark:text-slate-400">edited</span>{% endif %}
     </span>
   </div>
 </li>
@@ -40,27 +40,27 @@
       <img class="w-8 h-8 rounded-full object-cover" src="{{ message.author.profile.avatar }}">
     </a>
 
-    <div class="group bg-white text-gray-900 rounded-2xl px-4 py-2 {% if message.is_audio %}w-72 sm:w-80 md:w-96 max-w-[92%]{% else %}max-w-[85%]{% endif %} shadow-sm relative">
+    <div class="group bg-white/85 text-gray-900 rounded-2xl px-4 py-2 {% if message.is_audio %}w-72 sm:w-80 md:w-96 max-w-[92%]{% else %}max-w-[85%]{% endif %} shadow-sm shadow-black/5 relative ring-1 ring-black/5 backdrop-blur-md dark:bg-[#0e1a2a]/70 dark:text-slate-100 dark:ring-white/10 dark:shadow-none">
 
       {% if not chat_group.is_private %}
-        <div class="text-xs font-semibold text-gray-700 mb-0.5">
+        <div class="text-xs font-semibold text-gray-700 mb-0.5 dark:text-slate-200">
           {{ message.author.profile.name }}
-          <span class="font-normal text-gray-400">@{{ message.author.username }}</span>
+          <span class="font-normal text-gray-400 dark:text-slate-400">@{{ message.author.username }}</span>
         </div>
       {% endif %}
 
       <div class="pb-3 text-sm leading-relaxed" dir="auto" style="unicode-bidi: plaintext; text-align: start;">
         {% if message.forwarded_from %}
-          <div class="mb-1 text-[11px] font-semibold text-blue-700">
+          <div class="mb-1 text-[11px] font-semibold text-blue-700 dark:text-sky-300">
             Forwarded from {% if message.forwarded_from == user %}شما{% else %}{{ message.forwarded_from.profile.name|default:message.forwarded_from.username }}{% endif %}
           </div>
         {% endif %}
         {% if message.reply_to %}
-          <button type="button" data-reply-action="jump" data-reply-jump-id="{{ message.reply_to.id }}" class="mb-1 inline-block max-w-full text-left rounded-lg bg-black/5 px-2 py-1 border-l-2 border-blue-400">
-            <div class="text-[10px] font-semibold text-gray-700 truncate">
+          <button type="button" data-reply-action="jump" data-reply-jump-id="{{ message.reply_to.id }}" class="mb-1 inline-block max-w-full text-left rounded-lg bg-black/5 px-2 py-1 border-l-2 border-blue-400 dark:bg-white/10">
+            <div class="text-[10px] font-semibold text-gray-700 truncate dark:text-slate-100">
               {% if message.reply_to.author == user %}شما{% else %}{{ message.reply_to.author.profile.name|default:message.reply_to.author.username }}{% endif %}
             </div>
-            <div class="text-[10px] text-gray-600 truncate">
+            <div class="text-[10px] text-gray-600 truncate dark:text-slate-300">
               {% if message.reply_to.body %}
                 {{ message.reply_to.body|truncatechars:60 }}
               {% elif message.reply_to.file %}
@@ -74,8 +74,8 @@
         </div>
       </div>
 
-      <span class="absolute bottom-2 right-2 text-[10px] text-gray-500">
-        {{ message.created|date:"H:i" }}{% if message.edited %}<span class="ml-1 text-[10px] text-gray-400">edited</span>{% endif %}
+      <span class="absolute bottom-2 right-2 text-[10px] text-gray-500 dark:text-slate-300">
+        {{ message.created|date:"H:i" }}{% if message.edited %}<span class="ml-1 text-[10px] text-gray-400 dark:text-slate-400">edited</span>{% endif %}
       </span>
     </div>
   </div>

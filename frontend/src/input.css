@@ -22,20 +22,20 @@ p  { @apply mb-4; }
 .button-red { @apply !bg-red-500 hover:!bg-red-600; }
 .button-gray { @apply !bg-gray-200 hover:!bg-gray-300 !text-gray-900; }
 
-.navitems>li>a { @apply flex items-center gap-2 h-12 px-4 hover:bg-[rgba(31,41,55,0.3)] rounded-lg; }
+.navitems>li>a { @apply flex items-center gap-2 h-12 px-4 hover:bg-[rgba(31,41,55,0.3)] rounded-lg dark:hover:bg-white/10; }
 
-.hoverlist>* { @apply hover:bg-gray-100 rounded-md transition duration-150; }
+.hoverlist>* { @apply hover:bg-gray-100 rounded-md transition duration-150 dark:hover:bg-white/10; }
 .hoverlist>*>a { @apply flex items-center p-2; }
 
-.highlight { @apply !bg-gray-200; }
+.highlight { @apply !bg-gray-200 dark:!bg-white/10; }
 
 /* این یکی رو اصلاح کن */
 .allauth .content a { @apply underline underline-offset-2; }
 .allauth .content a:hover { @apply text-gray-900; }
 
 label { @apply hidden; }
-input[type=file] { @apply bg-white pl-0; }
-.textarea, textarea, input { @apply w-full rounded-lg py-4 px-5 bg-gray-100; }
+input[type=file] { @apply bg-white pl-0 dark:bg-transparent; }
+.textarea, textarea, input { @apply w-full rounded-lg py-4 px-5 bg-gray-100 text-slate-900 placeholder:text-slate-500 dark:bg-white/10 dark:text-slate-100 dark:placeholder:text-slate-400; }
 .errorlist li { @apply p-1 pl-4 border-l-red-500 border-l-4 border-solid mb-2 text-red-500; }
 
 .alert-info { @apply bg-sky-500; }
@@ -59,6 +59,11 @@ input[type=file] { @apply bg-white pl-0; }
   border: 1px solid #e2e8f0;
 }
 
+.dark .tabs-pill{
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.14);
+}
+
 .sidebar-tab{
   appearance: none;
   border: 0;
@@ -75,13 +80,24 @@ input[type=file] { @apply bg-white pl-0; }
   transition: background .15s ease, color .15s ease, box-shadow .15s ease;
 }
 
+.dark .sidebar-tab{
+  color: #cbd5e1;
+}
+
 .sidebar-tab:hover{ background: rgba(15, 23, 42, 0.06); color:#0f172a; }
+.dark .sidebar-tab:hover{ background: rgba(255,255,255,0.08); color:#e2e8f0; }
 .sidebar-tab:focus{ outline:none; box-shadow:0 0 0 3px rgba(59,130,246,.25); }
 
 .sidebar-tab.active{
   background:#fff;
   color:#0f172a;
   box-shadow:0 1px 2px rgba(0,0,0,.06);
+}
+
+.dark .sidebar-tab.active{
+  background: rgba(255,255,255,0.18);
+  color: #f8fafc;
+  box-shadow: none;
 }
 
 .tab-badge{
@@ -96,4 +112,9 @@ input[type=file] { @apply bg-white pl-0; }
   font-weight: 700;
   background: rgba(37, 99, 235, 0.12);
   color: #1d4ed8;
+}
+
+.dark .tab-badge{
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
 }

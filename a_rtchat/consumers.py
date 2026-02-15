@@ -553,7 +553,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
                     "kind": "private",
                     "title": getattr(other.profile, "name", other.username),
                     "subtitle": f"@{other.username}",
-                    "url": f"/chat/{other.username}",
+                    "url": f"/chat/room/{chatroom.group_name}",
                     "chatroom_name": chatroom.group_name,
                     "avatar_url": getattr(other.profile, "avatar", None),
                     "avatar_letter": other.username[:1].upper(),

@@ -75,7 +75,7 @@ class PhoneSignupForm(SignupForm):
             phone.label = "شماره موبایل"
             _apply_widget_attrs(
                 phone,
-                {"class": _INPUT_CLASS, "placeholder": "شماره موبایل", "dir": "ltr", "inputmode": "tel", "autocomplete": "tel"},
+                {"class": _INPUT_CLASS, "placeholder": "09xxxxxxxxx", "dir": "ltr", "inputmode": "tel", "autocomplete": "tel"},
             )
 
         password1 = self.fields.get("password1")

@@ -1,14 +1,18 @@
 {% extends "account/base_entrance.html" %}
+{% load static %}
 {% load allauth i18n %}
 {% block head_title %}
     {% trans "Signup" %}
 {% endblock head_title %}
 {% block content %}
     <div dir="rtl" class="max-w-md mx-auto">
-        <h1 class="mb-2 text-center text-2xl font-bold text-gray-900">ثبت‌نام</h1>
-        <p class="text-gray-500 mb-6 text-center">
+        <div class="flex justify-center">
+            <img src="{% static 'logo.png' %}" alt="logo" style="width: 100px;">
+        </div>
+        <h1 class="mb-2 text-center text-2xl font-bold text-gray-900 dark:text-slate-100">ثبت‌نام</h1>
+        <p class="text-gray-500 dark:text-slate-300 mb-6 text-center">
             قبلاً حساب ساخته‌اید؟
-            <a class="text-blue-600 hover:underline" href="{% url 'account_login' %}?next={% url 'profile-onboarding' %}">ورود</a>
+            <a class="text-blue-600 hover:underline dark:text-sky-400 dark:hover:text-sky-300" href="{% url 'account_login' %}?next={% url 'profile-onboarding' %}">ورود</a>
             کنید.
         </p>
     {% if not SOCIALACCOUNT_ONLY %}
@@ -23,7 +27,7 @@
 
                 {% if form.username %}
                     <div class="space-y-1">
-                        <label class="block text-sm font-medium text-gray-700" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300" for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
                         {{ form.username }}
                         {% if form.username.errors %}
                             <div class="text-sm text-red-600">{{ form.username.errors }}</div>
@@ -33,7 +37,7 @@
 
                 {% if form.phone %}
                     <div class="space-y-1">
-                        <label class="block text-sm font-medium text-gray-700" for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300" for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
                         {{ form.phone }}
                         {% if form.phone.errors %}
                             <div class="text-sm text-red-600">{{ form.phone.errors }}</div>
@@ -43,7 +47,7 @@
 
                 {% if form.password1 %}
                     <div class="space-y-1">
-                        <label class="block text-sm font-medium text-gray-700" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300" for="{{ form.password1.id_for_label }}">{{ form.password1.label }}</label>
                         {{ form.password1 }}
                         {% if form.password1.errors %}
                             <div class="text-sm text-red-600">{{ form.password1.errors }}</div>
@@ -53,7 +57,7 @@
 
                 {% if form.password2 %}
                     <div class="space-y-1">
-                        <label class="block text-sm font-medium text-gray-700" for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300" for="{{ form.password2.id_for_label }}">{{ form.password2.label }}</label>
                         {{ form.password2 }}
                         {% if form.password2.errors %}
                             <div class="text-sm text-red-600">{{ form.password2.errors }}</div>

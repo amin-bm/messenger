@@ -5,14 +5,14 @@
 <content class="block w-full">
   <!-- ارتفاع کل صفحه منهای هدر -->
   <div class="mx-auto max-w-6xl px-0 md:px-4 py-0 md:py-4">
-    <div class="tg-shell flex h-[100dvh] md:h-[calc(100dvh-2rem)] overflow-hidden md:rounded-2xl bg-white md:shadow-2xl">
+    <div class="flex h-[100dvh] md:h-[calc(100dvh-2rem)] overflow-hidden md:rounded-2xl bg-white/55 backdrop-blur-2xl ring-1 ring-black/5 md:shadow-2xl dark:bg-slate-950/35 dark:ring-white/10 dark:shadow-none">
 
       <!-- Sidebar (لیست چت‌ها) -->
-      <aside id="tg-sidebar" class="{% if '/chat/room/' in request.path %}hidden md:flex{% else %}flex{% endif %} w-full md:w-[320px] shrink-0 border-b md:border-b-0 md:border-r bg-gray-50 flex-col">
+      <aside id="tg-sidebar" class="{% if '/chat/room/' in request.path %}hidden md:flex{% else %}flex{% endif %} relative z-20 w-full md:w-[320px] shrink-0 border-b md:border-b-0 md:border-r border-slate-200/70 bg-white/35 backdrop-blur-xl flex-col dark:border-white/10 dark:bg-slate-950/30">
         <!-- Header سایدبار -->
-        <div class="flex items-center gap-3 border-b px-4 py-3">
+        <div class="relative z-30 flex items-center gap-3 border-b border-slate-200/70 bg-white/35 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25">
         <nav class="block relative">
-          <ul class="navitems flex bg-gray-300 rounded-xl items-center justify-center h-full">
+          <ul class="navitems flex bg-black/5 rounded-xl items-center justify-center h-full dark:bg-white/10">
             
               
               <li x-data="{ dropdownOpen: false }" class="relative">
@@ -22,7 +22,7 @@
                       <img x-bind:class="dropdownOpen && 'rotate-180 duration-300'" class="w-4" src="{% static 'images/expand-arrow.png' %}" alt="Dropdown" />
                   </a>
                   <div x-show="dropdownOpen" x-cloak
-                    class="absolute left-0 top-full mt-2 bg-white text-black shadow rounded-lg w-48 py-2 pl-3 pr-8 z-20 text-left text-sm"
+                    class="absolute left-0 top-full mt-2 bg-white/90 text-black shadow rounded-lg w-48 py-2 pl-3 pr-8 z-[200] text-left text-sm ring-1 ring-black/10 backdrop-blur-xl dark:bg-slate-900/90 dark:text-slate-100 dark:ring-white/10"
                     x-transition:enter="duration-300 ease-out"
                     x-transition:enter-start="opacity-0 -translate-y-5 scale-90"
                     x-transition:enter-end="opacity-100 translate-y-0 scale-100"
@@ -65,14 +65,6 @@
                               <span>Settings</span>
                             </a>
                           </li>
-                          <li>
-                            <a class="gap-3" href="#" onclick="toggleTheme(); return false;">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">
-                                <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                              </svg>
-                              <span id="theme-toggle-label">حالت تیره</span>
-                            </a>
-                          </li>
                           {% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_manager %}
                           <li>
                             <a class="gap-3" href="{% url 'profile-manager' %}">
@@ -108,6 +100,23 @@
 
         <!-- Tabs container (WS will fill this) -->
         <div id="sidebar-tabs" class="ml-auto flex gap-2"></div>
+
+        <button type="button" data-theme-toggle aria-label="Toggle dark mode" class="ml-2 inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 hover:bg-black/5 active:bg-black/10 dark:text-slate-300 dark:hover:bg-white/10 dark:active:bg-white/15">
+          <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M21 13.6A8.5 8.5 0 0 1 10.4 3 7 7 0 1 0 21 13.6Z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg class="hidden h-5 w-5 dark:block" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="2.2"/>
+            <path d="M12 2v2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M12 20v2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M4.93 4.93l1.41 1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M17.66 17.66l1.41 1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M2 12h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M20 12h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M4.93 19.07l1.41-1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </button>
         </div>
 
         <!-- اگر هنوز جای آنلاین داری -->
@@ -116,26 +125,26 @@
 
 
         <!-- Search (اختیاری) -->
-        <div class="p-3">
+        <div class="relative z-0 p-3">
           <input
             id="sidebar-search"
             type="text"
             placeholder="Search"
-            class="w-full rounded-xl bg-white px-4 py-2 text-sm border"
+            class="w-full rounded-xl bg-white/70 px-4 py-2 text-sm border border-slate-200/70 text-slate-900 placeholder:text-slate-500 backdrop-blur dark:bg-white/10 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400"
             dir="auto"
             autocomplete="off"
           />
         </div>
 
         <!-- لیست چت‌ها: همون آی‌دی قبلی برای سازگاری با کد شما -->
-        <nav class="flex-1 overflow-y-auto px-2 pb-3">
+        <nav class="relative z-0 flex-1 overflow-y-auto px-2 pb-3">
             <div id="sidebar-search-results" class="hidden"></div>
             <div id="sidebar-content"></div>
         </nav>
       </aside>
 
       <!-- Main chat panel -->
-      <main id="tg-main" class="{% if '/chat/room/' in request.path %}block{% else %}hidden md:block{% endif %} flex-1 bg-slate-100 min-w-0">
+      <main id="tg-main" class="{% if '/chat/room/' in request.path %}block{% else %}hidden md:block{% endif %} relative z-10 flex-1 bg-white/20 min-w-0 backdrop-blur-sm dark:bg-slate-950/20">
         <!-- اینجا محتوای صفحه چت فعلی شما میاد -->
         <div class="h-full">
           {% block content %}{% endblock %}
@@ -155,4 +164,3 @@
 
 </content>
 {% endblock %}
-

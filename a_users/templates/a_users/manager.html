@@ -4,48 +4,48 @@
 
 {% block content %}
 
-<h1 class="mb-6"  dir="auto">پنل مدیریت</h1>
+<h1 class="mb-6 dark:text-slate-100" dir="auto">پنل مدیریت</h1>
 
 {% if target_profile %}
 <div class="mb-6">
     <a href="{% url 'profile-manager' %}" class="button block !bg-gray-800 w-fit">بازگشت</a>
 </div>
 
-<h2 class="text-base font-bold text-gray-900 mb-3">محدودسازی نمایش مخاطب @{{ target_profile.user.username }}</h2>
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">محدودسازی نمایش مخاطب @{{ target_profile.user.username }}</h2>
 
-<form method="post" action="{% url 'profile-manager-contact-visibility' target_profile.user.id %}" class="border rounded-lg p-4 bg-white" x-data="{ mode: '{{ target_profile.contact_visibility_mode }}', q: '' }">
+<form method="post" action="{% url 'profile-manager-contact-visibility' target_profile.user.id %}" class="border rounded-lg p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10" x-data="{ mode: '{{ target_profile.contact_visibility_mode }}', q: '' }">
     {% csrf_token %}
     <div class="flex flex-col gap-4">
         <div class="flex flex-col md:flex-row gap-3 items-start md:items-center">
             <div class="w-full md:w-[260px]">
-                <select name="visibility_mode" x-model="mode" class="w-full rounded-lg border px-3 py-2">
+                <select name="visibility_mode" x-model="mode" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100">
                     <option value="all">نمایش برای همه</option>
                     <option value="selected">نمایش فقط برای افراد انتخاب شده</option>
                 </select>
             </div>
             <div class="w-full flex-1">
-                <input x-model="q" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو کاربر برای فیلتر" />
+                <input x-model="q" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو کاربر برای فیلتر" />
             </div>
             <button type="submit" class="button block !bg-gray-800 w-fit">ذخیره</button>
         </div>
 
-        <div class="border rounded-lg p-3 bg-gray-50">
-            <div class="text-sm font-semibold text-gray-900 mb-2">دسته‌بندی‌ها</div>
+        <div class="border rounded-lg p-3 bg-gray-50 dark:bg-slate-950/35 dark:border-white/10">
+            <div class="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-2">دسته‌بندی‌ها</div>
             <div class="flex flex-wrap gap-3">
                 {% for c in categories %}
-                    <label class="flex items-center gap-2 text-sm text-gray-800">
+                    <label class="flex items-center gap-2 text-sm text-gray-800 dark:text-slate-200">
                         <input type="checkbox" name="visible_categories" value="{{ c.id }}" class="rounded border" :disabled="mode !== 'selected'" {% if c.id in selected_category_ids %}checked{% endif %} />
                         <span>{{ c.name }}</span>
                     </label>
                 {% empty %}
-                    <div class="text-xs text-gray-500">دسته‌بندی‌ای تعریف نشده است.</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">دسته‌بندی‌ای تعریف نشده است.</div>
                 {% endfor %}
             </div>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-950/35 dark:text-slate-300">
                     <tr>
                         <th scope="col" class="px-4 py-3">نمایش</th>
                         <th scope="col" class="px-4 py-3">کاربر</th>
@@ -55,11 +55,11 @@
                 <tbody>
                     {% for u in viewer_users %}
                         {% if u.id != target_profile.user.id %}
-                        <tr class="bg-white border-b" data-search="{{ u.username|lower }} {{ u.profile.name|lower }}" x-show="!q || ($el.dataset.search || '').includes(q.toLowerCase())">
+                        <tr class="bg-white border-b dark:bg-transparent dark:border-white/10" data-search="{{ u.username|lower }} {{ u.profile.name|lower }}" x-show="!q || ($el.dataset.search || '').includes(q.toLowerCase())">
                             <td class="px-4 py-3">
                                 <input type="checkbox" name="visible_to" value="{{ u.id }}" class="rounded border" :disabled="mode !== 'selected'" {% if u.id in selected_ids %}checked{% endif %} />
                             </td>
-                            <th scope="row" class="px-4 py-3 text-gray-900 font-medium">@{{ u.username }}</th>
+                            <th scope="row" class="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium">@{{ u.username }}</th>
                             <td class="px-4 py-3">{{ u.profile.name }}</td>
                         </tr>
                         {% endif %}
@@ -75,25 +75,25 @@
     <a href="{% url 'profile-manager' %}" class="button block !bg-gray-800 w-fit">بازگشت</a>
 </div>
 
-<h2 class="text-base font-bold text-gray-900 mb-3">دسته‌بندی مخاطبین: {{ contact_category.name }}</h2>
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">دسته‌بندی مخاطبین: {{ contact_category.name }}</h2>
 
-<form method="post" action="{% url 'profile-manager-contact-category' contact_category.id %}" class="border rounded-lg p-4 bg-white" x-data="{ q: '' }">
+<form method="post" action="{% url 'profile-manager-contact-category' contact_category.id %}" class="border rounded-lg p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10" x-data="{ q: '' }">
     {% csrf_token %}
     <div class="flex flex-col gap-4">
         <div class="flex flex-col md:flex-row gap-3 items-start md:items-center">
             <div class="w-full md:w-[260px]">
-                <input name="category_name" value="{{ contact_category.name }}" class="w-full rounded-lg border px-3 py-2" placeholder="نام دسته‌بندی" />
+                <input name="category_name" value="{{ contact_category.name }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="نام دسته‌بندی" />
             </div>
             <div class="w-full flex-1">
-                <input x-model="q" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو کاربر برای فیلتر" />
+                <input x-model="q" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو کاربر برای فیلتر" />
             </div>
             <button type="submit" class="button block !bg-gray-800 w-fit">ذخیره</button>
             <button type="submit" name="action" value="delete_category" class="button block !bg-red-700 w-fit">حذف</button>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-slate-950/35 dark:text-slate-300">
                     <tr>
                         <th scope="col" class="px-4 py-3">عضو</th>
                         <th scope="col" class="px-4 py-3">کاربر</th>
@@ -102,11 +102,11 @@
                 </thead>
                 <tbody>
                     {% for u in viewer_users %}
-                        <tr class="bg-white border-b" data-search="{{ u.username|lower }} {{ u.profile.name|lower }}" x-show="!q || ($el.dataset.search || '').includes(q.toLowerCase())">
+                        <tr class="bg-white border-b dark:bg-transparent dark:border-white/10" data-search="{{ u.username|lower }} {{ u.profile.name|lower }}" x-show="!q || ($el.dataset.search || '').includes(q.toLowerCase())">
                             <td class="px-4 py-3">
                                 <input type="checkbox" name="members" value="{{ u.id }}" class="rounded border" {% if u.id in selected_member_ids %}checked{% endif %} />
                             </td>
-                            <th scope="row" class="px-4 py-3 text-gray-900 font-medium">@{{ u.username }}</th>
+                            <th scope="row" class="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium">@{{ u.username }}</th>
                             <td class="px-4 py-3">{{ u.profile.name }}</td>
                         </tr>
                     {% endfor %}
@@ -117,11 +117,11 @@
 </form>
 
 {% else %}
-<h2 class="text-base font-bold text-gray-900 mb-3" dir="rtl">پشتیبان‌گیری</h2>
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3" dir="rtl">پشتیبان‌گیری</h2>
 <div class="mb-10 grid grid-cols-1 md:grid-cols-2 gap-4" dir="rtl">
-    <div class="border rounded-xl p-4 bg-white">
+    <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
         <div class="flex items-center gap-3 mb-1">
-            <div class="h-9 w-9 rounded-lg bg-slate-100 text-slate-700 grid place-items-center">
+            <div class="h-9 w-9 rounded-lg bg-slate-100 text-slate-700 grid place-items-center dark:bg-white/10 dark:text-slate-200">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M12 3v12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                     <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -129,8 +129,8 @@
                 </svg>
             </div>
             <div class="min-w-0">
-                <div class="text-sm font-semibold text-gray-900">گرفتن بکاپ</div>
-                <div class="text-xs text-gray-500">دانلود فایل بکاپ از اطلاعات فعلی سیستم</div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">گرفتن بکاپ</div>
+                <div class="text-xs text-gray-500 dark:text-slate-400">دانلود فایل بکاپ از اطلاعات فعلی سیستم</div>
             </div>
         </div>
         <div class="mt-4">
@@ -138,9 +138,9 @@
         </div>
     </div>
 
-    <div class="border rounded-xl p-4 bg-white" x-data="{ fileName: '', confirm: false, tried: false }">
+    <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10" x-data="{ fileName: '', confirm: false, tried: false }">
         <div class="flex items-center gap-3 mb-1">
-            <div class="h-9 w-9 rounded-lg bg-amber-50 text-amber-700 grid place-items-center">
+            <div class="h-9 w-9 rounded-lg bg-amber-50 text-amber-700 grid place-items-center dark:bg-amber-500/10 dark:text-amber-300">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M12 21V9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                     <path d="M17 14l-5-5-5 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -148,8 +148,8 @@
                 </svg>
             </div>
             <div class="min-w-0">
-                <div class="text-sm font-semibold text-gray-900">بازگردانی بکاپ</div>
-                <div class="text-xs text-gray-500">با لود بکاپ، اطلاعات فعلی پاک می‌شود</div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">بازگردانی بکاپ</div>
+                <div class="text-xs text-gray-500 dark:text-slate-400">با لود بکاپ، اطلاعات فعلی پاک می‌شود</div>
             </div>
         </div>
 
@@ -160,14 +160,14 @@
             <div class="flex flex-col gap-2">
                 <div class="flex items-center gap-2">
                     <label for="backup_file_input" class="button block !bg-gray-800 w-fit cursor-pointer select-none">انتخاب فایل</label>
-                    <div class="text-xs text-gray-500 truncate" x-text="fileName || 'فایلی انتخاب نشده'"></div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 truncate" x-text="fileName || 'فایلی انتخاب نشده'"></div>
                 </div>
             </div>
 
-            <label class="flex items-start justify-between gap-3 text-sm text-gray-800 bg-amber-50 border border-amber-200 rounded-lg p-3" dir="rtl">
+            <label class="flex items-start justify-between gap-3 text-sm text-gray-800 bg-amber-50 border border-amber-200 rounded-lg p-3 dark:text-slate-200 dark:bg-amber-500/10 dark:border-amber-400/20" dir="rtl">
                 <div class="flex flex-col gap-1">
                     <span class="font-medium">تایید بازگردانی</span>
-                    <span class="text-xs text-amber-800">می‌دانم که با بازگردانی بکاپ، اطلاعات فعلی پاک می‌شود.</span>
+                    <span class="text-xs text-amber-800 dark:text-amber-200">می‌دانم که با بازگردانی بکاپ، اطلاعات فعلی پاک می‌شود.</span>
                 </div>
                 <input type="checkbox" name="confirm_restore" class="h-5 w-5 rounded border border-amber-300 mt-0.5" x-model="confirm" @change="if (confirm) tried = false" />
             </label>
@@ -178,13 +178,13 @@
     </div>
 </div>
 <br>
-<h2 class="text-base font-bold text-gray-900 mb-3">کاربران در انتظار تایید</h2>
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">کاربران در انتظار تایید</h2>
 {% if pending_profiles %}
-<table class="w-full text-sm text-left text-gray-500 mb-8">
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400 mb-8">
     <tbody>
         {% for p in pending_profiles %}
-        <tr class="border-b">
-            <th scope="row" class="py-4 text-gray-900 font-medium">
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-gray-900 dark:text-slate-100 font-medium">
                 @{{ p.user.username }}
             </th>
             <td class="py-4 pl-4">
@@ -203,26 +203,26 @@
     </tbody>
 </table>
 {% else %}
-<div class="text-sm text-gray-500 mb-8">کاربری برای تایید وجود ندارد.</div>
+<div class="text-sm text-gray-500 dark:text-slate-400 mb-8">کاربری برای تایید وجود ندارد.</div>
 {% endif %}
 
 {% if can_manage_managers %}
-<h2 class="text-base font-bold text-gray-900 mb-3">کاربرها</h2>
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">کاربرها</h2>
 
 <form method="get" class="flex gap-2 mb-4">
-    <input name="q" value="{{ q }}" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو با نام کاربری" />
+    <input name="q" value="{{ q }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو با نام کاربری" />
     <button type="submit" class="button block !bg-gray-800">جستجو</button>
 </form>
 
-<table class="w-full text-sm text-left text-gray-500">
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
     <tbody>
         {% for p in manager_profiles %}
-        <tr class="border-b">
-            <th scope="row" class="py-4 text-gray-900 font-medium">
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-gray-900 dark:text-slate-100 font-medium">
                 @{{ p.user.username }}
             </th>
             <td class="py-4 pl-4">
-                {% if p.is_manager %}<span class="text-green-600">مدیر</span>{% else %}<span class="text-gray-400">کاربر</span>{% endif %}
+                {% if p.is_manager %}<span class="text-green-600">مدیر</span>{% else %}<span class="text-gray-400 dark:text-slate-400">کاربر</span>{% endif %}
                 <!-- {% if p.user.is_superuser %}<span class="text-indigo-600 ml-2">سوپر یوزر</span>{% endif %} -->
                 {% if p.user.is_staff and not p.user.is_superuser %}<span class="text-indigo-600 ml-2">استف</span>{% endif %}
             </td>
@@ -243,19 +243,19 @@
 {% endif %}
 
 <br>
-<h2 class="text-base font-bold text-gray-900 mt-10 mb-3">محدودسازی نمایش مخاطبین</h2>
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mt-10 mb-3">محدودسازی نمایش مخاطبین</h2>
 
 <form method="get" class="flex gap-2 mb-4">
-    <input name="cq" value="{{ cq }}" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو مخاطب با نام کاربری" />
+    <input name="cq" value="{{ cq }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو مخاطب با نام کاربری" />
     {% if q %}<input type="hidden" name="q" value="{{ q }}" />{% endif %}
     <button type="submit" class="button block !bg-gray-800">جستجو</button>
 </form>
 
-<table class="w-full text-sm text-left text-gray-500">
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
     <tbody>
         {% for p in contact_profiles %}
-        <tr class="border-b">
-            <th scope="row" class="py-4 text-gray-900 font-medium">
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-gray-900 dark:text-slate-100 font-medium">
                 @{{ p.user.username }}
             </th>
             <td class="py-4 pl-4">
@@ -263,9 +263,9 @@
             </td>
             <td class="py-4 pl-4">
                 {% if p.contact_visibility_mode == "selected" %}
-                    <span class="text-amber-700">انتخاب‌شده</span>
+                    <span class="text-amber-700 dark:text-amber-300">انتخاب‌شده</span>
                 {% else %}
-                    <span class="text-gray-600">همه</span>
+                    <span class="text-gray-600 dark:text-slate-300">همه</span>
                 {% endif %}
             </td>
             <td class="py-4 pl-4">
@@ -274,34 +274,34 @@
         </tr>
         {% empty %}
         <tr>
-            <td class="py-4 text-sm text-gray-500" colspan="4">مخاطبی پیدا نشد.</td>
+            <td class="py-4 text-sm text-gray-500 dark:text-slate-400" colspan="4">مخاطبی پیدا نشد.</td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 
 <br>
-<h2 class="text-base font-bold text-gray-900 mt-10 mb-3">دسته‌بندی مخاطبین</h2>
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mt-10 mb-3">دسته‌بندی مخاطبین</h2>
 
 <form method="post" action="{% url 'profile-manager' %}" class="flex flex-col md:flex-row gap-2 mb-4">
     {% csrf_token %}
     <input type="hidden" name="action" value="create_contact_category">
-    <input name="category_name" class="w-full rounded-lg border px-3 py-2" placeholder="نام دسته‌بندی جدید (مثلا کارمندان)" />
+    <input name="category_name" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="نام دسته‌بندی جدید (مثلا کارمندان)" />
     <button type="submit" class="button block !bg-gray-800 w-fit">ایجاد</button>
 </form>
 
 <form method="get" class="flex gap-2 mb-4">
-    <input name="gq" value="{{ gq }}" class="w-full rounded-lg border px-3 py-2" placeholder="جستجو دسته‌بندی" />
+    <input name="gq" value="{{ gq }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو دسته‌بندی" />
     {% if q %}<input type="hidden" name="q" value="{{ q }}" />{% endif %}
     {% if cq %}<input type="hidden" name="cq" value="{{ cq }}" />{% endif %}
     <button type="submit" class="button block !bg-gray-800">جستجو</button>
 </form>
 
-<table class="w-full text-sm text-left text-gray-500">
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
     <tbody>
         {% for c in contact_categories %}
-        <tr class="border-b">
-            <th scope="row" class="py-4 text-gray-900 font-medium">
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-gray-900 dark:text-slate-100 font-medium">
                 {{ c.name }}
             </th>
             <td class="py-4 pl-4">
@@ -313,7 +313,7 @@
         </tr>
         {% empty %}
         <tr>
-            <td class="py-4 text-sm text-gray-500" colspan="3">دسته‌بندی‌ای وجود ندارد.</td>
+            <td class="py-4 text-sm text-gray-500 dark:text-slate-400" colspan="3">دسته‌بندی‌ای وجود ندارد.</td>
         </tr>
         {% endfor %}
     </tbody>

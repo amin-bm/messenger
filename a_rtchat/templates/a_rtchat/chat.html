@@ -1111,6 +1111,16 @@
     const currentChatName = "{{ chatroom_ws_name|escapejs }}";
     let menuMessageEl = null;
     let forwardMessageEl = null;
+    let ignoreDocumentClickUntil = 0;
+
+    if (menu && menu.dataset.portaled !== "1") {
+      menu.dataset.portaled = "1";
+      if (document.body) document.body.appendChild(menu);
+    }
+    if (forwardModal && forwardModal.dataset.portaled !== "1") {
+      forwardModal.dataset.portaled = "1";
+      if (document.body) document.body.appendChild(forwardModal);
+    }
 
     async function copyToClipboard(text) {
       const value = String(text || "");
@@ -1455,6 +1465,11 @@
           e.stopPropagation();
           if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
           if (!info.messageEl) return;
+          const now =
+            typeof performance !== "undefined" && typeof performance.now === "function"
+              ? performance.now()
+              : Date.now();
+          ignoreDocumentClickUntil = now + 450;
           openMessageMenu(info.messageEl, info.x, info.y);
         },
         { capture: true }
@@ -1499,6 +1514,11 @@
 
     document.addEventListener("click", (e) => {
       if (menu && !menu.classList.contains("hidden")) {
+        const now =
+          typeof performance !== "undefined" && typeof performance.now === "function"
+            ? performance.now()
+            : Date.now();
+        if (now < ignoreDocumentClickUntil) return;
         const insideMenu = e.target.closest("#message_action_menu");
         if (!insideMenu) closeMessageMenu();
       }

@@ -65,10 +65,17 @@ def _assert_user_can_access_chat_group(request, chat_group: ChatGroup) -> None:
             raise Http404
         return
     if getattr(chat_group, "groupchat_name", None) and chat_group.group_name != "public_chat":
-        if request.user.id == getattr(chat_group, "admin_id", None) and not chat_group.members.filter(id=request.user.id).exists():
+        if _user_is_chat_group_admin(request.user, chat_group) and not chat_group.members.filter(id=request.user.id).exists():
             chat_group.members.add(request.user)
         if not chat_group.members.filter(id=request.user.id).exists():
             raise Http404
+
+
+def _user_is_chat_group_admin(user: User, chat_group: ChatGroup) -> bool:
+    try:
+        return chat_group.is_admin(user)
+    except Exception:
+        return False
 
 
 def messenger_required(view_func):
@@ -263,7 +270,7 @@ def chat_view(request, chatroom_identifier='public_chat'):
                 break
 
     if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
-        if request.user == chat_group.admin and request.user not in chat_group.members.all():
+        if _user_is_chat_group_admin(request.user, chat_group) and request.user not in chat_group.members.all():
             chat_group.members.add(request.user)
         if request.user not in chat_group.members.all():
             raise Http404
@@ -306,6 +313,7 @@ def chat_view(request, chatroom_identifier='public_chat'):
                 'message': message,
                 'user' : request.user,
                 'chat_group': chat_group,
+                'is_group_admin': _user_is_chat_group_admin(request.user, chat_group),
             }
             return render(request, 'a_rtchat/partials/chat_message_p.html', context)
 
@@ -316,6 +324,11 @@ def chat_view(request, chatroom_identifier='public_chat'):
         'chatroom_identifier': chatroom_identifier,
         'chatroom_ws_name': chat_group.group_name,
         'chat_group': chat_group,
+        'is_group_admin': _user_is_chat_group_admin(request.user, chat_group),
+        'chat_group_admin_ids': list(
+            set(chat_group.admins.values_list("id", flat=True))
+            | ({int(chat_group.admin_id)} if chat_group.admin_id else set())
+        ),
     }
 
     return render(request, 'a_rtchat/chat.html', context)
@@ -372,6 +385,7 @@ def chat_messages_older(request, chatroom_identifier):
         "user": request.user,
         "has_more": has_more,
         "next_before": next_before,
+        "is_group_admin": _user_is_chat_group_admin(request.user, chat_group),
     }
     return render(request, "a_rtchat/partials/chat_messages_older.html", context)
 
@@ -483,6 +497,7 @@ def create_groupchat(request):
             new_groupchat.is_private = False
             new_groupchat.save()
             new_groupchat.members.add(request.user)
+            new_groupchat.admins.add(request.user)
             return redirect('chatroom', new_groupchat.group_slug or new_groupchat.group_name)
 
     context = {
@@ -494,7 +509,7 @@ def create_groupchat(request):
 @messenger_required
 def chatroom_edit_view(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
-    if request.user != chat_group.admin:
+    if not _user_is_chat_group_admin(request.user, chat_group):
         raise Http404()
     
     form = ChatRoomEditFrom(instance=chat_group)
@@ -510,11 +525,22 @@ def chatroom_edit_view(request, chatroom_name):
                 if chat_group.admin_id and member.id == chat_group.admin_id:
                     continue
                 chat_group.members.remove(member)
+                chat_group.admins.remove(member)
 
             add_members = request.POST.getlist('add_members')
             for member_id in add_members:
                 member = User.objects.get(id=member_id)
                 chat_group.members.add(member)
+
+            selected_admin_ids = set()
+            for raw in request.POST.getlist("group_admins"):
+                if str(raw).isdigit():
+                    selected_admin_ids.add(int(raw))
+            if chat_group.admin_id:
+                selected_admin_ids.discard(int(chat_group.admin_id))
+            member_ids = set(chat_group.members.values_list("id", flat=True))
+            selected_admin_ids = selected_admin_ids & member_ids
+            chat_group.admins.set(User.objects.filter(id__in=selected_admin_ids))
 
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
@@ -537,6 +563,10 @@ def chatroom_edit_view(request, chatroom_name):
         'form' : form,
         'chat_group' : chat_group,
         'add_candidates': add_candidates,
+        'selected_admin_ids': (
+            set(chat_group.admins.values_list("id", flat=True))
+            | ({int(chat_group.admin_id)} if chat_group.admin_id else set())
+        ),
     }
     return render(request, 'a_rtchat/chatroom_edit.html', context)
 
@@ -544,7 +574,7 @@ def chatroom_edit_view(request, chatroom_name):
 @messenger_required
 def chatroom_delete_view(request, chatroom_name):
     chat_group = get_object_or_404(ChatGroup, group_name=chatroom_name)
-    if request.user != chat_group.admin:
+    if not _user_is_chat_group_admin(request.user, chat_group):
         raise Http404()
     
     if request.method == 'POST':
@@ -773,7 +803,7 @@ def chat_message_transcode(request, message_id):
         if not chat_group.members.filter(id=request.user.id).exists():
             raise Http404
     elif chat_group.groupchat_name and chat_group.group_name != "public_chat":
-        if request.user == chat_group.admin and not chat_group.members.filter(id=request.user.id).exists():
+        if _user_is_chat_group_admin(request.user, chat_group) and not chat_group.members.filter(id=request.user.id).exists():
             chat_group.members.add(request.user)
         if not chat_group.members.filter(id=request.user.id).exists():
             raise Http404
@@ -886,7 +916,7 @@ def chat_message_edit(request, message_id):
         raise Http404
 
     if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
-        if request.user == chat_group.admin and request.user not in chat_group.members.all():
+        if _user_is_chat_group_admin(request.user, chat_group) and request.user not in chat_group.members.all():
             chat_group.members.add(request.user)
         if request.user not in chat_group.members.all():
             raise Http404
@@ -920,6 +950,7 @@ def chat_message_edit(request, message_id):
         "message": message,
         "user": request.user,
         "chat_group": chat_group,
+        "is_group_admin": _user_is_chat_group_admin(request.user, chat_group),
     }
     return render(request, "a_rtchat/chat_message.html", context)
 
@@ -936,11 +967,11 @@ def chat_message_delete(request, message_id):
         if request.user not in chat_group.members.all():
             raise Http404
     else:
-        if message.author_id != request.user.id and chat_group.admin_id != request.user.id:
+        if message.author_id != request.user.id and not _user_is_chat_group_admin(request.user, chat_group):
             raise Http404
 
         if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
-            if request.user == chat_group.admin and request.user not in chat_group.members.all():
+            if _user_is_chat_group_admin(request.user, chat_group) and request.user not in chat_group.members.all():
                 chat_group.members.add(request.user)
             if request.user not in chat_group.members.all():
                 raise Http404
@@ -988,7 +1019,7 @@ def chat_message_forward(request, message_id):
         raise Http404
 
     if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
-        if request.user == chat_group.admin and request.user not in chat_group.members.all():
+        if _user_is_chat_group_admin(request.user, chat_group) and request.user not in chat_group.members.all():
             chat_group.members.add(request.user)
         if request.user not in chat_group.members.all():
             raise Http404
@@ -1035,7 +1066,7 @@ def chat_message_forward(request, message_id):
         raise Http404
 
     if target_group.groupchat_name and target_group.group_name != 'public_chat':
-        if request.user == target_group.admin and request.user not in target_group.members.all():
+        if _user_is_chat_group_admin(request.user, target_group) and request.user not in target_group.members.all():
             target_group.members.add(request.user)
         if request.user not in target_group.members.all():
             raise Http404

@@ -38,14 +38,23 @@
             <div>
                 <span class="font-bold">{{ member.profile.name }}</span> 
                 <span class="text-sm font-light text-gray-600">@{{ member.username }}</span>
+                {% if member.id in selected_admin_ids %}
+                <span class="text-xs text-indigo-600 ml-2">ادمین</span>
+                {% endif %}
             </div>
         </div>
         
-        {% if member != chat_group.admin %}
-        <div class="inline-block pr-4">
+        <div class="flex items-center gap-3 pr-4">
+            {% if member != chat_group.admin %}
+            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
+                <input type="checkbox" name="group_admins" value="{{ member.id }}" class="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-0" {% if member.id in selected_admin_ids %}checked{% endif %} />
+                ادمین
+            </label>
             <input type="checkbox" name="remove_members" value="{{ member.id }}" class="relative p-5 cursor-pointer appearance-none rounded-md border after:absolute after:left-0 after:top-0 after:h-full after:w-full after:bg-[url('{% static 'images/multiply.png' %}')] after:bg-center checked:bg-red-500 hover:ring hover:ring-gray-300 focus:outline-none" />
+            {% else %}
+            <div class="text-sm text-gray-400">Creator</div>
+            {% endif %}
         </div>
-        {% endif %}
     </div> 
     {% endfor %}
     </div>

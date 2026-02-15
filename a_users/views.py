@@ -77,7 +77,7 @@ def manager_panel_view(request):
         or getattr(request.user, "is_superuser", False)
         or getattr(current_profile, "is_manager", False)
     )
-    can_manage_managers = bool(getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False))
+    can_manage_managers = can_approve
 
     if not can_approve:
         messages.warning(request, "شما به این بخش دسترسی ندارید.")

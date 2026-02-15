@@ -38,6 +38,7 @@ class ChatGroup(models.Model):
    group_slug = models.SlugField(max_length=160, unique=True, null=True, blank=True, allow_unicode=True)
    groupchat_name = models.CharField(max_length=128, null=True, blank=True)
    admin = models.ForeignKey(User, related_name='groupchats', null=True, blank=True, on_delete=models.SET_NULL)
+   admins = models.ManyToManyField(User, related_name="admin_in_chat_groups", blank=True)
    users_online = models.ManyToManyField(User, related_name='online_in_groups', blank=True)
    members = models.ManyToManyField(User, related_name='chat_groups', blank=True)
    is_private = models.BooleanField(default=False)
@@ -67,6 +68,18 @@ class ChatGroup(models.Model):
 
    def __str__(self):
       return self.groupchat_name or self.group_slug or self.group_name
+
+   def is_admin(self, user: User) -> bool:
+      if not getattr(user, "is_authenticated", False):
+         return False
+      if user.id and user.id == getattr(self, "admin_id", None):
+         return True
+      if not user.id:
+         return False
+      try:
+         return self.admins.filter(id=user.id).exists()
+      except Exception:
+         return False
 
 class GroupMessage(models.Model):
    group = models.ForeignKey(ChatGroup, related_name='chat_messages', on_delete=models.CASCADE)

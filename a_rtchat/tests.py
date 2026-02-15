@@ -99,3 +99,73 @@ class ChatPaginationTests(TestCase):
         res2 = self.client.get(f"{older_url}?before={before_id}", HTTP_HX_REQUEST="true")
         self.assertEqual(res2.status_code, 200)
         self.assertIn("msg-", res2.content.decode("utf-8"))
+
+
+class ChatGroupAdminsTests(TestCase):
+    def test_group_admin_can_promote_another_member_to_admin(self):
+        owner = User.objects.create_user(username="owner", password="pass")
+        a1 = User.objects.create_user(username="a1", password="pass")
+        a2 = User.objects.create_user(username="a2", password="pass")
+        owner.profile.approved = True
+        owner.profile.save(update_fields=["approved"])
+        a1.profile.approved = True
+        a1.profile.save(update_fields=["approved"])
+        a2.profile.approved = True
+        a2.profile.save(update_fields=["approved"])
+
+        g = ChatGroup.objects.create(group_name="g-admins", group_slug="g-admins", groupchat_name="G", admin=owner, is_private=False)
+        g.members.add(owner, a1, a2)
+        g.admins.add(owner, a1)
+
+        self.client.login(username="a1", password="pass")
+        res = self.client.post(
+            reverse("edit-chatroom", args=[g.group_name]),
+            data={"groupchat_name": "G", "group_admins": [str(a1.id), str(a2.id)]},
+        )
+        self.assertEqual(res.status_code, 302)
+
+        g.refresh_from_db()
+        self.assertTrue(g.admins.filter(id=a2.id).exists())
+
+        self.client.logout()
+        self.client.login(username="a2", password="pass")
+        res2 = self.client.get(reverse("chatroom", args=[g.group_slug]))
+        self.assertEqual(res2.status_code, 200)
+        self.assertIn(reverse("edit-chatroom", args=[g.group_name]), res2.content.decode("utf-8"))
+
+    def test_non_admin_cannot_access_edit_page(self):
+        owner = User.objects.create_user(username="owner", password="pass")
+        u = User.objects.create_user(username="u", password="pass")
+        owner.profile.approved = True
+        owner.profile.save(update_fields=["approved"])
+        u.profile.approved = True
+        u.profile.save(update_fields=["approved"])
+        g = ChatGroup.objects.create(group_name="g-edit", group_slug="g-edit", groupchat_name="G", admin=owner, is_private=False)
+        g.members.add(owner, u)
+        g.admins.add(owner)
+
+        self.client.login(username="u", password="pass")
+        res = self.client.get(reverse("edit-chatroom", args=[g.group_name]))
+        self.assertEqual(res.status_code, 404)
+
+    def test_removing_admin_member_also_removes_admin_role(self):
+        owner = User.objects.create_user(username="owner", password="pass")
+        a1 = User.objects.create_user(username="a1", password="pass")
+        owner.profile.approved = True
+        owner.profile.save(update_fields=["approved"])
+        a1.profile.approved = True
+        a1.profile.save(update_fields=["approved"])
+        g = ChatGroup.objects.create(group_name="g-remove", group_slug="g-remove", groupchat_name="G", admin=owner, is_private=False)
+        g.members.add(owner, a1)
+        g.admins.add(owner, a1)
+
+        self.client.login(username="owner", password="pass")
+        res = self.client.post(
+            reverse("edit-chatroom", args=[g.group_name]),
+            data={"groupchat_name": "G", "remove_members": [str(a1.id)]},
+        )
+        self.assertEqual(res.status_code, 302)
+
+        g.refresh_from_db()
+        self.assertFalse(g.members.filter(id=a1.id).exists())
+        self.assertFalse(g.admins.filter(id=a1.id).exists())

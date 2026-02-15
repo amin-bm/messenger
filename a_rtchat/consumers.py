@@ -192,7 +192,7 @@ class ChatroomConsumer(WebsocketConsumer):
             return
 
         if self.chatroom.groupchat_name and self.chatroom.group_name != 'public_chat':
-            if self.user == self.chatroom.admin and self.user not in self.chatroom.members.all():
+            if self.chatroom.is_admin(self.user) and self.user not in self.chatroom.members.all():
                 self.chatroom.members.add(self.user)
             if self.user not in self.chatroom.members.all():
                 self.close()

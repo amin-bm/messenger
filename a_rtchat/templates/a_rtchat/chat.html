@@ -82,7 +82,7 @@
 
     <!-- actions -->
     <div class="flex items-center gap-2">
-      {% if chat_group.groupchat_name and user == chat_group.admin %}
+      {% if chat_group.groupchat_name and is_group_admin %}
         <a href="{% url 'edit-chatroom' chat_group.group_name %}"
            class="p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-0 group dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 dark:active:bg-white/15">
           <svg class="fill-gray-500 group-hover:fill-gray-900 dark:fill-slate-300 dark:group-hover:fill-white" width="16" height="16">
@@ -330,7 +330,7 @@
               <div class="text-sm font-medium text-gray-900 truncate">{{ member.profile.name }}</div>
               <div class="text-xs text-gray-500 truncate">@{{ member.username }}</div>
             </div>
-            {% if chat_group.admin_id == member.id %}
+            {% if member.id in chat_group_admin_ids %}
               <div class="text-xs font-semibold text-blue-600">Admin</div>
             {% endif %}
           </div>

@@ -1,3 +1,4 @@
+import base64
 import json
 
 from django.contrib.auth.decorators import login_required
@@ -10,6 +11,66 @@ from django.views.decorators.http import require_GET, require_POST
 from a_core import settings as project_settings
 from django.conf import settings
 from a_users.models import PushSubscription
+
+
+def _b64decode_any(value: str) -> bytes | None:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    raw = "".join(raw.split())
+    pad = "=" * ((4 - (len(raw) % 4)) % 4)
+    candidate = (raw + pad).encode("ascii", "ignore")
+    try:
+        if "-" in raw or "_" in raw:
+            return base64.urlsafe_b64decode(candidate)
+        return base64.b64decode(candidate, validate=True)
+    except Exception:
+        try:
+            return base64.urlsafe_b64decode(candidate)
+        except Exception:
+            return None
+
+
+def _normalize_vapid_public_key_for_browser(raw_value: str) -> str:
+    raw = (raw_value or "").strip()
+    if not raw:
+        return ""
+
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.serialization import load_der_public_key, load_pem_public_key
+    except Exception:
+        return raw
+
+    pub = None
+    if "BEGIN PUBLIC KEY" in raw or "BEGIN EC PUBLIC KEY" in raw:
+        try:
+            pub = load_pem_public_key(raw.encode("utf-8"))
+        except Exception:
+            pub = None
+    if pub is None:
+        decoded = _b64decode_any(raw)
+        if decoded:
+            try:
+                pub = load_der_public_key(decoded)
+            except Exception:
+                pub = None
+        if pub is None and decoded and len(decoded) == 65 and decoded[0] == 4:
+            return base64.urlsafe_b64encode(decoded).decode("ascii").rstrip("=")
+
+    if pub is None:
+        return raw
+
+    try:
+        point = pub.public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.UncompressedPoint,
+        )
+    except Exception:
+        return raw
+
+    return base64.urlsafe_b64encode(point).decode("ascii").rstrip("=")
+
 
 def home_view(request):
     context = {}
@@ -71,7 +132,8 @@ def pwa_version(request):
 
 @require_GET
 def vapid_public_key(request):
-    return JsonResponse({"publicKey": getattr(project_settings, "WEBPUSH_VAPID_PUBLIC_KEY", "") or ""})
+    raw = getattr(project_settings, "WEBPUSH_VAPID_PUBLIC_KEY", "") or ""
+    return JsonResponse({"publicKey": _normalize_vapid_public_key_for_browser(raw)})
 
 
 @login_required

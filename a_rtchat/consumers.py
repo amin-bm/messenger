@@ -4,6 +4,7 @@ from channels.generic.websocket import WebsocketConsumer
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from asgiref.sync import async_to_sync
+import base64
 import json
 
 from django.db.models import OuterRef, Subquery, Count, Value, Q
@@ -20,11 +21,74 @@ from .models import ChatGroup, GroupMessage, ChatState
 
 PRESENCE_TIMEOUT = timedelta(seconds=90)
 
+def _b64decode_any(value: str) -> bytes | None:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    raw = "".join(raw.split())
+    pad = "=" * ((4 - (len(raw) % 4)) % 4)
+    candidate = (raw + pad).encode("ascii", "ignore")
+    try:
+        if "-" in raw or "_" in raw:
+            return base64.urlsafe_b64decode(candidate)
+        return base64.b64decode(candidate, validate=True)
+    except Exception:
+        try:
+            return base64.urlsafe_b64decode(candidate)
+        except Exception:
+            return None
+
+
+def _normalize_vapid_private_key_for_pywebpush(raw_value: str) -> str:
+    raw = (raw_value or "").strip()
+    if not raw:
+        return ""
+    if "BEGIN PRIVATE KEY" in raw or "BEGIN EC PRIVATE KEY" in raw:
+        return raw
+
+    decoded = _b64decode_any(raw)
+    if not decoded:
+        return raw
+
+    try:
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives.serialization import load_der_private_key
+    except Exception:
+        return raw
+
+    der = None
+    try:
+        load_der_private_key(decoded, password=None)
+        der = decoded
+    except Exception:
+        if len(decoded) != 32:
+            return raw
+        try:
+            key = ec.derive_private_key(int.from_bytes(decoded, "big"), ec.SECP256R1())
+        except Exception:
+            return raw
+        try:
+            der = key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        except Exception:
+            return raw
+
+    try:
+        return base64.urlsafe_b64encode(der).decode("ascii").rstrip("=")
+    except Exception:
+        return raw
+
+
 def _send_push_notifications_for_message(message_id: int) -> None:
     if bool(getattr(settings, "OFFLINE_MODE", False)):
         return
 
-    private_key = (getattr(settings, "WEBPUSH_VAPID_PRIVATE_KEY", "") or "").strip()
+    private_key_raw = (getattr(settings, "WEBPUSH_VAPID_PRIVATE_KEY", "") or "").strip()
+    private_key = _normalize_vapid_private_key_for_pywebpush(private_key_raw)
     public_key = (getattr(settings, "WEBPUSH_VAPID_PUBLIC_KEY", "") or "").strip()
     if not private_key or not public_key:
         return

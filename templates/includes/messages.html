@@ -13,7 +13,7 @@
         x-transition:leave-start="opacity-100 translate-y-0"
         x-transition:leave-end="opacity-0 -translate-y-5">
             <div>
-                <div class="text-lg">{{ message }}</div>
+                <div class="text-lg" dir="auto" style="unicode-bidi: plaintext;">{{ message }}</div>
             </div>
             <div class="ml-auto cursor-pointer" @click="showMessage = false">
                 <svg fill="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" viewBox="0 0 24 24" stroke="currentColor" class="w-8 h-8 ml-2">

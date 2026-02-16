@@ -1579,8 +1579,16 @@
       document.addEventListener(
         "click",
         async () => {
-          const ok = await ensureNotificationPermission();
-          if (ok) await ensurePushSubscription();
+          try {
+            const ok = await ensureNotificationPermission();
+            if (!ok) return;
+            if (!swRegistration) {
+              await registerServiceWorker();
+            }
+            await ensurePushSubscription();
+          } catch (e) {
+            return;
+          }
         },
         { once: true, capture: true }
       );

@@ -591,10 +591,42 @@ def chatroom_leave_view(request, chatroom_name):
     if request.user not in chat_group.members.all():
         raise Http404()
     
-    if request.method == 'POST':
-        chat_group.members.remove(request.user)
-        messages.success(request, 'You left the chatroom')
-        return redirect('home')
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    is_group_chat = bool(chat_group.groupchat_name) and (not chat_group.is_private) and chat_group.group_name != "public_chat"
+    if is_group_chat and chat_group.is_admin(request.user):
+        member_ids = set(chat_group.members.values_list("id", flat=True))
+        admin_ids = set(chat_group.admins.values_list("id", flat=True))
+        if chat_group.admin_id:
+            admin_ids.add(int(chat_group.admin_id))
+        admin_member_ids = admin_ids & member_ids
+        if request.user.id in admin_member_ids and len(admin_member_ids) == 1:
+            messages.warning(request, "شما تنها ادمین این گروه هستید. قبل از خروج، یکی از اعضای گروه را ادمین کنید.")
+            return redirect("chatroom", chat_group.group_slug or chat_group.group_name)
+
+    if chat_group.admin_id and request.user.id == int(chat_group.admin_id):
+        member_ids = set(chat_group.members.values_list("id", flat=True))
+        admin_ids = set(chat_group.admins.values_list("id", flat=True))
+        admin_ids.add(int(chat_group.admin_id))
+        admin_member_ids = admin_ids & member_ids
+        candidate_ids = list(admin_member_ids - {request.user.id})
+        if candidate_ids:
+            chat_group.admin_id = sorted(candidate_ids)[0]
+            chat_group.save(update_fields=["admin"])
+        else:
+            chat_group.admin = None
+            chat_group.save(update_fields=["admin"])
+
+    chat_group.members.remove(request.user)
+    chat_group.admins.remove(request.user)
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        "online-status",
+        {"type": "online_status_handler"},
+    )
+    messages.success(request, "شما از چت خارج شدید.")
+    return redirect("home")
     
     
 @messenger_required

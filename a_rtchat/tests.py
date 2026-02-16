@@ -169,3 +169,44 @@ class ChatGroupAdminsTests(TestCase):
         g.refresh_from_db()
         self.assertFalse(g.members.filter(id=a1.id).exists())
         self.assertFalse(g.admins.filter(id=a1.id).exists())
+
+    def test_only_admin_cannot_leave_group_chat(self):
+        owner = User.objects.create_user(username="owner", password="pass")
+        a1 = User.objects.create_user(username="a1", password="pass")
+        owner.profile.approved = True
+        owner.profile.save(update_fields=["approved"])
+        a1.profile.approved = True
+        a1.profile.save(update_fields=["approved"])
+
+        g = ChatGroup.objects.create(group_name="g-leave-1", group_slug="g-leave-1", groupchat_name="G", admin=owner, is_private=False)
+        g.members.add(owner, a1)
+        g.admins.add(owner)
+
+        self.client.login(username="owner", password="pass")
+        res = self.client.post(reverse("chatroom-leave", args=[g.group_name]))
+        self.assertEqual(res.status_code, 302)
+
+        g.refresh_from_db()
+        self.assertTrue(g.members.filter(id=owner.id).exists())
+        self.assertEqual(g.admin_id, owner.id)
+
+    def test_owner_can_leave_after_promoting_another_admin(self):
+        owner = User.objects.create_user(username="owner", password="pass")
+        a1 = User.objects.create_user(username="a1", password="pass")
+        owner.profile.approved = True
+        owner.profile.save(update_fields=["approved"])
+        a1.profile.approved = True
+        a1.profile.save(update_fields=["approved"])
+
+        g = ChatGroup.objects.create(group_name="g-leave-2", group_slug="g-leave-2", groupchat_name="G", admin=owner, is_private=False)
+        g.members.add(owner, a1)
+        g.admins.add(owner, a1)
+
+        self.client.login(username="owner", password="pass")
+        res = self.client.post(reverse("chatroom-leave", args=[g.group_name]))
+        self.assertEqual(res.status_code, 302)
+
+        g.refresh_from_db()
+        self.assertFalse(g.members.filter(id=owner.id).exists())
+        self.assertFalse(g.admins.filter(id=owner.id).exists())
+        self.assertEqual(g.admin_id, a1.id)

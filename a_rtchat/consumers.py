@@ -118,6 +118,16 @@ def _send_push_notifications_for_message(message_id: int) -> None:
     if not target_ids:
         return
 
+    cutoff = _presence_cutoff()
+    online_in_room_ids = set(
+        group.users_online
+        .filter(id__in=target_ids, profile__last_seen__gte=cutoff)
+        .values_list("id", flat=True)
+    )
+    target_ids = [uid for uid in target_ids if uid not in online_in_room_ids]
+    if not target_ids:
+        return
+
     body = ""
     if message.body:
         body = message.body

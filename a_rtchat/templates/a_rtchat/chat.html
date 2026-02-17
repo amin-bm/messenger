@@ -2218,6 +2218,60 @@
       return Boolean(dt.files && dt.files.length);
     }
 
+    function extFromMime(mime) {
+      const m = String(mime || "").toLowerCase();
+      if (m === "image/png") return "png";
+      if (m === "image/jpeg" || m === "image/jpg") return "jpg";
+      if (m === "image/webp") return "webp";
+      if (m === "image/gif") return "gif";
+      if (m === "image/bmp") return "bmp";
+      return "png";
+    }
+
+    function pad2(n) {
+      return String(Number(n) || 0).padStart(2, "0");
+    }
+
+    function clipboardImageName(mime) {
+      const d = new Date();
+      const y = d.getFullYear();
+      const mo = pad2(d.getMonth() + 1);
+      const da = pad2(d.getDate());
+      const h = pad2(d.getHours());
+      const mi = pad2(d.getMinutes());
+      const s = pad2(d.getSeconds());
+      return `clipboard-${y}${mo}${da}-${h}${mi}${s}.${extFromMime(mime)}`;
+    }
+
+    function fileFromClipboardFile(f) {
+      if (!f) return null;
+      const type = String(f.type || "");
+      if (!type.toLowerCase().startsWith("image/")) return null;
+
+      const name = (f.name && f.name !== "image") ? f.name : clipboardImageName(type);
+      try {
+        return new File([f], name, { type, lastModified: Date.now() });
+      } catch (e) {
+        return f;
+      }
+    }
+
+    function imageFileFromPasteEvent(e) {
+      const dt = e && e.clipboardData ? e.clipboardData : null;
+      if (!dt) return null;
+
+      const items = dt.items ? Array.from(dt.items) : [];
+      for (const item of items) {
+        if (!item || item.kind !== "file") continue;
+        const type = String(item.type || "");
+        if (!type.toLowerCase().startsWith("image/")) continue;
+        const f = item.getAsFile ? item.getAsFile() : null;
+        const out = fileFromClipboardFile(f);
+        if (out) return out;
+      }
+      return null;
+    }
+
     function showDropOverlay() {
       if (!dropOverlay) return;
       dropOverlay.classList.remove("hidden");
@@ -2499,6 +2553,27 @@
     bindPreventFocusLoss(sendBtn);
     bindPreventFocusLoss(emojiBtn);
     bindPreventFocusLoss(filePickBtn);
+
+    if (bodyInput) {
+      bodyInput.addEventListener("paste", (e) => {
+        const img = imageFileFromPasteEvent(e);
+        if (!img) return;
+
+        e.preventDefault();
+
+        if (hasInFlightUpload()) {
+          alert("الان یک ارسال در حال انجام است. بعد از اتمام دوباره تلاش کنید.");
+          return;
+        }
+        if (hasFile()) {
+          alert("فعلا فقط یک فایل را همزمان ارسال کنید.");
+          return;
+        }
+
+        uploadFileWithProgress(img);
+        update();
+      });
+    }
 
     sendBtn.addEventListener("click", (e) => {
       e.preventDefault();

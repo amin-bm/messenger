@@ -135,3 +135,12 @@ html.dark #chats-list .chat-actions-ellipsis:active {
   backdrop-filter: blur(8px);
   transition: opacity 150ms ease;
 }
+
+.sidebar-search-highlight {
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+html.dark .sidebar-search-highlight {
+  color: #7dd3fc;
+}

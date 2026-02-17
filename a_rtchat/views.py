@@ -135,14 +135,7 @@ def _build_highlight_snippet(text: str, q: str, radius: int = 40):
     match = escape(s[idx:idx + len(q)])
     after = escape(s[idx + len(q):end])
 
-    return format_html(
-        "{}{}<span class=\"font-semibold text-blue-700\">{}</span>{}{}",
-        prefix,
-        before,
-        match,
-        after,
-        suffix,
-    )
+    return format_html("{}{}<span class=\"sidebar-search-highlight\">{}</span>{}{}", prefix, before, match, after, suffix)
 
 
 def _maybe_transcode_audio_message_to_mp3(message: GroupMessage) -> tuple[bool, str]:

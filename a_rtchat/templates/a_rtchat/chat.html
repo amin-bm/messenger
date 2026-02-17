@@ -1456,91 +1456,163 @@
 
     if (document.body && document.body.dataset.rtchatMsgMenuBound !== "1") {
       document.body.dataset.rtchatMsgMenuBound = "1";
+
+      let lastPointerMessageEl = null;
+      let lastPointerAt = 0;
+
       document.addEventListener(
-        "contextmenu",
+        "pointerdown",
         (e) => {
-          const info = getContextmenuInfo(e);
-          if (!info.inChat) return;
-          e.preventDefault();
-          e.stopPropagation();
-          if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
-          if (!info.messageEl) return;
-          const now =
-            typeof performance !== "undefined" && typeof performance.now === "function"
-              ? performance.now()
-              : Date.now();
-          ignoreDocumentClickUntil = now + 450;
-          openMessageMenu(info.messageEl, info.x, info.y);
+          const target = e && e.target ? e.target : null;
+          if (!target || !target.closest) return;
+          const inChat = Boolean(target.closest("#chat_container"));
+          if (!inChat) return;
+          const li = target.closest('li[data-message-id]');
+          if (!li) return;
+          lastPointerMessageEl = li;
+          lastPointerAt = Date.now();
         },
         { capture: true }
       );
-    }
 
-    (function bindTapToOpenMenuOnTouch() {
-      const container = document.getElementById("chat_container");
-      const list = document.getElementById("chat_messages");
-      if (!container || !list) return;
+      document.addEventListener(
+        "contextmenu",
+        (e) => {
+          const x = (e && Number.isFinite(e.clientX)) ? e.clientX : 0;
+          const y = (e && Number.isFinite(e.clientY)) ? e.clientY : 0;
 
-      const isTouch =
-        (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
-        (typeof navigator !== "undefined" && (navigator.maxTouchPoints || 0) > 0);
+          const target = e && e.target ? e.target : null;
+          const directInChat = Boolean(target && target.closest && target.closest("#chat_container"));
 
-      if (!isTouch) {
-        container.addEventListener("scroll", closeMessageMenu, { passive: true });
-        return;
-      }
+          let stackInChat = false;
+          try {
+            if (document.elementsFromPoint) {
+              const els = document.elementsFromPoint(x, y) || [];
+              stackInChat = els.some((el) => Boolean(el && el.closest && el.closest("#chat_container")));
+            }
+          } catch (err) {}
 
-      list.addEventListener("click", (e) => {
-        const interactive = e.target.closest("a,button,input,textarea,select,label,img[data-zoom-src],.js-audio-msg,.js-audio-seek");
-        if (interactive) return;
+          if (!directInChat && !stackInChat) return;
 
-        const messageEl = e.target.closest('li[data-message-id]');
-        if (!messageEl) return;
+          let messageEl = null;
 
-        if (menu && !menu.classList.contains("hidden") && menuMessageEl === messageEl) {
-          closeMessageMenu();
+          if (target && target.closest) {
+            messageEl = target.closest('li[data-message-id]');
+          }
+
+          if (!messageEl) {
+            const path = (e && typeof e.composedPath === "function") ? e.composedPath() : [];
+            for (const node of path) {
+              if (node && node.nodeType === 1 && node.closest) {
+                const found = node.closest('li[data-message-id]');
+                if (found) {
+                  messageEl = found;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (!messageEl) {
+            try {
+              const els = document.elementsFromPoint(x, y) || [];
+              for (const el of els) {
+                if (el && el.closest) {
+                  const found = el.closest('li[data-message-id]');
+                  if (found) {
+                    messageEl = found;
+                    break;
+                  }
+                }
+              }
+            } catch (err) {}
+          }
+
+          if (!messageEl && lastPointerMessageEl && (Date.now() - lastPointerAt < 1500)) {
+            if (
+              lastPointerMessageEl.isConnected &&
+              lastPointerMessageEl.closest &&
+              lastPointerMessageEl.closest("#chat_container")
+            ) {
+              messageEl = lastPointerMessageEl;
+            }
+          }
+
+          if (!messageEl) return;
+          if (!messageEl.closest("#chat_container")) return;
+
           e.preventDefault();
           e.stopPropagation();
+          if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+
+          openMessageMenu(messageEl, x, y);
+        },
+        { capture: true }
+      );
+
+      (function bindTapToOpenMenuOnTouch() {
+        const container = document.getElementById("chat_container");
+        const list = document.getElementById("chat_messages");
+        if (!container || !list) return;
+
+        const isTouch =
+          (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
+          (typeof navigator !== "undefined" && (navigator.maxTouchPoints || 0) > 0);
+
+        if (!isTouch) {
+          container.addEventListener("scroll", closeMessageMenu, { passive: true });
           return;
         }
 
-        openMessageMenu(messageEl, e.clientX || 0, e.clientY || 0);
-        e.preventDefault();
-        e.stopPropagation();
+        list.addEventListener("click", (e) => {
+          const interactive = e.target.closest(
+            "a,button,input,textarea,select,label,img[data-zoom-src],.js-audio-msg,.js-audio-seek"
+          );
+          if (interactive) return;
+
+          const messageEl = e.target.closest('li[data-message-id]');
+          if (!messageEl) return;
+
+          if (menu && !menu.classList.contains("hidden") && menuMessageEl === messageEl) {
+            closeMessageMenu();
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+
+          openMessageMenu(messageEl, e.clientX || 0, e.clientY || 0);
+          e.preventDefault();
+          e.stopPropagation();
+        });
+
+        container.addEventListener("scroll", closeMessageMenu, { passive: true });
+      })();
+
+      document.addEventListener("click", (e) => {
+        if (menu && !menu.classList.contains("hidden")) {
+          const insideMenu = e.target.closest("#message_action_menu");
+          if (!insideMenu) closeMessageMenu();
+        }
+
+        const jumpBtn = e.target.closest('button[data-reply-action="jump"]');
+        if (jumpBtn) {
+          const id = jumpBtn.getAttribute("data-reply-jump-id") || "";
+          const el = id ? document.getElementById(`msg-${id}`) : null;
+          if (!el) return;
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+          el.classList.add("ring-2", "ring-blue-400", "rounded-2xl");
+          setTimeout(() => el.classList.remove("ring-2", "ring-blue-400", "rounded-2xl"), 900);
+        }
       });
 
-      container.addEventListener("scroll", closeMessageMenu, { passive: true });
-    })();
-
-    document.addEventListener("click", (e) => {
-      if (menu && !menu.classList.contains("hidden")) {
-        const now =
-          typeof performance !== "undefined" && typeof performance.now === "function"
-            ? performance.now()
-            : Date.now();
-        if (now < ignoreDocumentClickUntil) return;
-        const insideMenu = e.target.closest("#message_action_menu");
-        if (!insideMenu) closeMessageMenu();
-      }
-
-      const jumpBtn = e.target.closest('button[data-reply-action="jump"]');
-      if (jumpBtn) {
-        const id = jumpBtn.getAttribute("data-reply-jump-id") || "";
-        const el = id ? document.getElementById(`msg-${id}`) : null;
-        if (!el) return;
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("ring-2", "ring-blue-400", "rounded-2xl");
-        setTimeout(() => el.classList.remove("ring-2", "ring-blue-400", "rounded-2xl"), 900);
-      }
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        closeMessageMenu();
-        closeForwardModal();
-      }
-    });
-    window.addEventListener("resize", closeMessageMenu);
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          closeMessageMenu();
+          closeForwardModal();
+        }
+      });
+      window.addEventListener("resize", closeMessageMenu);
+    }
 
     form.addEventListener("htmx:wsAfterSend", clearReply);
     form.addEventListener("htmx:wsAfterSend", () => setTimeout(resetBodyToInitialSize, 0));

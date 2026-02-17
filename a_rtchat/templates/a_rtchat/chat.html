@@ -187,8 +187,7 @@
             class="w-full"
             hx-ext="ws"
             ws-connect="/ws/chatroom/{{ chatroom_ws_name }}/"
-            ws-send
-            _="on htmx:wsAfterSend reset() me">
+            ws-send>
         {% csrf_token %}
         <input type="hidden" name="reply_to" id="reply_to_input" value="">
         <div id="reply_preview" class="hidden mb-2 rounded-2xl bg-white/60 border border-slate-200/70 px-3 py-2 backdrop-blur dark:bg-white/10 dark:border-white/10">
@@ -227,7 +226,7 @@
               </div>
             </div>
 
-            <button id="chat_send_btn" type="button" class="hidden text-blue-600 hover:text-blue-700 dark:text-sky-400 dark:hover:text-sky-300" aria-label="Send">
+            <button id="chat_send_btn" type="button" tabindex="-1" class="hidden text-blue-600 hover:text-blue-700 dark:text-sky-400 dark:hover:text-sky-300" aria-label="Send">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                 <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M22 2L15 22l-4-9-9-4 20-7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2149,10 +2148,13 @@
     const fileForm = document.getElementById("chat_file_form");
     const bodyInput = messageForm ? messageForm.querySelector('input[name="body"], textarea[name="body"]') : null;
     const fileInput = document.getElementById("id_file");
+    const filePickBtn = document.getElementById("file_pick_btn");
+    const emojiBtn = document.getElementById("emoji_btn");
     const recordBtn = document.getElementById("voice_record_btn");
     const stopBtn = document.getElementById("voice_stop_btn");
     const previewEl = document.getElementById("voice_preview");
     const sendBtn = document.getElementById("chat_send_btn");
+    const chatContainer = document.getElementById("chat_container");
     const chatRoot = document.getElementById("chat_root");
     const dropOverlay = document.getElementById("chat_drop_overlay");
 
@@ -2466,12 +2468,75 @@
       else form.submit();
     }
 
+    function clearTextAndKeepKeyboardOpen() {
+      if (!bodyInput) return;
+      if (bodyInput.readOnly) return;
+
+      bodyInput.value = "";
+      bodyInput.dispatchEvent(new Event("input", { bubbles: true }));
+
+      requestAnimationFrame(() => {
+        try {
+          bodyInput.focus({ preventScroll: true });
+        } catch (e) {
+          bodyInput.focus();
+        }
+      });
+    }
+
+    function bindPreventFocusLoss(btn) {
+      if (!btn || !bodyInput) return;
+      const hasPointer = typeof window !== "undefined" && "PointerEvent" in window;
+      const handler = (e) => {
+        if (document.activeElement !== bodyInput) return;
+        e.preventDefault();
+      };
+      btn.addEventListener("pointerdown", handler, { passive: false });
+      btn.addEventListener("mousedown", handler, { passive: false });
+      if (!hasPointer) btn.addEventListener("touchstart", handler, { passive: false });
+    }
+
+    bindPreventFocusLoss(sendBtn);
+    bindPreventFocusLoss(emojiBtn);
+    bindPreventFocusLoss(filePickBtn);
+
     sendBtn.addEventListener("click", (e) => {
       e.preventDefault();
       if (hasFile()) uploadFileWithProgress();
       else if (hasText()) trySubmit(messageForm);
       update();
+      if (bodyInput && !bodyInput.readOnly) {
+        requestAnimationFrame(() => {
+          try {
+            bodyInput.focus({ preventScroll: true });
+          } catch (err) {
+            bodyInput.focus();
+          }
+        });
+      }
     });
+
+    messageForm.addEventListener("htmx:wsAfterSend", () => {
+      clearTextAndKeepKeyboardOpen();
+      update();
+    });
+
+    if (chatContainer) {
+      chatContainer.addEventListener("pointerdown", (e) => {
+        if (!bodyInput) return;
+        if (document.activeElement !== bodyInput) return;
+
+        const target = e.target;
+        if (!target || !target.closest) return;
+
+        const interactive = target.closest(
+          "a,button,input,textarea,select,label,img[data-zoom-src],.js-audio-msg,.js-audio-seek,#message_action_menu,#forward_modal,#group-members-modal"
+        );
+        if (interactive) return;
+
+        bodyInput.blur();
+      });
+    }
 
     if (chatRoot) {
       let dragDepth = 0;

@@ -5,9 +5,9 @@
 {% block content %}
 
 {% if onboarding %}
-<h1 class="mb-4">Complete your Profile</h1>
+<h1 class="mb-4 dark:text-slate-100">Complete your Profile</h1>
 {% else %}
-<h1 class="mb-4">Edit your Profile</h1>
+<h1 class="mb-4 dark:text-slate-100">Edit your Profile</h1>
 {% endif %}
 
 <div class="text-center flex flex-col items-center">
@@ -17,14 +17,29 @@
         <div class="text-gray-400 mb-2 -mt-3">@{{ user.username }}</div>
     </div>
 </div>
-<form method="POST" enctype="multipart/form-data">
+<form method="POST" enctype="multipart/form-data" class="space-y-4" autocomplete="off">
     {% csrf_token %}
-    {{ form.as_p }}
+    {% if form.non_field_errors %}
+        <div class="text-sm text-red-600" dir="rtl">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    {% for field in form %}
+        <div class="space-y-1">
+            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+                <div class="text-sm text-red-600" dir="rtl">{{ field.errors }}</div>
+            {% endif %}
+            {% if field.help_text %}
+                <div class="text-xs text-gray-500 dark:text-slate-400" dir="rtl">{{ field.help_text }}</div>
+            {% endif %}
+        </div>
+    {% endfor %}
     <button type="submit" class="button">Submit</button>
     {% if onboarding %}
-    <a class="ml-3 text-sm font-medium text-gray-500 hover:text-gray-900" href="{% url 'home' %}">Skip</a>
+    <a class="ml-3 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white" href="{% url 'home' %}">Skip</a>
     {% else %}
-    <a class="ml-3 text-sm font-medium text-gray-500 hover:text-gray-900" href="/">Cancel</a>
+    <a class="ml-3 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white" href="/">Cancel</a>
     {% endif %}
 </form>
 

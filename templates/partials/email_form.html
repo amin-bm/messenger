@@ -1,9 +1,9 @@
-<form action="{% url 'profile-emailchange' %}" method="post" class="flex gap-2 text-black" autocomplete="off">
+<form action="{% url 'profile-emailchange' %}" method="post" class="flex gap-2" autocomplete="off">
     {% csrf_token %}
     {% for field in form %}{{ field }}{% endfor %}
     <button class="button block !bg-gray-800" type="submit">Submit</button>
 </form>
 
-<a hx-swap-oob="true" id="email-edit" href="{% url 'profile-settings' %}" class="font-medium text-gray-700 hover:text-gray-900 hover:underline">
+<a hx-swap-oob="true" id="email-edit" href="{% url 'profile-settings' %}" class="font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-slate-300 dark:hover:text-white">
     Cancel
 </a>

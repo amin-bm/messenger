@@ -4,19 +4,19 @@
 
 {% block content %}
 
-<h1 class="mb-6">Account Settings</h1>
+<h1 class="mb-6 dark:text-slate-100">Account Settings</h1>
 
-<table class="w-full text-sm text-left text-gray-500">
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
     <tbody>
         <tr>
-            <th scope="row" class="pt-4 pb-1 text-base font-bold text-gray-900">
+            <th scope="row" class="pt-4 pb-1 text-base font-bold text-gray-900 dark:text-slate-100">
                 Email address
             </th>
             <td id="email-address" class="pt-4 pb-1 pl-4">
                 {% if user.email %}{{ user.email }}{% else %}No Email{% endif %}
             </td>
             <td class="pt-4 pb-1 pl-4">
-                <a id="email-edit" class="cursor-pointer font-medium text-gray-700 hover:text-gray-900 hover:underline"
+                <a id="email-edit" class="cursor-pointer font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-slate-300 dark:hover:text-white"
                     hx-get="{% url 'profile-emailchange' %}"
                     hx-target="#email-address"
                     hx-swap="innerHTML" >
@@ -25,8 +25,8 @@
             </td>
         </tr>
 
-        <tr class="border-b">
-            <th scope="row" class="pb-4 font-medium text-gray-900">  
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="pb-4 font-medium text-gray-900 dark:text-slate-100">  
             </th>
             <td class="pb-4 pl-4">
                 {% if user.emailaddress_set.first.verified %}
@@ -35,21 +35,21 @@
                 {% endif %}
             </td>
             <td class="pb-4 pl-4">
-                <a href="{% url 'profile-emailverify' %}" class="font-medium text-gray-700 hover:text-gray-900 hover:underline">
+                <a href="{% url 'profile-emailverify' %}" class="font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-slate-300 dark:hover:text-white">
                     {% if not user.emailaddress_set.first.verified %}Verify{% endif %}
                 </a>
             </td>
         </tr>
 
-        <tr class="border-b">
-            <th scope="row" class="py-4 text-base font-bold text-gray-900">
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-base font-bold text-gray-900 dark:text-slate-100">
                 Username
             </th>
             <td id="username" class="py-4 pl-4">
                 {{ user.username }}
             </td>
             <td class="py-4 pl-4">
-                <a id="username-edit" class="cursor-pointer font-medium text-gray-700 hover:text-gray-900 hover:underline"
+                <a id="username-edit" class="cursor-pointer font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-slate-300 dark:hover:text-white"
                     hx-get="{% url 'profile-usernamechange' %}"
                     hx-target="#username"
                     hx-swap="innerHTML" >
@@ -58,8 +58,22 @@
             </td>
         </tr>
 
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-base font-bold text-gray-900 dark:text-slate-100">
+                Password
+            </th>
+            <td class="py-4 pl-4">
+                ********
+            </td>
+            <td class="py-4 pl-4">
+                <a href="{% url 'account_change_password' %}" class="font-medium text-gray-700 hover:text-gray-900 hover:underline dark:text-slate-300 dark:hover:text-white">
+                    Change
+                </a>
+            </td>
+        </tr>
+
         <tr class="">
-            <th scope="row" class="py-4 text-base font-bold text-gray-900">
+            <th scope="row" class="py-4 text-base font-bold text-gray-900 dark:text-slate-100">
                 Delete Account
             </th>
             <td class="py-4 pl-4">

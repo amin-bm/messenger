@@ -85,10 +85,91 @@
                 {% endif %}
                 <button type="submit" class="button w-full">ورود</button>
             </form>
+            <div class="mt-4 text-center text-sm">
+                <a class="text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white" href="{% url 'account_login' %}?otp=reset_start">فراموشی رمز؟ تنظیم رمز با کد موبایل</a>
+            </div>
         </div>
 
         <div id="panel-otp" class="hidden">
-            {% if request.session.otp_login_phone or request.GET.otp == 'verify' %}
+            {% if request.session.otp_reset_phone or request.GET.otp == 'reset_verify' or request.GET.otp == 'reset_set' %}
+                {% if request.session.otp_reset_verified_until or request.GET.otp == 'reset_set' %}
+                    <form method="post" action="{% url 'otp-password-reset-set' %}" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-200">
+                            تایید انجام شد. رمز جدید را برای شماره
+                            <span class="font-semibold text-gray-900 dark:text-slate-100" dir="ltr">{{ request.session.otp_reset_phone }}</span>
+                            وارد کنید.
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300">رمز جدید</label>
+                            <input type="password"
+                                   name="password1"
+                                   dir="ltr"
+                                   autocomplete="new-password"
+                                   class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-sky-400/40 dark:focus:ring-sky-400/25" />
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300">تکرار رمز</label>
+                            <input type="password"
+                                   name="password2"
+                                   dir="ltr"
+                                   autocomplete="new-password"
+                                   class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-sky-400/40 dark:focus:ring-sky-400/25" />
+                        </div>
+                        <button type="submit" class="button w-full">ثبت رمز جدید</button>
+                    </form>
+                    <div class="mt-3 flex items-center justify-between text-sm">
+                        <a class="text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white" href="{% url 'otp-password-reset-reset' %}">تغییر شماره</a>
+                        <a class="text-blue-600 hover:underline dark:text-sky-400 dark:hover:text-sky-300" href="{% url 'account_login' %}?otp=start">ورود با کد</a>
+                    </div>
+                {% else %}
+                    <form method="post" action="{% url 'otp-password-reset-verify' %}" class="space-y-4">
+                        {% csrf_token %}
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-200">
+                            کد بازیابی برای شماره
+                            <span class="font-semibold text-gray-900 dark:text-slate-100" dir="ltr">{{ request.session.otp_reset_phone }}</span>
+                            ارسال شد.
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-slate-300">کد یکبار مصرف</label>
+                            <input type="text"
+                                   name="otp"
+                                   inputmode="numeric"
+                                   dir="ltr"
+                                   autocomplete="one-time-code"
+                                   placeholder="------"
+                                   class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-sky-400/40 dark:focus:ring-sky-400/25" />
+                        </div>
+                        <button type="submit" class="button w-full">تایید و ادامه</button>
+                    </form>
+                    <div class="mt-3 flex items-center justify-between text-sm">
+                        <a class="text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white" href="{% url 'otp-password-reset-reset' %}">تغییر شماره</a>
+                        <form method="post" action="{% url 'otp-password-reset-start' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="phone" value="{{ request.session.otp_reset_phone }}" />
+                            <button type="submit" class="text-blue-600 hover:underline dark:text-sky-400 dark:hover:text-sky-300">ارسال مجدد</button>
+                        </form>
+                    </div>
+                {% endif %}
+            {% elif request.GET.otp == 'reset_start' %}
+                <form method="post" action="{% url 'otp-password-reset-start' %}" class="space-y-4">
+                    {% csrf_token %}
+                    <div class="space-y-1">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300">شماره موبایل</label>
+                        <input type="text"
+                               name="phone"
+                               inputmode="tel"
+                               dir="ltr"
+                               autocomplete="tel"
+                               placeholder="09xxxxxxxxx"
+                               class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-sky-400/40 dark:focus:ring-sky-400/25" />
+                    </div>
+                    <button type="submit" class="button w-full">ارسال کد بازیابی</button>
+                </form>
+                <div class="mt-3 text-center text-sm">
+                    <a class="text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white" href="{% url 'account_login' %}?otp=start">بازگشت به ورود با کد</a>
+                </div>
+            {% elif request.session.otp_login_phone or request.GET.otp == 'verify' %}
                 <form method="post" action="{% url 'otp-login-verify' %}" class="space-y-4">
                     {% csrf_token %}
                     <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 dark:border-white/10 dark:bg-slate-950/35 dark:text-slate-200">
@@ -146,6 +227,9 @@
                     {% endif %}
                     <button type="submit" class="button w-full">ارسال کد یکبار مصرف</button>
                 </form>
+                <div class="mt-3 text-center text-sm">
+                    <a class="text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white" href="{% url 'account_login' %}?otp=reset_start">فراموشی رمز؟ تنظیم رمز با کد موبایل</a>
+                </div>
             {% endif %}
         </div>
 
@@ -208,7 +292,7 @@
     }
 
     const params = new URLSearchParams(window.location.search);
-    const initial = (params.get('otp') === 'verify') ? 'otp' : 'password';
+    const initial = params.get('otp') ? 'otp' : 'password';
     setActive(initial);
 
     tabPassword.addEventListener('click', () => setActive('password'));

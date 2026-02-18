@@ -1220,7 +1220,7 @@
 
       if (!items.length) {
         const empty = document.createElement("div");
-        empty.className = "rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 text-sm text-gray-600";
+        empty.className = "rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 text-sm text-gray-600 dark:border-white/10 dark:bg-white/10 dark:text-slate-300";
         empty.textContent = q ? "No results" : "No chats";
         forwardChatList.appendChild(empty);
         return;
@@ -1229,10 +1229,10 @@
       items.forEach((item) => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "w-full rounded-xl px-3 py-3 text-left hover:bg-gray-100 active:bg-gray-200";
+        btn.className = "w-full rounded-xl px-3 py-3 text-left hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-white/10 dark:active:bg-white/15";
         btn.dataset.targetChat = item.identifier;
         const title = document.createElement("div");
-        title.className = "text-sm font-medium text-gray-900 truncate";
+        title.className = "text-sm font-medium text-gray-900 truncate dark:text-slate-100";
         title.textContent = item.title;
         btn.appendChild(title);
         forwardChatList.appendChild(btn);

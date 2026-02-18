@@ -533,8 +533,15 @@
   </script>
 
   <div id="img-modal" class="fixed inset-0 hidden z-[9999] bg-black/70 p-4 items-center justify-center">
+    <button id="img-modal-save" type="button" aria-label="ذخیره" class="absolute top-4 left-4 z-10 inline-flex items-center justify-center h-11 w-11 rounded-full bg-black/55 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70 active:bg-black/80">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M12 3v10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M4 21h16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </button>
     <button id="img-modal-close" type="button" aria-label="بستن" class="absolute top-4 right-4 z-10 inline-flex items-center justify-center h-11 w-11 rounded-full bg-black/55 text-white ring-1 ring-white/20 backdrop-blur hover:bg-black/70 active:bg-black/80">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path d="M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
         <path d="M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
       </svg>
@@ -547,6 +554,7 @@
       const modal = document.getElementById('img-modal');
       const modalImg = document.getElementById('img-modal-src');
       const closeBtn = document.getElementById('img-modal-close');
+      const saveBtn = document.getElementById('img-modal-save');
       const MIN_SCALE = 1;
       const MAX_SCALE = 4;
       let scale = 1;
@@ -560,6 +568,7 @@
       let pinchStartScale = 1;
       let pinchStartMidX = 0;
       let pinchStartMidY = 0;
+      let currentSrc = "";
 
       function clamp(n, min, max) {
         return Math.max(min, Math.min(max, n));
@@ -593,8 +602,119 @@
         applyTransform();
       }
 
+      function inferFilenameFromUrl(url) {
+        try {
+          const u = new URL(url, window.location.href);
+          const raw = (u.pathname || '').split('/').pop() || '';
+          const decoded = raw ? decodeURIComponent(raw) : '';
+          const name = (decoded || raw || 'image').trim();
+          return name || 'image';
+        } catch (e) {
+          return 'image';
+        }
+      }
+
+      function ensureExtension(filename, contentType) {
+        const hasExt = /\.[a-z0-9]{2,5}$/i.test(filename || '');
+        if (hasExt) return filename;
+        const ct = String(contentType || '').toLowerCase();
+        const map = {
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/png': 'png',
+          'image/webp': 'webp',
+          'image/gif': 'gif',
+          'image/heic': 'heic',
+          'image/heif': 'heif',
+          'image/avif': 'avif',
+        };
+        const ext = map[ct] || 'jpg';
+        return `${filename}.${ext}`;
+      }
+
+      function isIOS() {
+        try {
+          const ua = String((navigator && navigator.userAgent) || "").toLowerCase();
+          return /iphone|ipad|ipod/.test(ua);
+        } catch (e) {
+          return false;
+        }
+      }
+
+      async function saveImage(url) {
+        const src = (url || '').toString().trim();
+        if (!src) return;
+
+        let absUrl = '';
+        try {
+          absUrl = new URL(src, window.location.href).toString();
+        } catch (e) {
+          absUrl = src;
+        }
+
+        try {
+          const u = new URL(absUrl, window.location.href);
+          const isSameOrigin = u.origin === window.location.origin;
+          const res = await fetch(u.toString(), { credentials: isSameOrigin ? 'same-origin' : 'omit' });
+          if (!res || !res.ok) throw new Error('fetch_failed');
+
+          const blob = await res.blob();
+          const contentType = blob.type || res.headers.get('content-type') || '';
+
+          let filename = inferFilenameFromUrl(u.toString());
+          filename = ensureExtension(filename, contentType);
+
+          const file = new File([blob], filename, { type: contentType || 'application/octet-stream' });
+
+          const canShareFiles =
+            typeof navigator !== 'undefined' &&
+            typeof navigator.share === 'function' &&
+            typeof navigator.canShare === 'function' &&
+            navigator.canShare({ files: [file] });
+
+          if (canShareFiles && isIOS()) {
+            await navigator.share({ files: [file], title: filename });
+            return;
+          }
+
+          try {
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = objectUrl;
+            a.download = filename;
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+            return;
+          } catch (e) {
+          }
+
+          if (canShareFiles) {
+            await navigator.share({ files: [file], title: filename });
+            return;
+          }
+        } catch (e) {
+          try {
+            window.open(absUrl, '_blank', 'noopener,noreferrer');
+            return;
+          } catch (err) {
+          }
+          try {
+            window.location.href = absUrl;
+          } catch (err) {
+          }
+          try {
+            window.alert("ذخیره تصویر ناموفق بود. دوباره تلاش کنید.");
+          } catch (err) {
+          }
+        }
+      }
+
       function openModal(src) {
         modalImg.src = src;
+        currentSrc = src || "";
         resetTransform();
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -605,11 +725,19 @@
         modal.classList.add('hidden');
         modal.classList.remove('flex');
         modalImg.src = '';
+        currentSrc = "";
         resetTransform();
         document.body.style.overflow = '';
       }
 
       if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      if (saveBtn) {
+        saveBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          saveImage(currentSrc || (modalImg ? modalImg.src : ""));
+        });
+      }
 
       if (modalImg) {
         modalImg.addEventListener('touchstart', (e) => {

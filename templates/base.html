@@ -738,9 +738,22 @@
         }
       }
 
+      function mergeSnapshots(baseSnapshot, nextSnapshot) {
+        const merged = {};
+        try {
+          Object.assign(merged, baseSnapshot || {});
+          Object.assign(merged, nextSnapshot || {});
+          return merged;
+        } catch (e) {
+          return nextSnapshot || baseSnapshot || {};
+        }
+      }
+
       function saveSnapshot(snapshot) {
         try {
-          localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshot || {}));
+          const current = loadSnapshot() || {};
+          const merged = mergeSnapshots(current, snapshot || {});
+          localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(merged));
         } catch (e) {
           return;
         }
@@ -1518,18 +1531,22 @@
 
       function handleSidebarChangeForNotifications() {
         const nextSnapshot = readSnapshotFromDom();
-        const prevSnapshot = lastSnapshot || {};
+        if (!nextSnapshot || Object.keys(nextSnapshot).length === 0) return;
+
+        const persistedSnapshot = loadSnapshot() || {};
+        const prevSnapshot =
+          lastSnapshot && Object.keys(lastSnapshot).length ? lastSnapshot : persistedSnapshot || {};
 
         Object.keys(nextSnapshot).forEach((id) => {
           const next = nextSnapshot[id];
-          const prev = prevSnapshot[id] || {};
+          const prev = prevSnapshot[id] || persistedSnapshot[id] || {};
           const nextUnread = toInt(next.unread);
           const prevUnread = toInt(prev.unread);
           if (nextUnread > prevUnread && !next.muted) showChatNotification(next);
         });
 
-        lastSnapshot = nextSnapshot;
-        saveSnapshot(nextSnapshot);
+        lastSnapshot = mergeSnapshots(prevSnapshot, nextSnapshot);
+        saveSnapshot(lastSnapshot);
       }
 
       window.addEventListener("beforeinstallprompt", (e) => {
@@ -1552,7 +1569,8 @@
       });
 
       document.addEventListener("DOMContentLoaded", async () => {
-        lastSnapshot = loadSnapshot() || readSnapshotFromDom();
+        lastSnapshot = mergeSnapshots(loadSnapshot() || {}, readSnapshotFromDom());
+        saveSnapshot(lastSnapshot);
         await cleanupSiteDataIfNeeded();
         await registerServiceWorker();
         try {

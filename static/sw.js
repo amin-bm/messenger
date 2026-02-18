@@ -189,28 +189,35 @@ self.addEventListener("fetch", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch (e) {
-    try {
-      data = { body: event.data ? event.data.text() : "" };
-    } catch (e2) {
-      data = {};
-    }
-  }
+  event.waitUntil(
+    (async () => {
+      let data = {};
+      try {
+        data = event.data ? event.data.json() : {};
+      } catch (e) {
+        try {
+          data = { body: event.data ? event.data.text() : "" };
+        } catch (e2) {
+          data = {};
+        }
+      }
 
-  const title = data.title || "پیام جدید";
-  const options = {
-    body: data.body || "",
-    icon: "/static/logo.png",
-    badge: "/static/logo.png",
-    data: {
-      url: data.url || "/"
-    }
-  };
+      const title = data.title || "پیام جدید";
+      const url = data.url || "/";
+      const options = {
+        body: data.body || "",
+        icon: "/static/logo.png",
+        badge: "/static/logo.png",
+        tag: `rtchat:${url}`,
+        renotify: false,
+        data: {
+          url,
+        },
+      };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+      await self.registration.showNotification(title, options);
+    })()
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {

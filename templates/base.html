@@ -690,9 +690,15 @@
 
   <script>
     (function () {
+      try {
+        if (window.__rtchatNotifInit === true) return;
+        window.__rtchatNotifInit = true;
+      } catch (e) {
+      }
       const SNAPSHOT_KEY = "rtchatUnreadSnapshotV1";
       let lastSnapshot = null;
       let swRegistration = null;
+      let hasPushSubscription = false;
 
       function getCsrfToken() {
         const name = "csrftoken=";
@@ -766,12 +772,25 @@
       function showChatNotification(chat) {
         if (!canNotify()) return;
         if (!chat || chat.muted) return;
-        if (chat.url && (window.location.pathname || "") === chat.url) return;
+        if (hasPushSubscription) return;
+
+        const normalizePath = (p) => {
+          const s = (p || "").toString().trim().replace(/\/+$/, "");
+          return s || "/";
+        };
+        if (chat.url && normalizePath(window.location.pathname || "") === normalizePath(chat.url)) return;
 
         const title = chat.title || "پیام جدید";
         const body = chat.lastText || "";
         const url = chat.url || "/";
-        const options = { body, icon: "/static/logo.png", badge: "/static/logo.png", data: { url } };
+        const options = {
+          body,
+          icon: "/static/logo.png",
+          badge: "/static/logo.png",
+          tag: `rtchat:${url}`,
+          renotify: false,
+          data: { url },
+        };
 
         if (swRegistration && swRegistration.showNotification) {
           swRegistration.showNotification(title, options);
@@ -1511,6 +1530,7 @@
 
         const existing = await swRegistration.pushManager.getSubscription();
         if (existing) {
+          hasPushSubscription = true;
           await sendSubscriptionToServer(existing.toJSON ? existing.toJSON() : existing);
           return;
         }
@@ -1523,6 +1543,7 @@
             userVisibleOnly: true,
             applicationServerKey: urlBase64ToUint8Array(publicKey),
           });
+          hasPushSubscription = true;
           await sendSubscriptionToServer(subscription.toJSON ? subscription.toJSON() : subscription);
         } catch (e) {
           return;

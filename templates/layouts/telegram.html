@@ -10,64 +10,61 @@
       <!-- Sidebar (لیست چت‌ها) -->
       <aside id="tg-sidebar" class="{% if '/chat/room/' in request.path %}hidden md:flex{% else %}flex{% endif %} relative z-20 w-full md:w-[320px] shrink-0 border-b md:border-b-0 md:border-r border-slate-200/70 bg-white/35 backdrop-blur-xl flex-col dark:border-white/10 dark:bg-slate-950/30">
         <!-- Header سایدبار -->
-        <div class="relative z-30 flex items-center gap-3 border-b border-slate-200/70 bg-white/35 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25">
-        <nav class="block relative">
-          <ul class="navitems flex bg-black/5 rounded-xl items-center justify-center h-full dark:bg-white/10">
-            
-              
+        <div class="relative z-30 flex items-center gap-3 border-b border-slate-200/70 bg-white/50 px-3 py-2 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/35">
+          <nav class="relative shrink-0">
+            <ul class="flex items-center">
               <li x-data="{ dropdownOpen: false }" class="relative">
-                  <a @click="dropdownOpen = !dropdownOpen" @click.away="dropdownOpen = false" class="cursor-pointer select-none">
-                      <img class="h-8 w-8 rounded-full object-cover" src="{{ request.user.profile.avatar }}" alt="Avatar" />
-                      
-                      <img x-bind:class="dropdownOpen && 'rotate-180 duration-300'" class="w-4" src="{% static 'images/expand-arrow.png' %}" alt="Dropdown" />
-                  </a>
-                  <div x-show="dropdownOpen" x-cloak
-                    class="absolute left-0 top-full mt-2 bg-white/90 text-black shadow rounded-lg w-48 py-2 pl-3 pr-8 z-[200] text-left text-sm ring-1 ring-black/10 backdrop-blur-xl dark:bg-slate-900/90 dark:text-slate-100 dark:ring-white/10"
-                    x-transition:enter="duration-300 ease-out"
-                    x-transition:enter-start="opacity-0 -translate-y-5 scale-90"
-                    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                    >
-                      <ul class="hoverlist [&>li>a]:justify-start [&>li>a]:text-left">
-                          <li>
-                            <a class="gap-3" href="{% url 'profile' %}">
+                <button type="button" @click="dropdownOpen = !dropdownOpen" @click.away="dropdownOpen = false" class="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-slate-700 hover:bg-black/5 active:bg-black/10 dark:text-slate-200 dark:hover:bg-white/10 dark:active:bg-white/15">
+                  <img class="h-8 w-8 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10" src="{{ request.user.profile.avatar }}" alt="Avatar" />
+                  <img x-bind:class="dropdownOpen && 'rotate-180 duration-200'" class="h-4 w-4 opacity-70" src="{% static 'images/expand-arrow.png' %}" alt="Dropdown" />
+                </button>
+                <div x-show="dropdownOpen" x-cloak
+                  class="absolute left-0 top-full mt-2 w-52 overflow-hidden rounded-2xl bg-white/90 text-black shadow-xl ring-1 ring-black/10 backdrop-blur-xl z-[200] text-left text-sm dark:bg-slate-900/90 dark:text-slate-100 dark:ring-white/10"
+                  x-transition:enter="duration-200 ease-out"
+                  x-transition:enter-start="opacity-0 -translate-y-2 scale-95"
+                  x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                  >
+                    <ul class="hoverlist p-1 [&>li>a]:justify-start [&>li>a]:text-left">
+                        <li>
+                          <a class="gap-3 rounded-xl" href="{% url 'profile' %}">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">
                                 <path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                                 <path d="M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                               </svg>
                               <span>My Profile</span>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="gap-3" href="{% url 'profile-edit' %}">
+                          </a>
+                        </li>
+                        <li>
+                          <a class="gap-3 rounded-xl" href="{% url 'profile-edit' %}">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">
                                 <path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                                 <path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                               </svg>
                               <span>Edit Profile</span>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="gap-3" href="{% url 'new-groupchat' %}">
+                          </a>
+                        </li>
+                        <li>
+                          <a class="gap-3 rounded-xl" href="{% url 'new-groupchat' %}">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">
                                 <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8A8.5 8.5 0 0 1 12.5 3h.5a8.5 8.5 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                                 <path d="M12 9v6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                                 <path d="M9 12h6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                               </svg>
                               <span>Create Group</span>
-                            </a>
-                          </li>
-                          <li>
-                            <a class="gap-3" href="{% url 'profile-settings' %}">
+                          </a>
+                        </li>
+                        <li>
+                          <a class="gap-3 rounded-xl" href="{% url 'profile-settings' %}">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">
                                 <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2.5"></circle>
                                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                               </svg>
                               <span>Settings</span>
-                            </a>
-                          </li>
-                          {% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_manager %}
-                          <li>
-                            <a class="gap-3" href="{% url 'profile-manager' %}">
+                          </a>
+                        </li>
+                        {% if request.user.is_staff or request.user.is_superuser or request.user.profile.is_manager %}
+                        <li>
+                          <a class="gap-3 rounded-xl" href="{% url 'profile-manager' %}">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">
                                 <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                                 <path d="M20 21a8 8 0 0 0-16 0" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
@@ -75,48 +72,47 @@
                                 <path d="M16 11h6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
                               </svg>
                               <span>Management</span>
-                            </a>
-                          </li>
-                          {% endif %}
-                          <li>
-                            <a class="gap-3" href="{% url 'account_logout' %}">
+                          </a>
+                        </li>
+                        {% endif %}
+                        <li>
+                          <a class="gap-3 rounded-xl" href="{% url 'account_logout' %}">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="shrink-0 text-gray-600">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                                 <path d="M16 17l5-5-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                                 <path d="M21 12H9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
                               </svg>
                               <span>Log Out</span>
-                            </a>
-                          </li>
-                      </ul>
-                      <br>
-                      <div class="text-center text-xs text-gray-500">
-                        CREATED BY<br>Amin Moghaddam
-                      </div>
+                          </a>
+                        </li>
+                    </ul>
+                    <div class="border-t border-black/5 px-3 py-2 text-center text-[11px] text-gray-500 dark:border-white/10 dark:text-slate-400">
+                      CREATED BY · Amin Moghaddam
+                    </div>
                   </div>
               </li>
             </ul>
-        </nav>
+          </nav>
 
         <!-- Tabs container (WS will fill this) -->
-        <div id="sidebar-tabs" class="ml-auto flex gap-2"></div>
+          <div id="sidebar-tabs" class="flex-1 flex justify-center"></div>
 
-        <button type="button" data-theme-toggle aria-label="Toggle dark mode" class="ml-2 inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 hover:bg-black/5 active:bg-black/10 dark:text-slate-300 dark:hover:bg-white/10 dark:active:bg-white/15">
-          <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M21 13.6A8.5 8.5 0 0 1 10.4 3 7 7 0 1 0 21 13.6Z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <svg class="hidden h-5 w-5 dark:block" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="2.2"/>
-            <path d="M12 2v2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M12 20v2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M4.93 4.93l1.41 1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M17.66 17.66l1.41 1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M2 12h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M20 12h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M4.93 19.07l1.41-1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-            <path d="M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
-        </button>
+          <button type="button" data-theme-toggle aria-label="Toggle dark mode" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-gray-600 hover:bg-black/5 active:bg-black/10 dark:text-slate-300 dark:hover:bg-white/10 dark:active:bg-white/15">
+            <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M21 13.6A8.5 8.5 0 0 1 10.4 3 7 7 0 1 0 21 13.6Z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg class="hidden h-5 w-5 dark:block" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z" stroke="currentColor" stroke-width="2.2"/>
+              <path d="M12 2v2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M12 20v2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M4.93 4.93l1.41 1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M17.66 17.66l1.41 1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M2 12h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M20 12h2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M4.93 19.07l1.41-1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+              <path d="M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
 
         <!-- اگر هنوز جای آنلاین داری -->

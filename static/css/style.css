@@ -144,3 +144,14 @@ html.dark #chats-list .chat-actions-ellipsis:active {
 html.dark .sidebar-search-highlight {
   color: #7dd3fc;
 }
+
+.tabs-pill {
+  padding: 5px;
+  border-radius: 12px;
+}
+
+.sidebar-tab {
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 8px;
+}

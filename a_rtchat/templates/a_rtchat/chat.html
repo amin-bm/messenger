@@ -123,36 +123,36 @@
     </svg>
   </button>
 
-  <div id="message_action_menu" class="fixed z-[60] hidden inline-flex flex-col overflow-hidden rounded-md bg-white/90 shadow-lg ring-1 ring-black/10 backdrop-blur-xl dark:bg-slate-900/90 dark:ring-white/10">
-    <div class="flex flex-col p-0.5">
-      <button type="button" data-menu-action="reply" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+  <div id="message_action_menu" class="fixed z-[60] hidden inline-flex flex-col overflow-hidden rounded-xl border border-slate-200/70 bg-white/95 shadow-xl ring-1 ring-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/95 dark:ring-white/10">
+    <div class="flex flex-col p-1">
+      <button type="button" data-menu-action="reply" class="flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
             <path d="M9 10V6L3 12l6 6v-4h6a6 6 0 0 1 6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
           <span>Reply</span>
       </button>
-      <button type="button" data-menu-action="forward" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+      <button type="button" data-menu-action="forward" class="flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
             <path d="M15 14l5-5-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
             <path d="M20 9H9a6 6 0 0 0-6 6v4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
           <span>Forward</span>
       </button>
-      <button type="button" data-menu-action="copy" class="flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+      <button type="button" data-menu-action="copy" class="flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
             <path d="M9 9h10v12H9V9Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"></path>
             <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
           </svg>
           <span>Copy</span>
       </button>
-      <button type="button" data-menu-action="edit" class="hidden flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+      <button type="button" data-menu-action="edit" class="hidden flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
             <path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
             <path d="M13.5 6.5l4 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
           <span>Edit</span>
       </button>
-      <button type="button" data-menu-action="delete" class="hidden flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 whitespace-nowrap dark:hover:bg-red-500/10">
+      <button type="button" data-menu-action="delete" class="hidden flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-red-600 hover:bg-red-50 whitespace-nowrap dark:hover:bg-red-500/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-red-600">
             <path d="M3 6h18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
             <path d="M8 6V4h8v2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>

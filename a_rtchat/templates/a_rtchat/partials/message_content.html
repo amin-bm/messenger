@@ -47,9 +47,49 @@
       </div>
     </div>
   {% else %}
-    <a href="{{ message.file.url }}" download
-       class="mt-2 inline-flex items-center gap-2 text-sm text-blue-600 hover:underline">
-      📎 {{ message.filename }}
-    </a>
+    <div class="mt-2 max-w-[280px] overflow-hidden rounded-xl border border-gray-200/70 bg-white/70 backdrop-blur dark:border-white/10 dark:bg-white/5">
+      <div class="flex items-center gap-3 p-3">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-sky-500/15 dark:text-sky-300">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-gray-900 break-all line-clamp-2 dark:text-slate-100">{{ message.filename }}</div>
+          {% if message.mime_type %}
+            <div class="text-[11px] text-gray-400 dark:text-slate-400 mt-0.5">{{ message.mime_type }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="flex divide-x divide-gray-200/70 border-t border-gray-200/70 dark:divide-white/10 dark:border-white/10">
+        <button type="button"
+                class="js-file-view-btn flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 active:bg-gray-100 dark:text-slate-300 dark:hover:bg-white/5"
+                data-preview-url="{{ message.file.url }}"
+                data-download-url="{{ message.file.url }}"
+                data-file-name="{{ message.filename }}"
+                data-file-mime="{{ message.mime_type }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          نمایش
+        </button>
+
+        <button type="button"
+                class="js-file-download-btn flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 active:bg-blue-100 dark:text-sky-400 dark:hover:bg-sky-500/10"
+                data-download-url="{{ message.file.url }}"
+                data-file-name="{{ message.filename }}"
+                data-file-mime="{{ message.mime_type }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="7,10 12,15 17,10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          دانلود
+        </button>
+      </div>
+    </div>
   {% endif %}
 {% endif %}

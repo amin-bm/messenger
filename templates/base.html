@@ -1762,6 +1762,10 @@
     })();
   </script>
 
+  <script src="{% static 'vendor/jszip.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
+  <script src="{% static 'vendor/docx-preview.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
+  <script src="{% static 'vendor/xlsx.full.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
+
   {% block javascript %}{% endblock %}
 </body>
 </html>

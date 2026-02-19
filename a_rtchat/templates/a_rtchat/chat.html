@@ -1936,70 +1936,239 @@
       body.appendChild(iframe);
     }
 
-    function renderOffice(previewUrl, label) {
-      clearBody();
+    async function renderWord(previewUrl) {
+      console.log("[file-viewer] renderWord called, docxPreview:", typeof window.docx);
 
-      let absUrl;
-      try {
-        absUrl = new URL(previewUrl, window.location.origin).href;
-      } catch (e) {
-        absUrl = window.location.origin + (previewUrl.startsWith("/") ? "" : "/") + previewUrl;
+      if (typeof window.docx === "undefined" || typeof window.docx.renderAsync !== "function") {
+        console.warn("[file-viewer] docx-preview not available");
+        renderPreviewCard("Word");
+        return;
       }
 
-      var viewerUrl = "https://docs.google.com/gview?embedded=true&url=" + encodeURIComponent(absUrl);
+      renderLoading();
+      aborter = new AbortController();
+      try {
+        console.log("[file-viewer] fetching:", previewUrl);
+        var res = await fetch(previewUrl, {
+          credentials: "same-origin",
+          signal: aborter.signal
+        });
 
-      var wrapper = document.createElement("div");
-      wrapper.className = "flex flex-col h-full";
-
-      var iframe = document.createElement("iframe");
-      iframe.className = "flex-1 min-h-0 w-full border-0 bg-white dark:bg-slate-950/20";
-      iframe.setAttribute("loading", "lazy");
-      iframe.setAttribute("referrerpolicy", "no-referrer");
-      iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-popups");
-
-      var hintEl = null;
-      var fallbackTimer = setTimeout(function () {
-        if (hintEl) {
-          hintEl.textContent = "اگر فایل نمایش داده نشد، دانلود کنید";
-          hintEl.classList.remove("hidden");
+        if (!res.ok) {
+          console.warn("[file-viewer] fetch failed:", res.status);
+          renderPreviewCard("Word");
+          return;
         }
-      }, 8000);
 
-      iframe.addEventListener("load", function () {
-        clearTimeout(fallbackTimer);
-      });
+        var arrayBuffer = await res.arrayBuffer();
+        console.log("[file-viewer] file size:", arrayBuffer.byteLength);
 
-      iframe.src = viewerUrl;
-      wrapper.appendChild(iframe);
+        clearBody();
 
-      var bar = document.createElement("div");
-      bar.className = "shrink-0 flex flex-wrap items-center justify-center gap-3 border-t border-gray-200/70 bg-white px-4 py-3 dark:border-white/10 dark:bg-slate-900";
+        var container = document.createElement("div");
+        container.className = "p-4 docx-wrapper-custom";
+        container.style.cssText = "min-height: 100%; background: white;";
+        body.appendChild(container);
 
-      hintEl = document.createElement("span");
-      hintEl.className = "hidden w-full text-center text-xs text-amber-600 dark:text-amber-400 mb-1";
-      hintEl.textContent = "";
+        if (!document.getElementById("docx-preview-style")) {
+          var style = document.createElement("style");
+          style.id = "docx-preview-style";
+          style.textContent = [
+            ".docx-wrapper-custom .docx-wrapper { background: white !important; padding: 16px !important; }",
+            ".docx-wrapper-custom .docx-wrapper article { color: #111 !important; font-size: 14px; line-height: 1.8; unicode-bidi: plaintext; }",
+            ".docx-wrapper-custom .docx-wrapper article p { margin-bottom: 8px; direction: auto; unicode-bidi: plaintext; }",
+            ".docx-wrapper-custom .docx-wrapper article table { width: 100%; border-collapse: collapse; }",
+            ".docx-wrapper-custom .docx-wrapper article td, .docx-wrapper-custom .docx-wrapper article th { border: 1px solid #e5e7eb; padding: 6px 8px; }",
+            ".docx-wrapper-custom .docx-wrapper article img { max-width: 100%; height: auto; }",
+            ".docx-wrapper-custom .docx-wrapper section.docx { box-shadow: none !important; margin: 0 auto !important; padding: 20px !important; background: white !important; color: #111 !important; }",
+          ].join("\n");
+          document.head.appendChild(style);
+        }
 
-      var dlBtn = document.createElement("button");
-      dlBtn.type = "button";
-      dlBtn.className = "rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 shadow min-h-[36px]";
-      dlBtn.textContent = "دانلود";
-      dlBtn.addEventListener("click", function () {
-        doDownload(current.downloadUrl, current.filename, current.mime);
-      });
+        console.log("[file-viewer] rendering with docx-preview...");
+        await window.docx.renderAsync(arrayBuffer, container, null, {
+          className: "docx-wrapper",
+          inWrapper: true,
+          ignoreWidth: false,
+          ignoreHeight: false,
+          ignoreFonts: false,
+          breakPages: true,
+          useBase64URL: true,
+          useMathMLPolyfill: false,
+          renderHeaders: true,
+          renderFooters: true,
+          renderFootnotes: true,
+          renderEndnotes: true,
+        });
 
-      var clBtn = document.createElement("button");
-      clBtn.type = "button";
-      clBtn.className = "rounded-xl bg-gray-200 px-5 py-2.5 text-xs font-semibold text-gray-800 hover:bg-gray-300 shadow dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 min-h-[36px]";
-      clBtn.textContent = "بستن";
-      clBtn.addEventListener("click", requestClose);
+        console.log("[file-viewer] docx-preview OK");
+        container
+          .querySelectorAll("p, span, td, th, li, h1, h2, h3, h4, h5, h6")
+          .forEach(function (el) {
+            el.setAttribute("dir", "auto");
+          });
 
-      bar.appendChild(hintEl);
-      bar.appendChild(dlBtn);
-      bar.appendChild(clBtn);
-      wrapper.appendChild(bar);
+        var bar = document.createElement("div");
+        bar.className = "sticky bottom-0 flex justify-center gap-3 bg-gradient-to-t from-white via-white/95 to-transparent px-4 pb-4 pt-8 dark:from-slate-950 dark:via-slate-950/95";
 
-      body.style.overflow = "hidden";
-      body.appendChild(wrapper);
+        var dlBtn = document.createElement("button");
+        dlBtn.type = "button";
+        dlBtn.className = "rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 shadow min-h-[36px]";
+        dlBtn.textContent = "دانلود";
+        dlBtn.addEventListener("click", function () {
+          doDownload(current.downloadUrl, current.filename, current.mime);
+        });
+
+        var clBtn = document.createElement("button");
+        clBtn.type = "button";
+        clBtn.className = "rounded-xl bg-gray-200 px-5 py-2.5 text-xs font-semibold text-gray-800 hover:bg-gray-300 shadow dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 min-h-[36px]";
+        clBtn.textContent = "بستن";
+        clBtn.addEventListener("click", requestClose);
+
+        bar.appendChild(dlBtn);
+        bar.appendChild(clBtn);
+        body.appendChild(bar);
+      } catch (e) {
+        if (String(e && e.name) === "AbortError") return;
+        console.error("[file-viewer] renderWord error:", e);
+        renderPreviewCard("Word");
+      } finally {
+        aborter = null;
+      }
+    }
+
+    async function renderExcel(previewUrl) {
+      if (typeof XLSX === "undefined") {
+        renderPreviewCard("Excel");
+        return;
+      }
+
+      renderLoading();
+      aborter = new AbortController();
+      try {
+        var res = await fetch(previewUrl, { credentials: "same-origin", signal: aborter.signal });
+        if (!res.ok) {
+          renderPreviewCard("Excel");
+          return;
+        }
+        var arrayBuffer = await res.arrayBuffer();
+        var workbook = XLSX.read(arrayBuffer, { type: "array" });
+        if (!workbook.SheetNames || !workbook.SheetNames.length) {
+          renderPreviewCard("Excel");
+          return;
+        }
+
+        clearBody();
+        body.style.overflow = "hidden";
+
+        var wrapper = document.createElement("div");
+        wrapper.className = "flex flex-col h-full";
+
+        var tabsBar = null;
+        if (workbook.SheetNames.length > 1) {
+          tabsBar = document.createElement("div");
+          tabsBar.className =
+            "shrink-0 flex gap-1 overflow-x-auto border-b border-gray-200/70 bg-gray-50 px-3 py-2 dark:border-white/10 dark:bg-slate-800/50";
+
+          workbook.SheetNames.forEach(function (name, i) {
+            var tab = document.createElement("button");
+            tab.type = "button";
+            tab.textContent = name;
+            tab.dataset.sheetIndex = String(i);
+            tab.className =
+              i === 0
+                ? "shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm ring-1 ring-black/5 dark:bg-white/10 dark:text-sky-400 dark:ring-white/10"
+                : "shrink-0 rounded-lg px-3 py-1.5 text-xs text-gray-600 hover:bg-white/80 dark:text-slate-300 dark:hover:bg-white/5";
+            tabsBar.appendChild(tab);
+          });
+          wrapper.appendChild(tabsBar);
+        }
+
+        var contentArea = document.createElement("div");
+        contentArea.className = "flex-1 min-h-0 overflow-auto";
+
+        var activeClass =
+          "shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm ring-1 ring-black/5 dark:bg-white/10 dark:text-sky-400 dark:ring-white/10";
+        var inactiveClass =
+          "shrink-0 rounded-lg px-3 py-1.5 text-xs text-gray-600 hover:bg-white/80 dark:text-slate-300 dark:hover:bg-white/5";
+
+        function showSheet(index) {
+          var sheet = workbook.Sheets[workbook.SheetNames[index]];
+          var html = XLSX.utils.sheet_to_html(sheet, { editable: false });
+          contentArea.innerHTML = "";
+
+          var tableWrap = document.createElement("div");
+          tableWrap.className = "p-2";
+          tableWrap.innerHTML = html;
+
+          var table = tableWrap.querySelector("table");
+          if (table) {
+            table.className = "w-full border-collapse text-xs";
+            table.style.fontFamily = "Tahoma, 'Segoe UI', system-ui, sans-serif";
+            
+            table.querySelectorAll("td").forEach(function (cell) {
+              cell.className = "border border-gray-200 px-2 py-1.5 text-gray-800 dark:border-white/10 dark:text-slate-200";
+              cell.setAttribute("dir", "auto");
+              cell.style.whiteSpace = "normal";
+              cell.style.fontFamily = "inherit";
+            });
+            table.querySelectorAll("th").forEach(function (th) {
+              th.className = "border border-gray-200 bg-gray-50 px-2 py-1.5 font-semibold text-gray-700 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200";
+              th.setAttribute("dir", "auto");
+              th.style.whiteSpace = "normal";
+              th.style.fontFamily = "inherit";
+            });
+          }
+
+          contentArea.appendChild(tableWrap);
+
+          if (tabsBar) {
+            tabsBar.querySelectorAll("button[data-sheet-index]").forEach(function (t) {
+              t.className = parseInt(t.dataset.sheetIndex) === index ? activeClass : inactiveClass;
+            });
+          }
+        }
+
+        showSheet(0);
+        wrapper.appendChild(contentArea);
+
+        if (tabsBar) {
+          tabsBar.addEventListener("click", function (e) {
+            var tab = e.target && e.target.closest ? e.target.closest("button[data-sheet-index]") : null;
+            if (!tab) return;
+            showSheet(parseInt(tab.dataset.sheetIndex));
+          });
+        }
+
+        var bar = document.createElement("div");
+        bar.className =
+          "shrink-0 flex flex-wrap items-center justify-center gap-3 border-t border-gray-200/70 bg-white px-4 py-3 dark:border-white/10 dark:bg-slate-900";
+
+        var dlBtn = document.createElement("button");
+        dlBtn.type = "button";
+        dlBtn.className = "rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white hover:bg-blue-700 shadow min-h-[36px]";
+        dlBtn.textContent = "دانلود";
+        dlBtn.addEventListener("click", function () {
+          doDownload(current.downloadUrl, current.filename, current.mime);
+        });
+
+        var clBtn = document.createElement("button");
+        clBtn.type = "button";
+        clBtn.className =
+          "rounded-xl bg-gray-200 px-5 py-2.5 text-xs font-semibold text-gray-800 hover:bg-gray-300 shadow dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 min-h-[36px]";
+        clBtn.textContent = "بستن";
+        clBtn.addEventListener("click", requestClose);
+
+        bar.appendChild(dlBtn);
+        bar.appendChild(clBtn);
+        wrapper.appendChild(bar);
+        body.appendChild(wrapper);
+      } catch (e) {
+        if (String(e && e.name) === "AbortError") return;
+        renderPreviewCard("Excel");
+      } finally {
+        aborter = null;
+      }
     }
 
     function openViewer({ downloadUrl, previewUrl, filename, mime, forceView }) {
@@ -2033,31 +2202,62 @@
       } catch (e) {
       }
 
-      const ext = extOf(current.filename) || extOf(current.previewUrl);
-      const m = current.mime.toLowerCase();
-      const isPdf = m === "application/pdf" || ext === ".pdf";
-      const isText = m.startsWith("text/") || [".txt", ".log", ".csv", ".md", ".json"].includes(ext);
-      const isWord =
-        m === "application/msword" ||
+      var ext = extOf(current.filename) || extOf(current.previewUrl);
+      var m = (current.mime || "").toLowerCase();
+
+      console.log("[file-viewer] openViewer:", {
+        filename: current.filename,
+        mime: m,
+        ext: ext,
+        previewUrl: current.previewUrl ? current.previewUrl.substring(0, 80) : "",
+        forceView: current.forceView,
+      });
+
+      var isPdf = m === "application/pdf" || ext === ".pdf";
+      var isText = m.startsWith("text/") || [".txt", ".log", ".csv", ".md", ".json"].includes(ext);
+
+      var isWord =
         m === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-        [".doc", ".docx"].includes(ext);
-      const isExcel =
+        m === "application/msword" ||
+        (m === "application/octet-stream" && ext === ".docx") ||
+        ext === ".docx";
+
+      var isLegacyWord = !isWord && (m === "application/msword" || ext === ".doc");
+
+      var isExcel =
         m === "application/vnd.ms-excel" ||
         m === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        (m === "application/octet-stream" && (ext === ".xlsx" || ext === ".xls")) ||
         [".xls", ".xlsx"].includes(ext);
 
+      console.log("[file-viewer] detected:", { isPdf, isText, isWord, isLegacyWord, isExcel });
+
       if (isPdf && current.previewUrl) {
+        console.log("[file-viewer] → renderPdf");
         renderPdf(current.previewUrl);
         return;
       }
       if (isText && current.previewUrl) {
+        console.log("[file-viewer] → renderText");
         renderText(current.previewUrl);
         return;
       }
-      if ((isWord || isExcel) && current.previewUrl) {
-        renderOffice(current.previewUrl, isWord ? "Word" : "Excel");
+      if (isWord && current.previewUrl) {
+        console.log("[file-viewer] → renderWord");
+        renderWord(current.previewUrl);
         return;
       }
+      if (isExcel && current.previewUrl) {
+        console.log("[file-viewer] → renderExcel");
+        renderExcel(current.previewUrl);
+        return;
+      }
+      if (isLegacyWord) {
+        console.log("[file-viewer] → legacy Word → previewCard");
+        renderPreviewCard("Word (.doc)");
+        return;
+      }
+      console.log("[file-viewer] → unsupported");
       renderUnsupported();
     }
 

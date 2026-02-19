@@ -28,7 +28,7 @@ class ContactVisibilityTests(TestCase):
 
         qs = _contact_users_for_user(viewer)
         ids = set(qs.values_list("id", flat=True))
-        self.assertEqual(ids, {user_a.id, user_b.id, manager.id})
+        self.assertEqual(ids, {user_a.id, user_b.id})
 
     def test_normal_user_sees_only_users_who_allow_visibility(self):
         viewer = User.objects.create_user(username="viewer", password="pass")
@@ -57,10 +57,26 @@ class ContactVisibilityTests(TestCase):
         self.assertNotIn(user_selected_no.id, ids)
         self.assertIn(user_selected_cat.id, ids)
 
+    def test_admin_hidden_unless_selected(self):
+        viewer = User.objects.create_user(username="viewer", password="pass")
+        admin_user = User.objects.create_user(username="admin_user", password="pass")
+        admin_user.is_staff = True
+        admin_user.save(update_fields=["is_staff"])
+
+        qs = _contact_users_for_user(viewer)
+        ids = set(qs.values_list("id", flat=True))
+        self.assertNotIn(admin_user.id, ids)
+
+        viewer.profile.contact_visible_to.add(admin_user)
+        qs2 = _contact_users_for_user(viewer)
+        ids2 = set(qs2.values_list("id", flat=True))
+        self.assertIn(admin_user.id, ids2)
+
     def test_manager_sees_everyone(self):
         manager = User.objects.create_user(username="manager", password="pass")
         manager.profile.is_manager = True
         manager.profile.approved = True
+        manager.profile.contact_visibility_mode = Profile.CONTACT_VISIBILITY_SELECTED
         manager.profile.contact_visibility_mode = Profile.CONTACT_VISIBILITY_SELECTED
         manager.profile.save(update_fields=["is_manager", "approved", "contact_visibility_mode"])
 

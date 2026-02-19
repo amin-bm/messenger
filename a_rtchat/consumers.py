@@ -214,28 +214,34 @@ def _contact_users_for_user(user: User):
 
     viewer_profile = getattr(user, "profile", None)
     viewer_mode = getattr(viewer_profile, "contact_visibility_mode", Profile.CONTACT_VISIBILITY_ALL)
-    if viewer_mode == Profile.CONTACT_VISIBILITY_SELECTED:
-        allowed_ids = getattr(viewer_profile, "contact_visible_to", None)
-        allowed_ids = allowed_ids.values_list("id", flat=True) if allowed_ids is not None else []
-        allowed_category_ids = getattr(viewer_profile, "contact_visible_categories", None)
-        allowed_category_ids = allowed_category_ids.values_list("id", flat=True) if allowed_category_ids is not None else []
-        viewer_ids = (
-            User.objects
-            .filter(
-                Q(is_staff=True)
-                | Q(is_superuser=True)
-                | Q(profile__is_manager=True)
-                | Q(id__in=allowed_ids)
-                | Q(contact_categories__id__in=allowed_category_ids)
-            )
-            .values_list("id", flat=True)
+    allowed_ids_rel = getattr(viewer_profile, "contact_visible_to", None)
+    allowed_ids = allowed_ids_rel.values_list("id", flat=True) if allowed_ids_rel is not None else []
+    allowed_categories_rel = getattr(viewer_profile, "contact_visible_categories", None)
+    allowed_category_ids = (
+        allowed_categories_rel.values_list("id", flat=True) if allowed_categories_rel is not None else []
+    )
+    allowed_user_ids = (
+        User.objects
+        .filter(
+            Q(id__in=allowed_ids)
+            | Q(contact_categories__id__in=allowed_category_ids)
         )
-        return contact_users.filter(id__in=viewer_ids).distinct()
+        .values_list("id", flat=True)
+        .distinct()
+    )
 
-    return contact_users.filter(
+    if viewer_mode == Profile.CONTACT_VISIBILITY_SELECTED:
+        return contact_users.filter(id__in=allowed_user_ids).distinct()
+
+    visible_contacts = contact_users.filter(
         Q(profile__contact_visibility_mode=Profile.CONTACT_VISIBILITY_ALL)
         | Q(profile__contact_visible_to=user)
         | Q(profile__contact_visible_categories__members=user)
+    ).distinct()
+
+    admin_users = Q(is_staff=True) | Q(is_superuser=True) | Q(profile__is_manager=True)
+    return visible_contacts.filter(
+        ~admin_users | Q(id__in=allowed_user_ids)
     ).distinct()
 
 

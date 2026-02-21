@@ -816,6 +816,104 @@ def chat_file_upload_chunk(request, chatroom_name):
             except Exception:
                 pass
 
+
+@messenger_required
+def office_preview_pdf(request, message_id):
+    if request.method != "GET":
+        return HttpResponse(status=405)
+
+    message = get_object_or_404(GroupMessage.objects.select_related("group"), id=message_id)
+    chat_group = message.group
+    _assert_user_can_access_chat_group(request, chat_group)
+
+    if not getattr(message, "file", None):
+        return JsonResponse({"ok": False, "reason": "no_file"}, status=404)
+
+    src_path = getattr(message.file, "path", "") or ""
+    if not src_path or not os.path.exists(src_path):
+        return JsonResponse({"ok": False, "reason": "missing_file"}, status=404)
+
+    ext = os.path.splitext(src_path)[1].lower()
+    if ext not in [".docx", ".doc", ".xlsx", ".xls"]:
+        return JsonResponse({"ok": False, "reason": "not_office"}, status=400)
+
+    out_dir = os.path.join(str(getattr(settings, "MEDIA_ROOT", "")), "office_previews")
+    os.makedirs(out_dir, exist_ok=True)
+    out_pdf_name = f"msg-{message.id}.pdf"
+    out_pdf_path = os.path.join(out_dir, out_pdf_name)
+
+    try:
+        if os.path.exists(out_pdf_path) and os.path.getmtime(out_pdf_path) >= os.path.getmtime(src_path):
+            return JsonResponse({"ok": True, "url": f"{settings.MEDIA_URL}office_previews/{out_pdf_name}"})
+    except Exception:
+        pass
+
+    soffice_bin = shutil.which("soffice") or shutil.which("libreoffice")
+    if not soffice_bin:
+        return JsonResponse({"ok": False, "reason": "soffice_not_found"}, status=500)
+
+    profile_dir = tempfile.mkdtemp(prefix="lo-profile-")
+    tmp_out_dir = tempfile.mkdtemp(prefix=f"msg-{message.id}-", dir=out_dir)
+    try:
+        if os.name == "nt":
+            profile_uri = "file:///" + profile_dir.replace("\\", "/")
+        else:
+            profile_uri = "file://" + profile_dir
+
+        cmd = [
+            soffice_bin,
+            "--headless",
+            "--nologo",
+            "--nodefault",
+            "--nolockcheck",
+            "--nofirststartwizard",
+            f"-env:UserInstallation={profile_uri}",
+            "--convert-to",
+            "pdf",
+            "--outdir",
+            str(tmp_out_dir),
+            str(src_path),
+        ]
+
+        subprocess.run(cmd, check=True, timeout=90)
+
+        produced = None
+        for entry in os.scandir(tmp_out_dir):
+            if not entry.is_file():
+                continue
+            if not entry.name.lower().endswith(".pdf"):
+                continue
+            if produced is None or entry.stat().st_mtime > produced.stat().st_mtime:
+                produced = entry
+
+        if not produced:
+            return JsonResponse({"ok": False, "reason": "convert_failed"}, status=500)
+
+        try:
+            os.replace(produced.path, out_pdf_path)
+        except Exception:
+            try:
+                if os.path.exists(out_pdf_path):
+                    os.remove(out_pdf_path)
+            except Exception:
+                pass
+            shutil.move(produced.path, out_pdf_path)
+
+        return JsonResponse({"ok": True, "url": f"{settings.MEDIA_URL}office_previews/{out_pdf_name}"})
+    except subprocess.TimeoutExpired:
+        return JsonResponse({"ok": False, "reason": "timeout"}, status=504)
+    except Exception as e:
+        return JsonResponse({"ok": False, "reason": "error", "detail": str(e)}, status=500)
+    finally:
+        try:
+            shutil.rmtree(profile_dir, ignore_errors=True)
+        except Exception:
+            pass
+        try:
+            shutil.rmtree(tmp_out_dir, ignore_errors=True)
+        except Exception:
+            pass
+
 @messenger_required
 def chat_message_transcode(request, message_id):
     message = get_object_or_404(GroupMessage.objects.select_related("group"), id=message_id)

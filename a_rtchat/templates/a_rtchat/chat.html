@@ -1966,21 +1966,17 @@
         clearBody();
 
         var container = document.createElement("div");
-        container.className = "p-4 docx-wrapper-custom";
-        container.style.cssText = "min-height: 100%; background: white;";
+        container.className = "docx-wrapper-custom";
+        container.style.cssText = "min-height: 100%; background: white; overflow: auto; -webkit-overflow-scrolling: touch;";
         body.appendChild(container);
 
         if (!document.getElementById("docx-preview-style")) {
           var style = document.createElement("style");
           style.id = "docx-preview-style";
           style.textContent = [
-            ".docx-wrapper-custom .docx-wrapper { background: white !important; padding: 16px !important; }",
-            ".docx-wrapper-custom .docx-wrapper article { color: #111 !important; font-size: 14px; line-height: 1.8; unicode-bidi: plaintext; }",
-            ".docx-wrapper-custom .docx-wrapper article p { margin-bottom: 8px; direction: auto; unicode-bidi: plaintext; }",
-            ".docx-wrapper-custom .docx-wrapper article table { width: 100%; border-collapse: collapse; }",
-            ".docx-wrapper-custom .docx-wrapper article td, .docx-wrapper-custom .docx-wrapper article th { border: 1px solid #e5e7eb; padding: 6px 8px; }",
-            ".docx-wrapper-custom .docx-wrapper article img { max-width: 100%; height: auto; }",
-            ".docx-wrapper-custom .docx-wrapper section.docx { box-shadow: none !important; margin: 0 auto !important; padding: 20px !important; background: white !important; color: #111 !important; }",
+            ".docx-wrapper-custom { overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y pinch-zoom; }",
+            ".docx-wrapper-custom .docx-wrapper { background: white !important; padding: 0 !important; }",
+            ".docx-wrapper-custom .docx-wrapper section.docx { box-shadow: none !important; margin: 0 auto !important; }",
           ].join("\n");
           document.head.appendChild(style);
         }
@@ -1994,11 +1990,6 @@
           ignoreFonts: false,
           breakPages: true,
           useBase64URL: true,
-          useMathMLPolyfill: false,
-          renderHeaders: true,
-          renderFooters: true,
-          renderFootnotes: true,
-          renderEndnotes: true,
         });
 
         console.log("[file-viewer] docx-preview OK");
@@ -2297,18 +2288,58 @@
       { capture: true }
     );
 
-    document.addEventListener("click", (e) => {
+    document.addEventListener("click", async (e) => {
       const btn = e.target && e.target.closest ? e.target.closest("button.js-file-view-btn") : null;
       if (!btn) return;
 
       const downloadUrl = btn.getAttribute("data-download-url") || "";
       const previewUrl = btn.getAttribute("data-preview-url") || "";
+      const officePreviewUrl = btn.getAttribute("data-office-preview-url") || "";
       const filename = btn.getAttribute("data-file-name") || "";
       const mime = btn.getAttribute("data-file-mime") || "";
       if (!downloadUrl && !previewUrl) return;
 
       e.preventDefault();
       e.stopPropagation();
+
+      const ext = extOf(filename) || extOf(previewUrl) || extOf(downloadUrl);
+      const m = (mime || "").toLowerCase();
+      const isWord =
+        m === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        m === "application/msword" ||
+        (m === "application/octet-stream" && ext === ".docx") ||
+        ext === ".docx" ||
+        ext === ".doc";
+      const isExcel =
+        m === "application/vnd.ms-excel" ||
+        m === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        (m === "application/octet-stream" && (ext === ".xlsx" || ext === ".xls")) ||
+        ext === ".xlsx" ||
+        ext === ".xls";
+
+      if (officePreviewUrl && (isWord || isExcel)) {
+        openViewer({ downloadUrl, previewUrl: "", filename, mime, forceView: true });
+        if (body) body.innerHTML = '<div class="p-6 text-sm text-gray-600 dark:text-slate-300">در حال آماده\u200cسازی پیش\u200cنمایش\u2026</div>';
+
+        try {
+          const res = await fetch(officePreviewUrl, { credentials: "same-origin" });
+          const data = await res.json();
+          if (data && data.ok && data.url) {
+            openViewer({
+              downloadUrl,
+              previewUrl: data.url,
+              filename: String(filename || "").replace(/\.(docx|doc|xlsx|xls)$/i, ".pdf"),
+              mime: "application/pdf",
+              forceView: true,
+            });
+            return;
+          }
+        } catch (err) {
+        }
+
+        openViewer({ downloadUrl, previewUrl: "", filename, mime, forceView: true });
+        return;
+      }
 
       openViewer({ downloadUrl, previewUrl, filename, mime, forceView: true });
     });

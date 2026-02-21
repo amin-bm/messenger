@@ -229,6 +229,13 @@
             <button id="reply_cancel_btn" type="button" class="shrink-0 rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">✕</button>
           </div>
         </div>
+        <div class="px-1 pb-1">
+          <span id="sending_status" class="hidden items-center gap-2 text-sm font-medium text-gray-600 dark:text-slate-200" aria-live="polite">
+            <span class="rtchat-send-dot"></span>
+            <span id="sending_status_text">در حال ارسال…</span>
+            <button id="sending_retry_btn" type="button" class="hidden rounded-lg px-2 py-0.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-white/10">ارسال مجدد</button>
+          </span>
+        </div>
         <div class="relative flex items-center gap-2 rounded-xl bg-gray-100 border border-gray-200 px-3 focus-within:bg-white focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-200 dark:bg-white/10 dark:border-white/10 dark:focus-within:bg-white/10 dark:focus-within:border-sky-400/40 dark:focus-within:ring-sky-400/20" style="align-items: center; padding-top: 2px; padding-bottom: 2px;">
           <button id="file_pick_btn" type="button" class="text-gray-500 hover:text-gray-700 dark:text-slate-300 dark:hover:text-white" aria-label="Attach file">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
@@ -386,6 +393,19 @@
     0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55); }
     70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
     100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+  .rtchat-send-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: #64748b;
+    box-shadow: 0 0 0 0 rgba(100, 116, 139, 0.5);
+    animation: rtchatSendPulse 1.4s ease-out infinite;
+  }
+  @keyframes rtchatSendPulse {
+    0% { box-shadow: 0 0 0 0 rgba(100, 116, 139, 0.5); }
+    70% { box-shadow: 0 0 0 10px rgba(100, 116, 139, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(100, 116, 139, 0); }
   }
 </style>
 <script>
@@ -3425,6 +3445,16 @@
     const CHUNK_THRESHOLD = 1024 * 1024;
     const CHUNK_UPLOAD_URL = "{% url 'chat-file-upload-chunk' chat_group.group_name %}";
 
+    const sendingStatus = document.getElementById("sending_status");
+    const sendingTextEl = document.getElementById("sending_status_text");
+    const sendingRetryBtn = document.getElementById("sending_retry_btn");
+    let pendingQueue = [];
+    let tickTimer = null;
+    let lastShownState = "";
+    function sendBlocked() {
+      return pendingQueue.length > 0 && (lastShownState === "sending" || lastShownState === "waiting");
+    }
+
     function isVisible(el) {
       return Boolean(el) && !el.classList.contains("hidden") && !el.classList.contains("sr-only");
     }
@@ -3460,6 +3490,115 @@
 
     function hasInFlightUpload() {
       return Boolean(window.rtchatCurrentUploadXhr) || isVisible(progressWrapper);
+    }
+
+    function ensureTicker() {
+      if (tickTimer) return;
+      tickTimer = setInterval(updateSendingIndicator, 500);
+    }
+
+    function stopTickerIfIdle() {
+      if (pendingQueue.length === 0 && tickTimer) {
+        clearInterval(tickTimer);
+        tickTimer = null;
+      }
+    }
+
+    function updateSendingIndicator() {
+      if (!sendingStatus || pendingQueue.length === 0) {
+        if (sendingStatus) sendingStatus.classList.add("hidden");
+        lastShownState = "";
+        stopTickerIfIdle();
+        update();
+        return;
+      }
+      const oldest = pendingQueue[0];
+      const age = Date.now() - oldest.start;
+      const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
+      let state = "";
+      if (age < 800) state = "idle";
+      else if (age >= 15000) state = "failed";
+      else if (offline || age >= 5000) state = "waiting";
+      else state = "sending";
+      if (state === "idle") {
+        sendingStatus.classList.add("hidden");
+        lastShownState = state;
+        update();
+        return;
+      }
+      sendingStatus.classList.remove("hidden");
+      sendingRetryBtn && sendingRetryBtn.classList.toggle("hidden", state !== "failed");
+      if (sendingTextEl) {
+        if (state === "failed") sendingTextEl.textContent = "ارسال ناموفق";
+        else if (state === "waiting") sendingTextEl.textContent = "در انتظار اتصال…";
+        else sendingTextEl.textContent = "در حال ارسال…";
+      }
+      sendingStatus.classList.remove("text-red-600", "text-yellow-600", "text-gray-500");
+      sendingStatus.classList.add(state === "failed" ? "text-red-600" : (state === "waiting" ? "text-yellow-600" : "text-gray-500"));
+      const dot = sendingStatus.querySelector(".rtchat-send-dot");
+      if (dot) {
+        if (state === "failed") dot.style.background = "#ef4444";
+        else if (state === "waiting") dot.style.background = "#d97706";
+        else dot.style.background = "#64748b";
+      }
+      lastShownState = state;
+      update();
+    }
+
+    function ackOneIfOwnLast() {
+      if (pendingQueue.length === 0) return;
+      const list = document.getElementById("chat_messages");
+      if (!list) return;
+      const nodes = list.querySelectorAll('li[id^="msg-"][data-message-author]');
+      const last = nodes.length ? nodes[nodes.length - 1] : null;
+      if (last && last.dataset && last.dataset.messageAuthor === "شما") {
+        pendingQueue.shift();
+        updateSendingIndicator();
+        stopTickerIfIdle();
+      }
+    }
+
+    function handleSubmitCapture() {
+      if (!messageForm || !bodyInput) return;
+      const v = (bodyInput.value || "").trim();
+      if (!v) return;
+      if (fileInput && fileInput.files && fileInput.files.length) return;
+      const replyInput = document.getElementById("reply_to_input");
+      const replyTo = replyInput ? (replyInput.value || "").trim() : "";
+      pendingQueue.push({ text: v, replyTo: replyTo, start: Date.now() });
+      ensureTicker();
+      setTimeout(updateSendingIndicator, 850);
+    }
+
+    if (messageForm) {
+      messageForm.addEventListener("submit", handleSubmitCapture);
+    }
+
+    document.body.addEventListener("htmx:wsAfterMessage", ackOneIfOwnLast);
+    document.body.addEventListener("htmx:oobAfterSwap", (e) => {
+      const t = e && e.target ? e.target : null;
+      if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) { ackOneIfOwnLast(); update(); }
+    });
+    document.body.addEventListener("htmx:afterSwap", (e) => {
+      const t = e && e.target ? e.target : null;
+      if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) { ackOneIfOwnLast(); update(); }
+    });
+    window.addEventListener("online", () => { updateSendingIndicator(); update(); });
+    window.addEventListener("offline", () => { updateSendingIndicator(); update(); });
+    if (sendingRetryBtn) {
+      sendingRetryBtn.addEventListener("click", () => {
+        if (!messageForm || !bodyInput) return;
+        if (pendingQueue.length === 0) return;
+        const item = pendingQueue.shift();
+        const replyInput = document.getElementById("reply_to_input");
+        if (replyInput) replyInput.value = item && item.replyTo ? item.replyTo : "";
+        bodyInput.value = item && item.text ? item.text : "";
+        bodyInput.dispatchEvent(new Event("input", { bubbles: true }));
+        trySubmit(messageForm);
+        ensureTicker();
+        updateSendingIndicator();
+        update();
+      });
     }
 
     function isFileDragEvent(e) {
@@ -3766,6 +3905,12 @@
       const showSend = hasFile() || (!voicePreviewVisible && hasText());
       sendBtn.classList.toggle("hidden", !showSend);
       recordBtn.classList.toggle("hidden", showSend);
+      const blocked = sendBlocked();
+      sendBtn.classList.toggle("opacity-50", blocked);
+      sendBtn.classList.toggle("cursor-not-allowed", blocked);
+      sendBtn.classList.toggle("pointer-events-none", blocked);
+      if (blocked) sendBtn.setAttribute("aria-disabled", "true");
+      else sendBtn.removeAttribute("aria-disabled");
     }
 
     function trySubmit(form) {
@@ -3829,6 +3974,7 @@
 
     sendBtn.addEventListener("click", (e) => {
       e.preventDefault();
+      if (sendBlocked()) { update(); return; }
       if (hasFile()) uploadFileWithProgress();
       else if (hasText()) trySubmit(messageForm);
       update();

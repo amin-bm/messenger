@@ -238,11 +238,7 @@ def _contact_users_for_user(user: User):
         | Q(profile__contact_visible_to=user)
         | Q(profile__contact_visible_categories__members=user)
     ).distinct()
-
-    admin_users = Q(is_staff=True) | Q(is_superuser=True) | Q(profile__is_manager=True)
-    return visible_contacts.filter(
-        ~admin_users | Q(id__in=allowed_user_ids)
-    ).distinct()
+    return visible_contacts
 
 
 

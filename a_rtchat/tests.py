@@ -65,6 +65,13 @@ class ContactVisibilityTests(TestCase):
 
         qs = _contact_users_for_user(viewer)
         ids = set(qs.values_list("id", flat=True))
+        self.assertIn(admin_user.id, ids)
+
+        viewer.profile.contact_visibility_mode = Profile.CONTACT_VISIBILITY_SELECTED
+        viewer.profile.save(update_fields=["contact_visibility_mode"])
+
+        qs = _contact_users_for_user(viewer)
+        ids = set(qs.values_list("id", flat=True))
         self.assertNotIn(admin_user.id, ids)
 
         viewer.profile.contact_visible_to.add(admin_user)

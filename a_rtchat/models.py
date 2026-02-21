@@ -139,7 +139,23 @@ class GroupMessage(models.Model):
          return False
       ext = os.path.splitext(self.file.name or "")[1].lower()
       return ext in self.IMAGE_EXTENSIONS
-         
+   
+   VIDEO_EXTENSIONS = frozenset({
+      ".mp4", ".webm", ".ogv", ".mov", ".m4v"
+   })
+   
+   @cached_property
+   def is_video(self):
+      if not self.file:
+         return False
+      if self.is_audio:
+         return False
+      mime = self.mime_type or ""
+      if mime.startswith("video/"):
+         return True
+      ext = os.path.splitext(self.file.name or "")[1].lower()
+      return ext in self.VIDEO_EXTENSIONS
+      
 
    
     

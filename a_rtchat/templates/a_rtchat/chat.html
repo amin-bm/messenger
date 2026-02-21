@@ -1710,6 +1710,20 @@
       }
     }
 
+    function isIOS() {
+      try {
+        const p = navigator.platform || "";
+        const ua = navigator.userAgent || "";
+        const isAppleTouch =
+          (p === "MacIntel" && navigator.maxTouchPoints && navigator.maxTouchPoints > 1) ||
+          /iPad|iPhone|iPod/.test(p) ||
+          /iPad|iPhone|iPod/.test(ua);
+        return Boolean(isAppleTouch);
+      } catch (e) {
+        return false;
+      }
+    }
+
     function shouldUseViewer() {
       try {
         if (typeof isStandaloneDisplay === "function" && isStandaloneDisplay()) return true;
@@ -1722,6 +1736,74 @@
       const n = String(name || "");
       const i = n.lastIndexOf(".");
       return i < 0 ? "" : n.slice(i).toLowerCase();
+    }
+
+    function bindPinchZoom(target, getScale, setScale) {
+      if (!target || typeof target.addEventListener !== "function") return;
+      let active = false;
+      let startDist = 0;
+      let startScale = 1;
+
+      function dist(t0, t1) {
+        const dx = (t0.clientX || 0) - (t1.clientX || 0);
+        const dy = (t0.clientY || 0) - (t1.clientY || 0);
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+
+      target.addEventListener(
+        "touchstart",
+        (e) => {
+          if (!e || !e.touches || e.touches.length !== 2) return;
+          active = true;
+          startDist = dist(e.touches[0], e.touches[1]) || 0;
+          try {
+            startScale = Number(getScale()) || 1;
+          } catch (err) {
+            startScale = 1;
+          }
+        },
+        { passive: true }
+      );
+
+      target.addEventListener(
+        "touchmove",
+        (e) => {
+          if (!active || !e || !e.touches || e.touches.length !== 2) return;
+          const d = dist(e.touches[0], e.touches[1]) || 0;
+          if (!startDist || !d) return;
+          const next = (Number(startScale) || 1) * (d / startDist);
+          e.preventDefault();
+          try {
+            setScale(next);
+          } catch (err) {
+          }
+        },
+        { passive: false }
+      );
+
+      function end(e) {
+        if (!e || !e.touches || e.touches.length < 2) active = false;
+      }
+      target.addEventListener("touchend", end, { passive: true });
+      target.addEventListener("touchcancel", end, { passive: true });
+    }
+
+    function getViewerDir() {
+      try {
+        const v = String(localStorage.getItem("fileViewerDir") || "").toLowerCase();
+        if (v === "rtl" || v === "ltr") return v;
+      } catch (e) {
+      }
+      return "auto";
+    }
+
+    function setViewerDir(v) {
+      const val = String(v || "").toLowerCase() === "ltr" ? "ltr" : "rtl";
+      try {
+        localStorage.setItem("fileViewerDir", val);
+      } catch (e) {
+      }
+      return val;
     }
 
     function clearBody() {
@@ -1965,24 +2047,46 @@
 
         clearBody();
 
-        var container = document.createElement("div");
-        container.className = "docx-wrapper-custom";
-        container.style.cssText = "min-height: 100%; background: white; overflow: auto; -webkit-overflow-scrolling: touch;";
-        body.appendChild(container);
+        var scroller = document.createElement("div");
+        scroller.className = "docx-wrapper-custom";
+        scroller.style.cssText = [
+          "min-height: 100%;",
+          "background: white;",
+          "overflow: auto;",
+          "-webkit-overflow-scrolling: touch;",
+          "padding: 16px 24px 16px 16px;",
+          "box-sizing: border-box;",
+        ].join(" ");
+        scroller.dataset.dir = "auto";
 
-        if (!document.getElementById("docx-preview-style")) {
-          var style = document.createElement("style");
+        var scaleWrap = document.createElement("div");
+        scaleWrap.style.cssText = "width: 100%; display: flex; justify-content: flex-end; overflow: visible;";
+
+        var inner = document.createElement("div");
+        inner.style.cssText = "transform-origin: top right; width: fit-content; margin-left: auto;";
+        scaleWrap.appendChild(inner);
+        scroller.appendChild(scaleWrap);
+        body.appendChild(scroller);
+
+        var style = document.getElementById("docx-preview-style");
+        if (!style) {
+          style = document.createElement("style");
           style.id = "docx-preview-style";
-          style.textContent = [
-            ".docx-wrapper-custom { overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y pinch-zoom; }",
-            ".docx-wrapper-custom .docx-wrapper { background: white !important; padding: 0 !important; }",
-            ".docx-wrapper-custom .docx-wrapper section.docx { box-shadow: none !important; margin: 0 auto !important; }",
-          ].join("\n");
           document.head.appendChild(style);
         }
+        style.textContent = [
+          ".docx-wrapper-custom { overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y pinch-zoom; }",
+          ".docx-wrapper-custom .docx-wrapper-wrapper { background: white !important; padding: 0 !important; }",
+          ".docx-wrapper-custom .docx-wrapper { background: white !important; padding: 0 !important; border: none !important; outline: none !important; box-shadow: none !important; }",
+          ".docx-wrapper-custom .docx-wrapper section.docx { box-shadow: none !important; margin: 0 !important; box-sizing: border-box !important; overflow: visible !important; border: none !important; outline: none !important; background: white !important; width: 100% !important; max-width: none !important; min-height: auto !important; }",
+          ".docx-wrapper-custom[data-dir='rtl'] { padding-right: 28px !important; padding-left: 8px !important; }",
+          ".docx-wrapper-custom[data-dir='ltr'] { padding-left: 28px !important; padding-right: 8px !important; }",
+          ".docx-wrapper-custom[data-dir='rtl'] .docx-wrapper section.docx { padding-right: 56px !important; padding-left: 0 !important; }",
+          ".docx-wrapper-custom[data-dir='ltr'] .docx-wrapper section.docx { padding-left: 56px !important; padding-right: 0 !important; }",
+        ].join("\n");
 
         console.log("[file-viewer] rendering with docx-preview...");
-        await window.docx.renderAsync(arrayBuffer, container, null, {
+        await window.docx.renderAsync(arrayBuffer, inner, null, {
           className: "docx-wrapper",
           inWrapper: true,
           ignoreWidth: false,
@@ -1993,14 +2097,274 @@
         });
 
         console.log("[file-viewer] docx-preview OK");
-        container
+
+        // ── پیدا کردن کادر خاکستری ──
+        (function () {
+          var allEls = inner.querySelectorAll("*");
+          allEls.forEach(function (el) {
+            var cs = window.getComputedStyle(el);
+            var bg = cs.backgroundColor || "";
+            var border = cs.border || "";
+            var borderTop = cs.borderTopWidth || "";
+            var outline = cs.outline || "";
+            var boxShadow = cs.boxShadow || "";
+
+            var hasGrayBg = bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" && bg !== "rgb(255, 255, 255)";
+            var hasBorder = parseFloat(borderTop) > 0;
+            var hasOutline = outline && outline !== "none";
+            var hasShadow = boxShadow && boxShadow !== "none";
+
+            if (hasGrayBg || hasBorder || hasOutline || hasShadow) {
+              console.log("[docx gray hunt]", {
+                tag: el.tagName,
+                className: el.className,
+                id: el.id,
+                bg: bg,
+                border: cs.borderTop + " | " + cs.borderRight + " | " + cs.borderBottom + " | " + cs.borderLeft,
+                outline: outline,
+                boxShadow: boxShadow,
+                rect: JSON.stringify(el.getBoundingClientRect()),
+                inlineStyle: el.style.cssText.substring(0, 200),
+              });
+            }
+          });
+        })();
+
+        // ── لاگ: پیدا کردن کادر خاکستری از بیرون inner ──
+        (function () {
+          var chain = [inner, scaleWrap, scroller, body];
+          var names = ["inner", "scaleWrap", "scroller", "body(viewer)"];
+          chain.forEach(function (el, i) {
+            if (!el) return;
+            var cs = window.getComputedStyle(el);
+            console.log("[docx chain " + names[i] + "]", {
+              tag: el.tagName,
+              className: (el.className || "").substring(0, 80),
+              bg: cs.backgroundColor,
+              borderTop: cs.borderTopWidth + " " + cs.borderTopStyle + " " + cs.borderTopColor,
+              borderRight: cs.borderRightWidth + " " + cs.borderRightStyle + " " + cs.borderRightColor,
+              borderBottom: cs.borderBottomWidth + " " + cs.borderBottomStyle + " " + cs.borderBottomColor,
+              borderLeft: cs.borderLeftWidth + " " + cs.borderLeftStyle + " " + cs.borderLeftColor,
+              boxShadow: cs.boxShadow,
+              outline: cs.outline,
+              rect: JSON.stringify(el.getBoundingClientRect()),
+            });
+          });
+
+          var viewer = body;
+          for (var j = 0; j < 5; j++) {
+            viewer = viewer ? viewer.parentElement : null;
+            if (!viewer) break;
+            var cs2 = window.getComputedStyle(viewer);
+            var bg2 = cs2.backgroundColor || "";
+            var hasBg = bg2 && bg2 !== "rgba(0, 0, 0, 0)" && bg2 !== "transparent" && bg2 !== "rgb(255, 255, 255)";
+            console.log("[docx parent " + j + "]", {
+              tag: viewer.tagName,
+              id: viewer.id,
+              className: (viewer.className || "").substring(0, 80),
+              bg: bg2,
+              hasBg: hasBg,
+              border: cs2.border,
+              boxShadow: cs2.boxShadow,
+              rect: JSON.stringify(viewer.getBoundingClientRect()),
+            });
+          }
+
+          var sec = inner.querySelector("section.docx") || inner.querySelector("section");
+          if (sec) {
+            var cs3 = window.getComputedStyle(sec);
+            console.log("[docx section detail]", {
+              bg: cs3.backgroundColor,
+              border: cs3.border,
+              boxShadow: cs3.boxShadow,
+              outline: cs3.outline,
+              inlineStyle: sec.style.cssText.substring(0, 300),
+              width: cs3.width,
+              minWidth: cs3.minWidth,
+              maxWidth: cs3.maxWidth,
+            });
+          }
+        })();
+
+        // لاگ جدید
+        var section = inner.querySelector("section.docx");
+        if (section) {
+          var cs = window.getComputedStyle(section);
+          console.log("[docx section] getBoundingClientRect:", JSON.stringify(section.getBoundingClientRect()));
+          console.log("[docx section] scrollWidth:", section.scrollWidth);
+          console.log("[docx section] offsetLeft:", section.offsetLeft);
+          console.log("[docx section] offsetParent:", section.offsetParent ? section.offsetParent.tagName + " id=" + section.offsetParent.id : "null");
+          console.log("[docx section] computed paddingLeft:", cs.paddingLeft);
+          console.log("[docx section] computed paddingRight:", cs.paddingRight);
+          console.log("[docx section] computed marginLeft:", cs.marginLeft);
+          console.log("[docx section] computed marginRight:", cs.marginRight);
+          console.log("[docx section] computed width:", cs.width);
+          console.log("[docx section] computed direction:", cs.direction);
+          console.log("[docx section] innerHTML (first 300 chars):", section.innerHTML.substring(0, 300));
+        }
+
+        var wrapper = inner.querySelector(".docx-wrapper");
+        if (wrapper) {
+          var csw = window.getComputedStyle(wrapper);
+          console.log("[docx wrapper] getBoundingClientRect:", JSON.stringify(wrapper.getBoundingClientRect()));
+          console.log("[docx wrapper] computed paddingLeft:", csw.paddingLeft);
+          console.log("[docx wrapper] computed paddingRight:", csw.paddingRight);
+          console.log("[docx wrapper] computed marginLeft:", csw.marginLeft);
+          console.log("[docx wrapper] computed marginRight:", csw.marginRight);
+          console.log("[docx wrapper] computed direction:", csw.direction);
+        }
+
+        console.log("[docx inner] getBoundingClientRect:", JSON.stringify(inner.getBoundingClientRect()));
+        console.log("[docx inner] style.cssText:", inner.style.cssText);
+        console.log("[docx scroller] getBoundingClientRect:", JSON.stringify(scroller.getBoundingClientRect()));
+        console.log("[docx scroller] style.cssText:", scroller.style.cssText);
+        console.log("[docx body(viewer)] getBoundingClientRect:", JSON.stringify(body.getBoundingClientRect()));
+
+        inner
           .querySelectorAll("p, span, td, th, li, h1, h2, h3, h4, h5, h6")
           .forEach(function (el) {
             el.setAttribute("dir", "auto");
           });
 
+        inner.querySelectorAll("section").forEach(function (sec) {
+          var sw = sec.scrollWidth || 0;
+          var cw = sec.clientWidth || sec.getBoundingClientRect().width || 0;
+          var currentPR = parseFloat(window.getComputedStyle(sec).paddingRight) || 0;
+          var currentPL = parseFloat(window.getComputedStyle(sec).paddingLeft) || 0;
+          var overflow = sw - cw;
+
+          console.log("[docx section fix] scrollWidth:", sw, "clientWidth:", cw, "overflow:", overflow, "paddingR:", currentPR, "paddingL:", currentPL);
+
+          if (currentPR < 32) sec.style.paddingRight = "32px";
+          if (currentPL < 32) sec.style.paddingLeft = "32px";
+
+          sec.style.minWidth = Math.max(sw, cw) + "px";
+          sec.style.overflow = "visible";
+          sec.style.boxSizing = "content-box";
+        });
+
+        function applyFit(scale) {
+          try {
+            var page = inner.querySelector("section.docx") || inner.querySelector(".docx-wrapper") || inner;
+            var w = page ? (page.scrollWidth || page.getBoundingClientRect().width || 0) : 0;
+            var h = inner.scrollHeight || 0;
+            var available = Math.max(1, scroller.clientWidth - 48);
+            var fit = w > 0 ? Math.min(1, available / w) : 1;
+            var s = typeof scale === "number" ? Math.max(0.25, Math.min(3, scale)) : fit;
+
+            inner.style.transform = "scale(" + s + ")";
+            inner.style.transformOrigin = "top right";
+
+            var scaledH = Math.ceil(h * s);
+
+            scaleWrap.style.height = scaledH ? scaledH + "px" : "auto";
+            scaleWrap.dataset.scale = String(s);
+          } catch (e) {
+            console.error("[applyFit]", e);
+          }
+        }
+
+        function applyDir(dir) {
+          const raw = String(dir || "").toLowerCase();
+          const d = raw === "auto" ? "auto" : raw === "ltr" ? "ltr" : "rtl";
+          var hasRTLContent = false;
+          if (d === "auto") {
+            var sampleText = (inner.textContent || "").trim().substring(0, 200);
+            var persianPattern = /[\u0600-\u06FF]/;
+            hasRTLContent = persianPattern.test(sampleText);
+          }
+
+          var effectiveDir = d === "auto" ? (hasRTLContent ? "rtl" : "ltr") : d;
+          
+          scaleWrap.dataset.dir = d;
+          scroller.dataset.dir = d;
+
+          // تنظیم position محتوا بر اساس جهت
+          if (effectiveDir === "rtl") {
+            inner.style.left = "auto";
+            inner.style.right = "0px";
+          } else {
+            inner.style.left = "0px";
+            inner.style.right = "auto";
+          }
+          scroller.style.padding = d === "rtl" ? "8px 24px 8px 16px" : d === "ltr" ? "8px 16px 8px 24px" : "8px 16px";
+          const els = inner.querySelectorAll("p, span, td, th, li, h1, h2, h3, h4, h5, h6");
+          els.forEach(function (el) {
+            if (d === "auto") {
+              el.setAttribute("dir", "auto");
+              el.style.direction = "";
+              el.style.textAlign = "";
+            } else {
+              el.setAttribute("dir", d);
+              el.style.direction = d;
+              el.style.textAlign = d === "rtl" ? "right" : "left";
+            }
+          });
+          return d;
+        }
+
+        let activeDir = applyDir(getViewerDir());
+        // کمی صبر کن DOM آپدیت بشه
+        requestAnimationFrame(() => {
+          applyFit();
+        });
+        bindPinchZoom(
+          scroller,
+          () => parseFloat(scaleWrap.dataset.scale || "1") || 1,
+          (s) => applyFit(Math.max(0.25, Math.min(3, Number(s) || 1)))
+        );
+
         var bar = document.createElement("div");
         bar.className = "sticky bottom-0 flex justify-center gap-3 bg-gradient-to-t from-white via-white/95 to-transparent px-4 pb-4 pt-8 dark:from-slate-950 dark:via-slate-950/95";
+
+        var zoomOutBtn = document.createElement("button");
+        zoomOutBtn.type = "button";
+        zoomOutBtn.className =
+          "rounded-xl bg-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-800 hover:bg-gray-300 shadow dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 min-h-[36px]";
+        zoomOutBtn.textContent = "−";
+        zoomOutBtn.addEventListener("click", function () {
+          var cur = parseFloat(scaleWrap.dataset.scale || "1") || 1;
+          applyFit(cur / 1.15);
+        });
+
+        var zoomInBtn = document.createElement("button");
+        zoomInBtn.type = "button";
+        zoomInBtn.className =
+          "rounded-xl bg-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-800 hover:bg-gray-300 shadow dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 min-h-[36px]";
+        zoomInBtn.textContent = "+";
+        zoomInBtn.addEventListener("click", function () {
+          var cur = parseFloat(scaleWrap.dataset.scale || "1") || 1;
+          applyFit(cur * 1.15);
+        });
+
+        function dirBtnClass(isActive) {
+          return isActive
+            ? "rounded-xl bg-white px-4 py-2.5 text-xs font-semibold text-blue-600 shadow ring-1 ring-black/5 min-h-[36px] dark:bg-white/10 dark:text-sky-300 dark:ring-white/10"
+            : "rounded-xl bg-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-800 hover:bg-gray-300 shadow min-h-[36px] dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15";
+        }
+
+        function refreshDirUI() {
+          rtlBtn.className = dirBtnClass(activeDir === "rtl");
+          ltrBtn.className = dirBtnClass(activeDir === "ltr");
+        }
+
+        var rtlBtn = document.createElement("button");
+        rtlBtn.type = "button";
+        rtlBtn.textContent = "RTL";
+        rtlBtn.addEventListener("click", function () {
+          activeDir = applyDir(setViewerDir("rtl"));
+          applyFit(parseFloat(scaleWrap.dataset.scale || "1") || 1);
+          refreshDirUI();
+        });
+
+        var ltrBtn = document.createElement("button");
+        ltrBtn.type = "button";
+        ltrBtn.textContent = "LTR";
+        ltrBtn.addEventListener("click", function () {
+          activeDir = applyDir(setViewerDir("ltr"));
+          applyFit(parseFloat(scaleWrap.dataset.scale || "1") || 1);
+          refreshDirUI();
+        });
 
         var dlBtn = document.createElement("button");
         dlBtn.type = "button";
@@ -2016,6 +2380,11 @@
         clBtn.textContent = "بستن";
         clBtn.addEventListener("click", requestClose);
 
+        refreshDirUI();
+        bar.appendChild(zoomOutBtn);
+        bar.appendChild(zoomInBtn);
+        bar.appendChild(rtlBtn);
+        bar.appendChild(ltrBtn);
         bar.appendChild(dlBtn);
         bar.appendChild(clBtn);
         body.appendChild(bar);
@@ -2055,6 +2424,11 @@
         var wrapper = document.createElement("div");
         wrapper.className = "flex flex-col h-full";
 
+        var activeClass =
+          "shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm ring-1 ring-black/5 dark:bg-white/10 dark:text-sky-400 dark:ring-white/10";
+        var inactiveClass =
+          "shrink-0 rounded-lg px-3 py-1.5 text-xs text-gray-600 hover:bg-white/80 dark:text-slate-300 dark:hover:bg-white/5";
+
         var tabsBar = null;
         if (workbook.SheetNames.length > 1) {
           tabsBar = document.createElement("div");
@@ -2066,74 +2440,192 @@
             tab.type = "button";
             tab.textContent = name;
             tab.dataset.sheetIndex = String(i);
-            tab.className =
-              i === 0
-                ? "shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm ring-1 ring-black/5 dark:bg-white/10 dark:text-sky-400 dark:ring-white/10"
-                : "shrink-0 rounded-lg px-3 py-1.5 text-xs text-gray-600 hover:bg-white/80 dark:text-slate-300 dark:hover:bg-white/5";
+            tab.className = i === 0 ? activeClass : inactiveClass;
             tabsBar.appendChild(tab);
           });
           wrapper.appendChild(tabsBar);
         }
 
-        var contentArea = document.createElement("div");
-        contentArea.className = "flex-1 min-h-0 overflow-auto";
+        var scroller = document.createElement("div");
+        scroller.className = "flex-1 min-h-0 overflow-auto";
+        scroller.style.cssText = "background: white; -webkit-overflow-scrolling: touch; padding: 8px;";
 
-        var activeClass =
-          "shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm ring-1 ring-black/5 dark:bg-white/10 dark:text-sky-400 dark:ring-white/10";
-        var inactiveClass =
-          "shrink-0 rounded-lg px-3 py-1.5 text-xs text-gray-600 hover:bg-white/80 dark:text-slate-300 dark:hover:bg-white/5";
+        var scaleWrap = document.createElement("div");
+        scaleWrap.style.cssText = "position: relative;";
 
-        function showSheet(index) {
+        var inner = document.createElement("div");
+        inner.style.cssText = "position: absolute; top: 0; left: 0; transform-origin: top left;";
+        scaleWrap.appendChild(inner);
+        scroller.appendChild(scaleWrap);
+        wrapper.appendChild(scroller);
+
+        function applyFit(scale) {
+          try {
+            var table = inner.querySelector("table");
+            var w = table ? (table.scrollWidth || table.getBoundingClientRect().width || 0) : (inner.scrollWidth || 0);
+            var h = inner.scrollHeight || (table ? table.scrollHeight : 0) || 0;
+            var dir = String(scaleWrap.dataset.dir || "auto").toLowerCase();
+            if (dir !== "rtl" && dir !== "ltr") dir = "auto";
+            var cs = window.getComputedStyle ? window.getComputedStyle(scroller) : null;
+            var pl = cs ? parseFloat(cs.paddingLeft || "0") || 0 : 0;
+            var pr = cs ? parseFloat(cs.paddingRight || "0") || 0 : 0;
+            var available = Math.max(1, (scroller.clientWidth || body.clientWidth || 1) - pl - pr);
+            var fit = w > 0 ? Math.min(1, available / w) : 1;
+            var s = typeof scale === "number" ? Math.max(0.25, Math.min(3, scale)) : fit;
+            inner.style.transform = "scale(" + s + ")";
+            if (w > 0) inner.style.width = w + "px";
+            if (w > 0) {
+              var scaledW = Math.ceil(w * s);
+              var scaledH = h > 0 ? Math.ceil(h * s) : 0;
+
+              scaleWrap.style.width = scaledW + "px";
+              scaleWrap.style.height = scaledH ? scaledH + "px" : "auto";
+
+              if (scaledW <= available) {
+                scaleWrap.style.marginLeft = dir === "rtl" ? "auto" : "0";
+                scaleWrap.style.marginRight = dir === "ltr" ? "auto" : "0";
+              } else {
+                scaleWrap.style.marginLeft = "0";
+                scaleWrap.style.marginRight = "0";
+              }
+            } else {
+              scaleWrap.style.width = "100%";
+              scaleWrap.style.height = "auto";
+              scaleWrap.style.marginLeft = "0";
+              scaleWrap.style.marginRight = "0";
+            }
+            scaleWrap.dataset.scale = String(s);
+          } catch (e) {
+          }
+        }
+
+        function applyDir(dir) {
+          const raw = String(dir || "").toLowerCase();
+          const d = raw === "auto" ? "auto" : raw === "ltr" ? "ltr" : "rtl";
+          scaleWrap.dataset.dir = d;
+          inner.setAttribute("dir", d === "auto" ? "auto" : d);
+          inner.style.direction = d === "auto" ? "" : d;
+          inner.style.textAlign = d === "auto" ? "" : d === "rtl" ? "right" : "left";
+          scroller.style.padding = d === "rtl" ? "8px 56px 8px 12px" : d === "ltr" ? "8px 12px 8px 56px" : "8px";
+          return d;
+        }
+
+        function renderSheet(index) {
           var sheet = workbook.Sheets[workbook.SheetNames[index]];
           var html = XLSX.utils.sheet_to_html(sheet, { editable: false });
-          contentArea.innerHTML = "";
+          inner.innerHTML = "";
 
           var tableWrap = document.createElement("div");
-          tableWrap.className = "p-2";
           tableWrap.innerHTML = html;
 
           var table = tableWrap.querySelector("table");
           if (table) {
-            table.className = "w-full border-collapse text-xs";
+            table.className = "border-collapse text-xs";
             table.style.fontFamily = "Tahoma, 'Segoe UI', system-ui, sans-serif";
-            
+            table.style.background = "white";
+            if (activeDir === "auto") {
+              table.style.direction = "";
+              table.style.textAlign = "";
+            } else {
+              table.style.direction = activeDir;
+              table.style.textAlign = activeDir === "rtl" ? "right" : "left";
+            }
+
             table.querySelectorAll("td").forEach(function (cell) {
               cell.className = "border border-gray-200 px-2 py-1.5 text-gray-800 dark:border-white/10 dark:text-slate-200";
-              cell.setAttribute("dir", "auto");
+              cell.setAttribute("dir", activeDir === "auto" ? "auto" : activeDir);
+              cell.style.textAlign = activeDir === "auto" ? "" : activeDir === "rtl" ? "right" : "left";
               cell.style.whiteSpace = "normal";
               cell.style.fontFamily = "inherit";
             });
             table.querySelectorAll("th").forEach(function (th) {
               th.className = "border border-gray-200 bg-gray-50 px-2 py-1.5 font-semibold text-gray-700 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200";
-              th.setAttribute("dir", "auto");
+              th.setAttribute("dir", activeDir === "auto" ? "auto" : activeDir);
+              th.style.textAlign = activeDir === "auto" ? "" : activeDir === "rtl" ? "right" : "left";
               th.style.whiteSpace = "normal";
               th.style.fontFamily = "inherit";
             });
           }
 
-          contentArea.appendChild(tableWrap);
+          inner.appendChild(tableWrap);
 
           if (tabsBar) {
             tabsBar.querySelectorAll("button[data-sheet-index]").forEach(function (t) {
               t.className = parseInt(t.dataset.sheetIndex) === index ? activeClass : inactiveClass;
             });
           }
+
+          applyFit();
         }
 
-        showSheet(0);
-        wrapper.appendChild(contentArea);
+        let activeDir = applyDir(getViewerDir());
+        renderSheet(0);
+        bindPinchZoom(
+          scroller,
+          () => parseFloat(scaleWrap.dataset.scale || "1") || 1,
+          (s) => applyFit(Math.max(0.25, Math.min(3, Number(s) || 1)))
+        );
 
         if (tabsBar) {
           tabsBar.addEventListener("click", function (e) {
             var tab = e.target && e.target.closest ? e.target.closest("button[data-sheet-index]") : null;
             if (!tab) return;
-            showSheet(parseInt(tab.dataset.sheetIndex));
+            renderSheet(parseInt(tab.dataset.sheetIndex));
           });
         }
 
         var bar = document.createElement("div");
         bar.className =
           "shrink-0 flex flex-wrap items-center justify-center gap-3 border-t border-gray-200/70 bg-white px-4 py-3 dark:border-white/10 dark:bg-slate-900";
+
+        var zoomOutBtn = document.createElement("button");
+        zoomOutBtn.type = "button";
+        zoomOutBtn.className =
+          "rounded-xl bg-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-800 hover:bg-gray-300 shadow dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 min-h-[36px]";
+        zoomOutBtn.textContent = "−";
+        zoomOutBtn.addEventListener("click", function () {
+          var cur = parseFloat(scaleWrap.dataset.scale || "1") || 1;
+          applyFit(cur / 1.15);
+        });
+
+        var zoomInBtn = document.createElement("button");
+        zoomInBtn.type = "button";
+        zoomInBtn.className =
+          "rounded-xl bg-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-800 hover:bg-gray-300 shadow dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 min-h-[36px]";
+        zoomInBtn.textContent = "+";
+        zoomInBtn.addEventListener("click", function () {
+          var cur = parseFloat(scaleWrap.dataset.scale || "1") || 1;
+          applyFit(cur * 1.15);
+        });
+
+        function dirBtnClass(isActive) {
+          return isActive
+            ? "rounded-xl bg-white px-4 py-2.5 text-xs font-semibold text-blue-600 shadow ring-1 ring-black/5 min-h-[36px] dark:bg-white/10 dark:text-sky-300 dark:ring-white/10"
+            : "rounded-xl bg-gray-200 px-4 py-2.5 text-xs font-semibold text-gray-800 hover:bg-gray-300 shadow min-h-[36px] dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15";
+        }
+
+        function refreshDirUI() {
+          rtlBtn.className = dirBtnClass(activeDir === "rtl");
+          ltrBtn.className = dirBtnClass(activeDir === "ltr");
+        }
+
+        var rtlBtn = document.createElement("button");
+        rtlBtn.type = "button";
+        rtlBtn.textContent = "RTL";
+        rtlBtn.addEventListener("click", function () {
+          activeDir = applyDir(setViewerDir("rtl"));
+          renderSheet(0);
+          refreshDirUI();
+        });
+
+        var ltrBtn = document.createElement("button");
+        ltrBtn.type = "button";
+        ltrBtn.textContent = "LTR";
+        ltrBtn.addEventListener("click", function () {
+          activeDir = applyDir(setViewerDir("ltr"));
+          renderSheet(0);
+          refreshDirUI();
+        });
 
         var dlBtn = document.createElement("button");
         dlBtn.type = "button";
@@ -2150,6 +2642,11 @@
         clBtn.textContent = "بستن";
         clBtn.addEventListener("click", requestClose);
 
+        refreshDirUI();
+        bar.appendChild(zoomOutBtn);
+        bar.appendChild(zoomInBtn);
+        bar.appendChild(rtlBtn);
+        bar.appendChild(ltrBtn);
         bar.appendChild(dlBtn);
         bar.appendChild(clBtn);
         wrapper.appendChild(bar);
@@ -2171,38 +2668,8 @@
         forceView: Boolean(forceView),
       };
 
-      title.textContent = current.filename || "فایل";
-      subtitle.textContent = current.mime || "";
-      openBtn.href = current.previewUrl || current.downloadUrl || "#";
-
-      modal.classList.remove("hidden");
-
-      if (shouldUseViewer()) {
-        openBtn.classList.add("hidden");
-        openBtn.classList.remove("flex");
-      } else {
-        openBtn.classList.remove("hidden");
-        openBtn.classList.add("flex");
-      }
-
-      try {
-        if (!historyPushed && window.history && typeof window.history.pushState === "function") {
-          window.history.pushState({ ...(window.history.state || {}), __fileViewerOpen: true }, "");
-          historyPushed = true;
-        }
-      } catch (e) {
-      }
-
-      var ext = extOf(current.filename) || extOf(current.previewUrl);
+      var ext = extOf(current.filename) || extOf(current.previewUrl) || extOf(current.downloadUrl);
       var m = (current.mime || "").toLowerCase();
-
-      console.log("[file-viewer] openViewer:", {
-        filename: current.filename,
-        mime: m,
-        ext: ext,
-        previewUrl: current.previewUrl ? current.previewUrl.substring(0, 80) : "",
-        forceView: current.forceView,
-      });
 
       var isPdf = m === "application/pdf" || ext === ".pdf";
       var isText = m.startsWith("text/") || [".txt", ".log", ".csv", ".md", ".json"].includes(ext);
@@ -2220,6 +2687,37 @@
         m === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         (m === "application/octet-stream" && (ext === ".xlsx" || ext === ".xls")) ||
         [".xls", ".xlsx"].includes(ext);
+
+      title.textContent = current.filename || "فایل";
+      subtitle.textContent = current.mime || "";
+      openBtn.href = current.previewUrl || current.downloadUrl || "#";
+
+      modal.classList.remove("hidden");
+
+      var forceShowOpen = isIOS() && (isPdf || isWord || isLegacyWord || isExcel);
+      if (shouldUseViewer() && !forceShowOpen) {
+        openBtn.classList.add("hidden");
+        openBtn.classList.remove("flex");
+      } else {
+        openBtn.classList.remove("hidden");
+        openBtn.classList.add("flex");
+      }
+
+      try {
+        if (!historyPushed && window.history && typeof window.history.pushState === "function") {
+          window.history.pushState({ ...(window.history.state || {}), __fileViewerOpen: true }, "");
+          historyPushed = true;
+        }
+      } catch (e) {
+      }
+
+      console.log("[file-viewer] openViewer:", {
+        filename: current.filename,
+        mime: m,
+        ext: ext,
+        previewUrl: current.previewUrl ? current.previewUrl.substring(0, 80) : "",
+        forceView: current.forceView,
+      });
 
       console.log("[file-viewer] detected:", { isPdf, isText, isWord, isLegacyWord, isExcel });
 
@@ -2318,8 +2816,38 @@
         ext === ".xls";
 
       if (officePreviewUrl && (isWord || isExcel)) {
-        openViewer({ downloadUrl, previewUrl: "", filename, mime, forceView: true });
-        if (body) body.innerHTML = '<div class="p-6 text-sm text-gray-600 dark:text-slate-300">در حال آماده\u200cسازی پیش\u200cنمایش\u2026</div>';
+        current = {
+          downloadUrl: String(downloadUrl || ""),
+          previewUrl: "",
+          filename: String(filename || ""),
+          mime: String(mime || ""),
+          forceView: true,
+        };
+
+        title.textContent = current.filename || "فایل";
+        subtitle.textContent = current.mime || "";
+        openBtn.href = current.downloadUrl || "#";
+
+        modal.classList.remove("hidden");
+
+        if (shouldUseViewer()) {
+          openBtn.classList.add("hidden");
+          openBtn.classList.remove("flex");
+        } else {
+          openBtn.classList.remove("hidden");
+          openBtn.classList.add("flex");
+        }
+
+        try {
+          if (!historyPushed && window.history && typeof window.history.pushState === "function") {
+            window.history.pushState({ ...(window.history.state || {}), __fileViewerOpen: true }, "");
+            historyPushed = true;
+          }
+        } catch (e) {
+        }
+
+        clearBody();
+        body.innerHTML = '<div class="p-6 text-sm text-gray-600 dark:text-slate-300">در حال آماده\u200cسازی پیش\u200cنمایش\u2026</div>';
 
         try {
           const res = await fetch(officePreviewUrl, { credentials: "same-origin" });
@@ -2337,7 +2865,7 @@
         } catch (err) {
         }
 
-        openViewer({ downloadUrl, previewUrl: "", filename, mime, forceView: true });
+        openViewer({ downloadUrl, previewUrl, filename, mime, forceView: true });
         return;
       }
 

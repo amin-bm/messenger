@@ -2253,10 +2253,21 @@
             var s = typeof scale === "number" ? Math.max(0.25, Math.min(3, scale)) : fit;
 
             inner.style.transform = "scale(" + s + ")";
-            inner.style.transformOrigin = "top right";
+            inner.style.transformOrigin = activeDir === "ltr" ? "top left" : "top right";
 
+            // اطمینان از محاسبه صحیح عرض قابل اسکرول هنگام زوم
+            // وقتی origin سمت راست است، محتوا به چپ بزرگ می‌شود؛
+            // بنابراین باید عرض container بیرونی را به عرض مقیاس‌شده افزایش دهیم
+            var scaledW = Math.ceil(w * s);
             var scaledH = Math.ceil(h * s);
 
+            if (scaledW && isFinite(scaledW)) {
+              scaleWrap.style.width = scaledW + "px";
+              scaleWrap.style.minWidth = scaledW + "px";
+            } else {
+              scaleWrap.style.width = "auto";
+              scaleWrap.style.minWidth = "0";
+            }
             scaleWrap.style.height = scaledH ? scaledH + "px" : "auto";
             scaleWrap.dataset.scale = String(s);
           } catch (e) {
@@ -2279,13 +2290,15 @@
           scaleWrap.dataset.dir = d;
           scroller.dataset.dir = d;
 
-          // تنظیم position محتوا بر اساس جهت
+          // تنظیم position و چیدمان محتوا بر اساس جهت
           if (effectiveDir === "rtl") {
             inner.style.left = "auto";
             inner.style.right = "0px";
+            scaleWrap.style.justifyContent = "flex-end";
           } else {
             inner.style.left = "0px";
             inner.style.right = "auto";
+            scaleWrap.style.justifyContent = "flex-start";
           }
           scroller.style.padding = d === "rtl" ? "8px 24px 8px 16px" : d === "ltr" ? "8px 16px 8px 24px" : "8px 16px";
           const els = inner.querySelectorAll("p, span, td, th, li, h1, h2, h3, h4, h5, h6");
@@ -2532,18 +2545,20 @@
             }
 
             table.querySelectorAll("td").forEach(function (cell) {
-              cell.className = "border border-gray-200 px-2 py-1.5 text-gray-800 dark:border-white/10 dark:text-slate-200";
+              cell.className = "border border-gray-200 px-2 py-1.5 text-gray-800 dark:border-white/10";
               cell.setAttribute("dir", activeDir === "auto" ? "auto" : activeDir);
               cell.style.textAlign = activeDir === "auto" ? "" : activeDir === "rtl" ? "right" : "left";
               cell.style.whiteSpace = "normal";
               cell.style.fontFamily = "inherit";
+              cell.style.color = "#1f2937";
             });
             table.querySelectorAll("th").forEach(function (th) {
-              th.className = "border border-gray-200 bg-gray-50 px-2 py-1.5 font-semibold text-gray-700 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200";
+              th.className = "border border-gray-200 bg-gray-50 px-2 py-1.5 font-semibold text-gray-700 dark:border-white/10";
               th.setAttribute("dir", activeDir === "auto" ? "auto" : activeDir);
               th.style.textAlign = activeDir === "auto" ? "" : activeDir === "rtl" ? "right" : "left";
               th.style.whiteSpace = "normal";
               th.style.fontFamily = "inherit";
+              th.style.color = "#374151";
             });
           }
 

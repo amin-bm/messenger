@@ -23,6 +23,20 @@
 
   <script>
     (function () {
+      try {
+        var loc = window.location;
+        var isLocal = loc.hostname === 'localhost' || loc.hostname === '127.0.0.1' || /\.local$/.test(loc.hostname);
+        if (loc.protocol === 'http:' && !isLocal) {
+          var target = 'https://' + loc.host + loc.pathname + loc.search + loc.hash;
+          window.location.replace(target);
+        }
+      } catch (e) {
+      }
+    })();
+  </script>
+
+  <script>
+    (function () {
       const storageKey = 'theme';
       const root = document.documentElement;
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');

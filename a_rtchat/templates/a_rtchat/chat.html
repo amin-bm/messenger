@@ -2124,10 +2124,7 @@
     }
 
     async function renderWord(previewUrl) {
-      console.log("[file-viewer] renderWord called, docxPreview:", typeof window.docx);
-
       if (typeof window.docx === "undefined" || typeof window.docx.renderAsync !== "function") {
-        console.warn("[file-viewer] docx-preview not available");
         renderPreviewCard("Word");
         return;
       }
@@ -2135,20 +2132,17 @@
       renderLoading();
       aborter = new AbortController();
       try {
-        console.log("[file-viewer] fetching:", previewUrl);
         var res = await fetch(previewUrl, {
           credentials: "same-origin",
           signal: aborter.signal
         });
 
         if (!res.ok) {
-          console.warn("[file-viewer] fetch failed:", res.status);
           renderPreviewCard("Word");
           return;
         }
 
         var arrayBuffer = await res.arrayBuffer();
-        console.log("[file-viewer] file size:", arrayBuffer.byteLength);
 
         clearBody();
 
@@ -2190,7 +2184,6 @@
           ".docx-wrapper-custom[data-dir='ltr'] .docx-wrapper section.docx { padding-left: 56px !important; padding-right: 0 !important; }",
         ].join("\n");
 
-        console.log("[file-viewer] rendering with docx-preview...");
         await window.docx.renderAsync(arrayBuffer, inner, null, {
           className: "docx-wrapper",
           inWrapper: true,
@@ -2200,130 +2193,6 @@
           breakPages: true,
           useBase64URL: true,
         });
-
-        console.log("[file-viewer] docx-preview OK");
-
-        // ── پیدا کردن کادر خاکستری ──
-        (function () {
-          var allEls = inner.querySelectorAll("*");
-          allEls.forEach(function (el) {
-            var cs = window.getComputedStyle(el);
-            var bg = cs.backgroundColor || "";
-            var border = cs.border || "";
-            var borderTop = cs.borderTopWidth || "";
-            var outline = cs.outline || "";
-            var boxShadow = cs.boxShadow || "";
-
-            var hasGrayBg = bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" && bg !== "rgb(255, 255, 255)";
-            var hasBorder = parseFloat(borderTop) > 0;
-            var hasOutline = outline && outline !== "none";
-            var hasShadow = boxShadow && boxShadow !== "none";
-
-            if (hasGrayBg || hasBorder || hasOutline || hasShadow) {
-              console.log("[docx gray hunt]", {
-                tag: el.tagName,
-                className: el.className,
-                id: el.id,
-                bg: bg,
-                border: cs.borderTop + " | " + cs.borderRight + " | " + cs.borderBottom + " | " + cs.borderLeft,
-                outline: outline,
-                boxShadow: boxShadow,
-                rect: JSON.stringify(el.getBoundingClientRect()),
-                inlineStyle: el.style.cssText.substring(0, 200),
-              });
-            }
-          });
-        })();
-
-        // ── لاگ: پیدا کردن کادر خاکستری از بیرون inner ──
-        (function () {
-          var chain = [inner, scaleWrap, scroller, body];
-          var names = ["inner", "scaleWrap", "scroller", "body(viewer)"];
-          chain.forEach(function (el, i) {
-            if (!el) return;
-            var cs = window.getComputedStyle(el);
-            console.log("[docx chain " + names[i] + "]", {
-              tag: el.tagName,
-              className: (el.className || "").substring(0, 80),
-              bg: cs.backgroundColor,
-              borderTop: cs.borderTopWidth + " " + cs.borderTopStyle + " " + cs.borderTopColor,
-              borderRight: cs.borderRightWidth + " " + cs.borderRightStyle + " " + cs.borderRightColor,
-              borderBottom: cs.borderBottomWidth + " " + cs.borderBottomStyle + " " + cs.borderBottomColor,
-              borderLeft: cs.borderLeftWidth + " " + cs.borderLeftStyle + " " + cs.borderLeftColor,
-              boxShadow: cs.boxShadow,
-              outline: cs.outline,
-              rect: JSON.stringify(el.getBoundingClientRect()),
-            });
-          });
-
-          var viewer = body;
-          for (var j = 0; j < 5; j++) {
-            viewer = viewer ? viewer.parentElement : null;
-            if (!viewer) break;
-            var cs2 = window.getComputedStyle(viewer);
-            var bg2 = cs2.backgroundColor || "";
-            var hasBg = bg2 && bg2 !== "rgba(0, 0, 0, 0)" && bg2 !== "transparent" && bg2 !== "rgb(255, 255, 255)";
-            console.log("[docx parent " + j + "]", {
-              tag: viewer.tagName,
-              id: viewer.id,
-              className: (viewer.className || "").substring(0, 80),
-              bg: bg2,
-              hasBg: hasBg,
-              border: cs2.border,
-              boxShadow: cs2.boxShadow,
-              rect: JSON.stringify(viewer.getBoundingClientRect()),
-            });
-          }
-
-          var sec = inner.querySelector("section.docx") || inner.querySelector("section");
-          if (sec) {
-            var cs3 = window.getComputedStyle(sec);
-            console.log("[docx section detail]", {
-              bg: cs3.backgroundColor,
-              border: cs3.border,
-              boxShadow: cs3.boxShadow,
-              outline: cs3.outline,
-              inlineStyle: sec.style.cssText.substring(0, 300),
-              width: cs3.width,
-              minWidth: cs3.minWidth,
-              maxWidth: cs3.maxWidth,
-            });
-          }
-        })();
-
-        // لاگ جدید
-        var section = inner.querySelector("section.docx");
-        if (section) {
-          var cs = window.getComputedStyle(section);
-          console.log("[docx section] getBoundingClientRect:", JSON.stringify(section.getBoundingClientRect()));
-          console.log("[docx section] scrollWidth:", section.scrollWidth);
-          console.log("[docx section] offsetLeft:", section.offsetLeft);
-          console.log("[docx section] offsetParent:", section.offsetParent ? section.offsetParent.tagName + " id=" + section.offsetParent.id : "null");
-          console.log("[docx section] computed paddingLeft:", cs.paddingLeft);
-          console.log("[docx section] computed paddingRight:", cs.paddingRight);
-          console.log("[docx section] computed marginLeft:", cs.marginLeft);
-          console.log("[docx section] computed marginRight:", cs.marginRight);
-          console.log("[docx section] computed width:", cs.width);
-          console.log("[docx section] computed direction:", cs.direction);
-          console.log("[docx section] innerHTML (first 300 chars):", section.innerHTML.substring(0, 300));
-        }
-
-        var wrapper = inner.querySelector(".docx-wrapper");
-        if (wrapper) {
-          var csw = window.getComputedStyle(wrapper);
-          console.log("[docx wrapper] getBoundingClientRect:", JSON.stringify(wrapper.getBoundingClientRect()));
-          console.log("[docx wrapper] computed paddingLeft:", csw.paddingLeft);
-          console.log("[docx wrapper] computed paddingRight:", csw.paddingRight);
-          console.log("[docx wrapper] computed marginLeft:", csw.marginLeft);
-          console.log("[docx wrapper] computed marginRight:", csw.marginRight);
-          console.log("[docx wrapper] computed direction:", csw.direction);
-        }
-
-        console.log("[docx inner] getBoundingClientRect:", JSON.stringify(inner.getBoundingClientRect()));
-        console.log("[docx inner] style.cssText:", inner.style.cssText);
-        console.log("[docx scroller] getBoundingClientRect:", JSON.stringify(scroller.getBoundingClientRect()));
-        console.log("[docx scroller] style.cssText:", scroller.style.cssText);
-        console.log("[docx body(viewer)] getBoundingClientRect:", JSON.stringify(body.getBoundingClientRect()));
 
         inner
           .querySelectorAll("p, span, td, th, li, h1, h2, h3, h4, h5, h6")
@@ -2337,8 +2206,6 @@
           var currentPR = parseFloat(window.getComputedStyle(sec).paddingRight) || 0;
           var currentPL = parseFloat(window.getComputedStyle(sec).paddingLeft) || 0;
           var overflow = sw - cw;
-
-          console.log("[docx section fix] scrollWidth:", sw, "clientWidth:", cw, "overflow:", overflow, "paddingR:", currentPR, "paddingL:", currentPL);
 
           if (currentPR < 32) sec.style.paddingRight = "32px";
           if (currentPL < 32) sec.style.paddingLeft = "32px";
@@ -2376,7 +2243,6 @@
             scaleWrap.style.height = scaledH ? scaledH + "px" : "auto";
             scaleWrap.dataset.scale = String(s);
           } catch (e) {
-            console.error("[applyFit]", e);
           }
         }
 
@@ -2508,7 +2374,6 @@
         body.appendChild(bar);
       } catch (e) {
         if (String(e && e.name) === "AbortError") return;
-        console.error("[file-viewer] renderWord error:", e);
         renderPreviewCard("Word");
       } finally {
         aborter = null;
@@ -2831,42 +2696,26 @@
       } catch (e) {
       }
 
-      console.log("[file-viewer] openViewer:", {
-        filename: current.filename,
-        mime: m,
-        ext: ext,
-        previewUrl: current.previewUrl ? current.previewUrl.substring(0, 80) : "",
-        forceView: current.forceView,
-      });
-
-      console.log("[file-viewer] detected:", { isPdf, isText, isWord, isLegacyWord, isExcel });
-
       if (isPdf && current.previewUrl) {
-        console.log("[file-viewer] → renderPdf");
         renderPdf(current.previewUrl);
         return;
       }
       if (isText && current.previewUrl) {
-        console.log("[file-viewer] → renderText");
         renderText(current.previewUrl);
         return;
       }
       if (isWord && current.previewUrl) {
-        console.log("[file-viewer] → renderWord");
         renderWord(current.previewUrl);
         return;
       }
       if (isExcel && current.previewUrl) {
-        console.log("[file-viewer] → renderExcel");
         renderExcel(current.previewUrl);
         return;
       }
       if (isLegacyWord) {
-        console.log("[file-viewer] → legacy Word → previewCard");
         renderPreviewCard("Word (.doc)");
         return;
       }
-      console.log("[file-viewer] → unsupported");
       renderUnsupported();
     }
 

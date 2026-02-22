@@ -1,3 +1,4 @@
+# وابستگی سیستمی (pip نیست): LibreOffice/soffice برای پیش‌نمایش فایل‌های Office→PDF
 asgiref==3.11.0
 attrs==25.4.0
 autobahn==25.12.2

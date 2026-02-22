@@ -36,9 +36,11 @@
 {% else %}
 <li id="msg-{{ message.id }}"{% if oob_swap %} hx-swap-oob="{{ oob_swap }}"{% elif oob %} hx-swap-oob="outerHTML"{% endif %} data-message-id="{{ message.id }}" data-message-date="{{ message.created|date:'Y-m-d' }}" data-message-date-label="{{ message.created|date:'F j, Y' }}" data-message-author="{{ message.author.profile.name|default:message.author.username }}" data-message-body="{% if message.body %}{{ message.body }}{% endif %}" data-message-preview="{% if message.body %}{{ message.body|truncatechars:80 }}{% elif message.file %}{{ message.filename|default:''|truncatechars:80 }}{% endif %}" data-forward-url="{% url 'chat-message-forward' message.id %}"{% if chat_group.is_private or is_group_admin|default:False %} data-delete-url="{% url 'chat-message-delete' message.id %}"{% endif %} class="mb-2">
   <div class="flex justify-start gap-2">
-    <a href="{% url 'profile' message.author.username %}" class="shrink-0">
-      <img class="w-8 h-8 rounded-full object-cover" src="{{ message.author.profile.avatar }}">
-    </a>
+    {% if not chat_group.is_private %}
+      <a href="{% url 'profile' message.author.username %}" class="shrink-0">
+        <img class="w-8 h-8 rounded-full object-cover" src="{{ message.author.profile.avatar }}">
+      </a>
+    {% endif %}
 
     <div class="group bg-white/85 text-gray-900 rounded-2xl px-4 py-2 {% if message.is_audio %}w-72 sm:w-80 md:w-96 max-w-[92%]{% else %}max-w-[85%]{% endif %} shadow-sm shadow-black/5 relative ring-1 ring-black/5 backdrop-blur-md dark:bg-[#0e1a2a]/70 dark:text-slate-100 dark:ring-white/10 dark:shadow-none">
 

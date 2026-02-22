@@ -99,7 +99,7 @@
   </div>
 
   <!-- Messages area -->
-  <div id="chat_container" class="flex-1 min-h-0 overflow-y-auto p-4 bg-white/15 backdrop-blur-sm dark:bg-slate-950/15">
+  <div id="chat_container" class="flex-1 min-h-0 overflow-y-auto p-4 bg-white/15 backdrop-blur-sm dark:bg-slate-950/15" style="overflow-anchor: none;">
     <ul id="chat_messages" class="flex flex-col gap-2">
       {% if chat_messages %}
         <li id="load_older"
@@ -409,12 +409,31 @@
   }
 </style>
 <script>
-  function scrollToBottom(time=0) {
+  function scrollToBottom(time = 0, passes = 5) {
+    const delay = Math.max(0, Number(time || 0));
+    const maxPasses = Math.max(1, Number(passes || 1));
+
     setTimeout(() => {
-      const container = document.getElementById('chat_container');
+      const container = document.getElementById("chat_container");
       if (!container) return;
-      container.scrollTop = container.scrollHeight;
-    }, time);
+
+      let remaining = maxPasses;
+      let lastHeight = -1;
+
+      const step = () => {
+        if (!container) return;
+        const nextHeight = container.scrollHeight;
+        container.scrollTop = nextHeight;
+        remaining -= 1;
+
+        if (remaining <= 0) return;
+        if (nextHeight === lastHeight && remaining <= Math.max(0, maxPasses - 2)) return;
+        lastHeight = nextHeight;
+        requestAnimationFrame(step);
+      };
+
+      requestAnimationFrame(step);
+    }, delay);
   }
 
   (function () {
@@ -697,6 +716,11 @@
     const thresholdPx = 100;
     let ownMessageScrollPending = false;
     let ownMessageScrollExpiresAt = 0;
+    let stickToBottom = true;
+    let wsWasNearBottom = false;
+    let mo = null;
+    let ro = null;
+    let scheduled = false;
 
     function markOwnMessageScrollPending(ttlMs = 2500) {
       const ttl = Math.max(0, Number(ttlMs || 0));
@@ -736,8 +760,44 @@
       return remaining <= thresholdPx;
     }
 
+    function scheduleStickScroll(passes = 4) {
+      if (!stickToBottom) return;
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        if (!stickToBottom) return;
+        scrollToBottom(0, passes);
+      });
+    }
+
+    function initObservers() {
+      const list = document.getElementById("chat_messages");
+      if (!list) return;
+
+      if ("MutationObserver" in window) {
+        if (mo) mo.disconnect();
+        mo = new MutationObserver((mutations) => {
+          for (const m of mutations) {
+            if (m.type === "childList" && m.addedNodes && m.addedNodes.length) {
+              scheduleStickScroll(4);
+              break;
+            }
+          }
+        });
+        mo.observe(list, { childList: true });
+      }
+
+      if ("ResizeObserver" in window) {
+        if (ro) ro.disconnect();
+        ro = new ResizeObserver(() => scheduleStickScroll(4));
+        ro.observe(list);
+      }
+    }
+
     function update() {
       const near = isNearBottom();
+      stickToBottom = near;
       btn.classList.toggle("opacity-0", near);
       btn.classList.toggle("pointer-events-none", near);
     }
@@ -753,13 +813,20 @@
 
     const recheck = () => requestAnimationFrame(update);
     document.body.addEventListener("htmx:oobAfterSwap", recheck);
+    document.body.addEventListener("htmx:wsBeforeMessage", () => {
+      wsWasNearBottom = isNearBottom();
+    });
     document.body.addEventListener("htmx:wsAfterMessage", (e) => {
       if (ownMessageScrollPending) {
         if (Date.now() > ownMessageScrollExpiresAt) clearOwnMessageScrollPending();
         else if (lastMessageIsMine()) {
           clearOwnMessageScrollPending();
-          scrollToBottom(0);
+          stickToBottom = true;
+          scrollToBottom(0, 6);
         }
+      } else if (wsWasNearBottom || stickToBottom) {
+        stickToBottom = true;
+        scrollToBottom(0, 6);
       }
       recheck();
     });
@@ -770,8 +837,11 @@
           if (Date.now() > ownMessageScrollExpiresAt) clearOwnMessageScrollPending();
           else if (lastMessageIsMine()) {
             clearOwnMessageScrollPending();
-            scrollToBottom(0);
+            stickToBottom = true;
+            scrollToBottom(0, 6);
           }
+        } else if (stickToBottom) {
+          scrollToBottom(0, 4);
         }
         recheck();
       }
@@ -779,13 +849,28 @@
 
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () => {
+        try {
+          if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+        } catch (e) {}
         update();
+        initObservers();
+        scheduleStickScroll(8);
         setTimeout(recheck, 150);
       });
     } else {
       update();
+      initObservers();
+      scheduleStickScroll(8);
       setTimeout(recheck, 150);
     }
+
+    window.addEventListener(
+      "load",
+      () => {
+        scheduleStickScroll(8);
+      },
+      { once: true }
+    );
   })();
 
   (function () {

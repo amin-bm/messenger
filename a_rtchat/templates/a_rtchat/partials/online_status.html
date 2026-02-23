@@ -109,7 +109,7 @@
 
   <!-- CONTACTS PANEL -->
   <div id="tab-contacts-panel" class="pt-2 hidden">
-    <ul class="space-y-1 px-1">
+    <ul id="contacts-list" class="space-y-1 px-1">
       {% for c in contacts %}
         <li>
           <a href="{{ c.url }}"

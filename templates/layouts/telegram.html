@@ -7,6 +7,15 @@
   <div class="mx-auto max-w-6xl px-0 md:px-4 py-0 md:py-4">
     <div class="flex h-[100dvh] md:h-[calc(100dvh-2rem)] overflow-hidden md:rounded-2xl bg-white/55 backdrop-blur-2xl ring-1 ring-black/5 md:shadow-2xl dark:bg-slate-950/35 dark:ring-white/10 dark:shadow-none">
 
+      <div id="conn_status_wrap" class="hidden px-4 pt-3">
+        <div id="conn_status_bar" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium">
+          <span id="conn_status_icon" class="inline-flex h-4 w-4 items-center justify-center"></span>
+          <span id="conn_status_text" class="min-w-0"></span>
+          <span id="conn_status_duration" class="text-xs font-normal opacity-80"></span>
+          <button id="conn_status_retry" type="button" class="hidden rounded-lg px-2 py-0.5 text-xs font-semibold">تلاش مجدد</button>
+        </div>
+      </div>
+
       <!-- Sidebar (لیست چت‌ها) -->
       <aside id="tg-sidebar" class="{% if '/chat/room/' in request.path %}hidden md:flex{% else %}flex{% endif %} relative z-20 w-full md:w-[320px] shrink-0 border-b md:border-b-0 md:border-r border-slate-200/70 bg-white/35 backdrop-blur-xl flex-col dark:border-white/10 dark:bg-slate-950/30">
         <!-- Header سایدبار -->

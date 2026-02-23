@@ -107,6 +107,74 @@
   <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v={{ APP_VERSION|urlencode }}">
   <link rel="stylesheet" href="{% static 'css/fonts.css' %}?v={{ APP_VERSION|urlencode }}">
   <link rel="stylesheet" href="{% static 'css/style.css' %}?v={{ APP_VERSION|urlencode }}">
+  <style>
+    :root {
+      --conn-vv-top: 0px;
+      --conn-keyboard-offset: 0px;
+      --conn-toast-base: 112px;
+    }
+    #conn_status_wrap {
+      position: fixed;
+      top: calc(var(--conn-vv-top, 0px) + 10px);
+      left: 0;
+      right: 0;
+      z-index: 90;
+      padding: 0 16px;
+      pointer-events: none;
+    }
+    #conn_status_bar {
+      pointer-events: auto;
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    #conn_toast_container {
+      bottom: var(--conn-toast-base, 112px);
+      transition: bottom 0.2s ease;
+    }
+    body.conn-keyboard-open #conn_toast_container {
+      bottom: calc(var(--conn-toast-base, 112px) + var(--conn-keyboard-offset, 0px));
+    }
+    #chats-list.conn-dimmed,
+    #contacts-list.conn-dimmed {
+      filter: blur(0.6px);
+      opacity: 0.6;
+      transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+    .rtchat-spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 9999px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: currentColor;
+      animation: rtchatSpin 0.9s linear infinite;
+    }
+    @keyframes rtchatSpin {
+      to { transform: rotate(360deg); }
+    }
+    .rtchat-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 9999px;
+      background: currentColor;
+      display: inline-block;
+    }
+    .rtchat-shake {
+      animation: rtchatShake 0.45s ease;
+    }
+    @keyframes rtchatShake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-3px); }
+      50% { transform: translateX(3px); }
+      75% { transform: translateX(-3px); }
+      100% { transform: translateX(0); }
+    }
+    #chat_root.rtchat-offline #chat_messages {
+      filter: blur(0.7px);
+      opacity: 0.7;
+      transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+  </style>
 </head>
 
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' data-authenticated="{% if user.is_authenticated %}1{% else %}0{% endif %}" class="{% block class %}{% endblock %}">
@@ -1773,6 +1841,313 @@
         },
         { once: true, capture: true }
       );
+    })();
+  </script>
+  <script>
+    (function () {
+      if (window.__rtchatConnInit) return;
+      window.__rtchatConnInit = true;
+
+      const statusWrap = document.getElementById("conn_status_wrap");
+      const statusBar = document.getElementById("conn_status_bar");
+      const statusText = document.getElementById("conn_status_text");
+      const statusDuration = document.getElementById("conn_status_duration");
+      const statusIcon = document.getElementById("conn_status_icon");
+      const statusRetry = document.getElementById("conn_status_retry");
+      const chatRoot = document.getElementById("chat_root");
+      const messageForm = document.getElementById("chat_message_form");
+      const chatsList = document.getElementById("chats-list");
+      const contactsList = document.getElementById("contacts-list");
+
+      let toastContainer = null;
+      let offlineStartedAt = null;
+      let wsConnected = null;
+      let wsDisconnectedAt = null;
+      let lastState = "";
+      let successTimer = 0;
+      let tickTimer = 0;
+      let reconnectTimer = 0;
+      let lastKeyboardOpen = false;
+      const initialGraceUntil = Date.now() + 1500;
+
+      function ensureToastContainer() {
+        if (toastContainer && toastContainer.isConnected) return toastContainer;
+        const existing = document.getElementById("conn_toast_container");
+        if (existing) {
+          toastContainer = existing;
+          return existing;
+        }
+        const el = document.createElement("div");
+        el.id = "conn_toast_container";
+        el.className = "fixed left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-2 items-center";
+        document.body.appendChild(el);
+        toastContainer = el;
+        return el;
+      }
+
+      function showToast(message, duration = 3500) {
+        const container = ensureToastContainer();
+        if (!container) return;
+        const toast = document.createElement("div");
+        toast.className =
+          "max-w-[90vw] rounded-xl bg-slate-900/90 text-white text-sm font-medium px-4 py-2 shadow-lg ring-1 ring-black/10 backdrop-blur transition-all duration-200 opacity-0 translate-y-1";
+        toast.textContent = String(message || "");
+        container.appendChild(toast);
+        requestAnimationFrame(() => {
+          toast.classList.remove("opacity-0", "translate-y-1");
+          toast.classList.add("opacity-100", "translate-y-0");
+        });
+        const removeLater = () => {
+          toast.classList.remove("opacity-100", "translate-y-0");
+          toast.classList.add("opacity-0", "translate-y-1");
+          setTimeout(() => toast.remove(), 220);
+        };
+        setTimeout(removeLater, Math.max(1200, Number(duration || 0)));
+      }
+
+      function formatDuration(ms) {
+        const total = Math.max(0, Math.floor(ms / 1000));
+        const h = Math.floor(total / 3600);
+        const m = Math.floor((total % 3600) / 60);
+        const s = total % 60;
+        if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+        return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      }
+
+      function setIcon(type) {
+        if (!statusIcon) return;
+        statusIcon.innerHTML = "";
+        const el = document.createElement("span");
+        if (type === "spinner") {
+          el.className = "rtchat-spinner";
+        } else {
+          el.className = "rtchat-dot";
+        }
+        statusIcon.appendChild(el);
+      }
+
+      function setDimmed(on) {
+        if (chatsList) chatsList.classList.toggle("conn-dimmed", on);
+        if (contactsList) contactsList.classList.toggle("conn-dimmed", on);
+      }
+
+      function setState(state) {
+        if (!statusWrap || !statusBar) return;
+        if (state === lastState) return;
+        lastState = state;
+        clearTimeout(successTimer);
+        const base = "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium";
+        if (state === "hidden") {
+          statusWrap.classList.add("hidden");
+          return;
+        }
+        statusWrap.classList.remove("hidden");
+        statusBar.className = base;
+        statusRetry && statusRetry.classList.add("hidden");
+        if (state === "offline") {
+          statusBar.classList.add("bg-red-50", "text-red-700", "border", "border-red-200", "dark:bg-red-500/10", "dark:text-red-300", "dark:border-red-500/30");
+          statusText && (statusText.textContent = "اتصال اینترنت قطع است.");
+          setIcon("dot");
+        } else if (state === "reconnecting") {
+          statusBar.classList.add("bg-amber-50", "text-amber-700", "border", "border-amber-200", "dark:bg-amber-500/10", "dark:text-amber-300", "dark:border-amber-500/30");
+          statusText && (statusText.textContent = "در حال اتصال مجدد…");
+          setIcon("spinner");
+        } else if (state === "server") {
+          statusBar.classList.add("bg-purple-50", "text-purple-700", "border", "border-purple-200", "dark:bg-purple-500/10", "dark:text-purple-300", "dark:border-purple-500/30");
+          statusText && (statusText.textContent = "مشکل در اتصال به سرور.");
+          setIcon("dot");
+          statusRetry && statusRetry.classList.remove("hidden");
+        } else if (state === "online") {
+          statusBar.classList.add("bg-emerald-50", "text-emerald-700", "border", "border-emerald-200", "dark:bg-emerald-500/10", "dark:text-emerald-300", "dark:border-emerald-500/30");
+          statusText && (statusText.textContent = "اتصال برقرار شد.");
+          setIcon("dot");
+          successTimer = setTimeout(() => setState("hidden"), 2500);
+        }
+      }
+
+      function updateDuration() {
+        if (!statusDuration) return;
+        if (!offlineStartedAt || lastState === "online" || lastState === "hidden") {
+          statusDuration.textContent = "";
+          return;
+        }
+        statusDuration.textContent = `مدت قطع: ${formatDuration(Date.now() - offlineStartedAt)}`;
+      }
+
+      function startTicker() {
+        if (tickTimer) return;
+        tickTimer = setInterval(updateDuration, 1000);
+      }
+
+      function stopTicker() {
+        if (tickTimer) {
+          clearInterval(tickTimer);
+          tickTimer = 0;
+        }
+      }
+
+      function attemptReconnect() {
+        if (!messageForm) return;
+        if (window.htmx && typeof window.htmx.process === "function") window.htmx.process(messageForm);
+        if (window.htmx && typeof window.htmx.trigger === "function") window.htmx.trigger(messageForm, "htmx:wsReconnect");
+      }
+
+      function startReconnectTimer() {
+        if (reconnectTimer) return;
+        reconnectTimer = setInterval(() => {
+          const online = typeof navigator === "undefined" ? true : navigator.onLine !== false;
+          if (!online) return;
+          if (wsConnected) return;
+          attemptReconnect();
+        }, 5000);
+      }
+
+      function stopReconnectTimer() {
+        if (reconnectTimer) {
+          clearInterval(reconnectTimer);
+          reconnectTimer = 0;
+        }
+      }
+
+      function updateConnectivity() {
+        const online = typeof navigator === "undefined" ? true : navigator.onLine !== false;
+        if (!online) {
+          if (!offlineStartedAt) offlineStartedAt = Date.now();
+          wsConnected = false;
+          wsDisconnectedAt = wsDisconnectedAt || Date.now();
+          chatRoot && chatRoot.classList.add("rtchat-offline");
+          setDimmed(true);
+          setState("offline");
+          startTicker();
+          stopReconnectTimer();
+          updateDuration();
+          return;
+        }
+
+        if (chatRoot) chatRoot.classList.remove("rtchat-offline");
+
+        if (wsConnected === null && Date.now() < initialGraceUntil) {
+          setDimmed(false);
+          setState("hidden");
+          stopTicker();
+          return;
+        }
+
+        if (!wsConnected) {
+          const baseAt = wsDisconnectedAt || offlineStartedAt || Date.now();
+          offlineStartedAt = offlineStartedAt || baseAt;
+          const age = Date.now() - baseAt;
+          if (age < 15000) setState("reconnecting");
+          else setState("server");
+          setDimmed(true);
+          startTicker();
+          startReconnectTimer();
+          updateDuration();
+          return;
+        }
+
+        setDimmed(false);
+        if (offlineStartedAt || lastState === "reconnecting" || lastState === "server" || lastState === "offline") {
+          setState("online");
+        } else {
+          setState("hidden");
+        }
+        offlineStartedAt = null;
+        wsDisconnectedAt = null;
+        stopTicker();
+        stopReconnectTimer();
+        updateDuration();
+      }
+
+      function handleWsOpen() {
+        wsConnected = true;
+        updateConnectivity();
+      }
+
+      function handleWsDisconnected() {
+        wsConnected = false;
+        wsDisconnectedAt = wsDisconnectedAt || Date.now();
+        updateConnectivity();
+      }
+
+      function updateViewportMetrics() {
+        const vv = window.visualViewport;
+        let top = 0;
+        let keyboardOffset = 0;
+        if (vv) {
+          top = Number(vv.offsetTop || 0);
+          const height = Number(vv.height || window.innerHeight || 0);
+          const innerH = Number(window.innerHeight || height);
+          keyboardOffset = Math.max(0, innerH - height - top);
+        }
+        document.documentElement.style.setProperty("--conn-vv-top", `${top}px`);
+        document.documentElement.style.setProperty("--conn-keyboard-offset", `${keyboardOffset}px`);
+        if (document.body) {
+          const open = keyboardOffset > 0;
+          if (open !== lastKeyboardOpen) {
+            document.body.classList.toggle("conn-keyboard-open", open);
+            lastKeyboardOpen = open;
+          }
+        }
+      }
+
+      function bindViewportListeners() {
+        updateViewportMetrics();
+        const vv = window.visualViewport;
+        if (vv && !vv.__rtchatConnBound) {
+          vv.__rtchatConnBound = true;
+          vv.addEventListener("resize", updateViewportMetrics);
+          vv.addEventListener("scroll", updateViewportMetrics);
+        }
+        window.addEventListener("resize", updateViewportMetrics);
+        if (!vv) {
+          document.addEventListener("focusin", () => {
+            document.documentElement.style.setProperty("--conn-keyboard-offset", "180px");
+            if (document.body) document.body.classList.add("conn-keyboard-open");
+          });
+          document.addEventListener("focusout", () => {
+            setTimeout(() => {
+              document.documentElement.style.setProperty("--conn-keyboard-offset", "0px");
+              if (document.body) document.body.classList.remove("conn-keyboard-open");
+            }, 150);
+          });
+        }
+      }
+
+      if (statusRetry) {
+        statusRetry.addEventListener("click", () => {
+          attemptReconnect();
+          updateConnectivity();
+        });
+      }
+
+      document.body && document.body.addEventListener("htmx:wsOpen", handleWsOpen);
+      document.body && document.body.addEventListener("htmx:wsClose", handleWsDisconnected);
+      document.body && document.body.addEventListener("htmx:wsError", handleWsDisconnected);
+      window.addEventListener("online", updateConnectivity);
+      window.addEventListener("offline", updateConnectivity);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          attemptReconnect();
+          updateConnectivity();
+        }
+      });
+      window.addEventListener("focus", () => {
+        attemptReconnect();
+        updateConnectivity();
+      });
+
+      window.rtchatShowConnToast = showToast;
+      window.rtchatIsConnected = function () {
+        const online = typeof navigator === "undefined" ? true : navigator.onLine !== false;
+        return online && wsConnected === true;
+      };
+      window.rtchatRefreshConnectionUI = updateConnectivity;
+      window.rtchatAttemptReconnect = attemptReconnect;
+
+      bindViewportListeners();
+      setTimeout(updateConnectivity, 1600);
+      updateConnectivity();
     })();
   </script>
 

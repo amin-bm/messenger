@@ -1,5 +1,5 @@
 <div x-data="{ modal_open: false }" class="shrink-0">
-    <a href="#" class="rounded-lg px-2 py-1 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white" @click.prevent="modal_open = true">Leave chat</a>
+    <a href="#" class="rounded-lg px-2 py-1 text-sm font-medium text-red-500 hover:bg-gray-100 hover:text-gray-900 dark:text-red-300 dark:hover:bg-white/10 dark:hover:text-white" @click.prevent="modal_open = true">حذف چت</a>
 
     <template x-teleport="body">
         <div x-show="modal_open" x-cloak @keydown.escape.window="modal_open = false" class="fixed inset-0 z-[200]">

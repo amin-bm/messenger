@@ -1945,20 +1945,20 @@
         statusBar.className = base;
         statusRetry && statusRetry.classList.add("hidden");
         if (state === "offline") {
-          statusBar.classList.add("bg-red-50", "text-red-700", "border", "border-red-200", "dark:bg-red-500/10", "dark:text-red-300", "dark:border-red-500/30");
+          statusBar.classList.add("bg-red-50", "text-red-700", "border", "border-red-200", "dark:bg-red-900/60", "dark:text-red-300", "dark:border-red-500/30");
           statusText && (statusText.textContent = "اتصال اینترنت قطع است.");
           setIcon("dot");
         } else if (state === "reconnecting") {
-          statusBar.classList.add("bg-amber-50", "text-amber-700", "border", "border-amber-200", "dark:bg-amber-500/10", "dark:text-amber-300", "dark:border-amber-500/30");
+          statusBar.classList.add("bg-amber-50", "text-amber-700", "border", "border-amber-200", "dark:bg-amber-900/60", "dark:text-amber-300", "dark:border-amber-500/30");
           statusText && (statusText.textContent = "در حال اتصال مجدد…");
           setIcon("spinner");
         } else if (state === "server") {
-          statusBar.classList.add("bg-purple-50", "text-purple-700", "border", "border-purple-200", "dark:bg-purple-500/10", "dark:text-purple-300", "dark:border-purple-500/30");
+          statusBar.classList.add("bg-purple-50", "text-purple-700", "border", "border-purple-200", "dark:bg-purple-900/60", "dark:text-purple-300", "dark:border-purple-500/30");
           statusText && (statusText.textContent = "مشکل در اتصال به سرور.");
           setIcon("dot");
           statusRetry && statusRetry.classList.remove("hidden");
         } else if (state === "online") {
-          statusBar.classList.add("bg-emerald-50", "text-emerald-700", "border", "border-emerald-200", "dark:bg-emerald-500/10", "dark:text-emerald-300", "dark:border-emerald-500/30");
+          statusBar.classList.add("bg-emerald-50", "text-emerald-700", "border", "border-emerald-200", "dark:bg-emerald-900/60", "dark:text-emerald-300", "dark:border-emerald-500/30");
           statusText && (statusText.textContent = "اتصال برقرار شد.");
           setIcon("dot");
           successTimer = setTimeout(() => setState("hidden"), 2500);

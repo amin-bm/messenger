@@ -79,7 +79,13 @@ def _env_csv(name: str) -> list[str]:
 # Project title displayed in the header
 PROJECT_TITLE = "Pesk Messenger"
 
-APP_VERSION = (_strip_wrapping_quotes(os.getenv("APP_VERSION", "dev")) or "").strip() or "dev"
+_app_version_env = (_strip_wrapping_quotes(os.getenv("APP_VERSION", "dev")) or "").strip() or "dev"
+if _app_version_env == "dev":
+    try:
+        _app_version_env = f"dev-{int((BASE_DIR / 'templates' / 'base.html').stat().st_mtime)}"
+    except Exception:
+        _app_version_env = "dev"
+APP_VERSION = _app_version_env
 APP_RESET_REQUIRED = _env_bool("APP_RESET_REQUIRED", "0")
 APP_RESET_MESSAGE = (_strip_wrapping_quotes(os.getenv("APP_RESET_MESSAGE", "")) or "").strip()
 
@@ -94,6 +100,7 @@ SECRET_KEY = os.getenv(
 DEBUG = _env_bool("DJANGO_DEBUG", "1")
 
 OFFLINE_MODE = _env_bool("OFFLINE_MODE", "0")
+IGNORE_NAVIGATOR_ONLINE = _env_bool("IGNORE_NAVIGATOR_ONLINE", "1" if DEBUG else "0")
 
 ALLOWED_HOSTS = _env_csv("DJANGO_ALLOWED_HOSTS") or ['localhost', '127.0.0.1', '*']
 

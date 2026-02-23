@@ -6,4 +6,5 @@ def project_title(request):
         'APP_VERSION': getattr(settings, "APP_VERSION", "dev"),
         'APP_RESET_REQUIRED': bool(getattr(settings, "APP_RESET_REQUIRED", False)),
         'APP_RESET_MESSAGE': getattr(settings, "APP_RESET_MESSAGE", ""),
+        'IGNORE_NAVIGATOR_ONLINE': bool(getattr(settings, "IGNORE_NAVIGATOR_ONLINE", False)),
     }

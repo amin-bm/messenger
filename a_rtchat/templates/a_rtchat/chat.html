@@ -3570,7 +3570,7 @@
       }
       const oldest = pendingQueue[0];
       const age = Date.now() - oldest.start;
-      const offline = typeof navigator !== "undefined" && navigator && navigator.onLine === false;
+      const offline = typeof window.rtchatIsOnline === "function" ? !window.rtchatIsOnline() : (typeof navigator !== "undefined" && navigator && navigator.onLine === false);
       let state = "";
       if (age < 800) state = "idle";
       else if (age >= 15000) state = "failed";

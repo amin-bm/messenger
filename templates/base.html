@@ -20,6 +20,7 @@
   <meta name="app-version" content="{{ APP_VERSION|escape }}">
   <meta name="app-reset-required" content="{% if APP_RESET_REQUIRED %}1{% else %}0{% endif %}">
   <meta name="app-reset-message" content="{{ APP_RESET_MESSAGE|default:''|escape }}">
+  <meta name="ignore-navigator-online" content="{% if IGNORE_NAVIGATOR_ONLINE %}1{% else %}0{% endif %}">
 
   <script>
     (function () {
@@ -1026,6 +1027,14 @@
       const APP_VERSION = metaContent("app-version") || "dev";
       const RESET_REQUIRED_DEFAULT = metaContent("app-reset-required") === "1";
       const RESET_MESSAGE_DEFAULT = metaContent("app-reset-message") || "";
+      const IGNORE_NAVIGATOR_ONLINE = metaContent("ignore-navigator-online") === "1";
+
+      function rtchatIsOnline() {
+        if (IGNORE_NAVIGATOR_ONLINE) return true;
+        return typeof navigator === "undefined" ? true : navigator.onLine !== false;
+      }
+
+      window.rtchatIsOnline = rtchatIsOnline;
 
       let pwaUpdateReg = null;
       let pwaWaitingWorker = null;
@@ -1432,7 +1441,7 @@
           showUpdateModal();
           return false;
         }
-        if (!navigator.onLine) {
+        if (!rtchatIsOnline()) {
           pwaStatusText = "مرحله ۱ (بررسی): اینترنت قطع است. بعد از وصل شدن دوباره تلاش کنید.";
           pwaStatusKind = "error";
           showUpdateModal();
@@ -1476,7 +1485,7 @@
           showUpdateModal();
           return false;
         }
-        if (!navigator.onLine) {
+        if (!rtchatIsOnline()) {
           pwaStatusText = "مرحله ۲ (دانلود): اینترنت قطع است. بعد از وصل شدن دوباره تلاش کنید.";
           pwaStatusKind = "error";
           showUpdateModal();
@@ -1995,7 +2004,7 @@
       function startReconnectTimer() {
         if (reconnectTimer) return;
         reconnectTimer = setInterval(() => {
-          const online = typeof navigator === "undefined" ? true : navigator.onLine !== false;
+          const online = typeof window.rtchatIsOnline === "function" ? window.rtchatIsOnline() : (typeof navigator === "undefined" ? true : navigator.onLine !== false);
           if (!online) return;
           if (wsConnected) return;
           attemptReconnect();
@@ -2010,7 +2019,7 @@
       }
 
       function updateConnectivity() {
-        const online = typeof navigator === "undefined" ? true : navigator.onLine !== false;
+        const online = typeof window.rtchatIsOnline === "function" ? window.rtchatIsOnline() : (typeof navigator === "undefined" ? true : navigator.onLine !== false);
         if (!online) {
           if (!offlineStartedAt) offlineStartedAt = Date.now();
           wsConnected = false;
@@ -2139,7 +2148,7 @@
 
       window.rtchatShowConnToast = showToast;
       window.rtchatIsConnected = function () {
-        const online = typeof navigator === "undefined" ? true : navigator.onLine !== false;
+        const online = typeof window.rtchatIsOnline === "function" ? window.rtchatIsOnline() : (typeof navigator === "undefined" ? true : navigator.onLine !== false);
         return online && wsConnected === true;
       };
       window.rtchatRefreshConnectionUI = updateConnectivity;

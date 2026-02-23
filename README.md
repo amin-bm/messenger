@@ -7,6 +7,21 @@
 - Redis (برای Channels)
 - Nginx (Reverse Proxy + سرو Static/Media)
 - (اختیاری ولی پیشنهادی) PostgreSQL برای محیط Production
+- (اختیاری) LibreOffice/soffice برای پیش‌نمایش فایل‌های Office به PDF
+
+## وابستگی‌های Python (خلاصه)
+
+این پروژه بر پایه این ابزارها اجرا می‌شود:
+
+- Django + Daphne (ASGI) برای اجرای وب‌اپ
+- Channels + channels_redis برای WebSocket و حضور آنلاین
+- redis برای اتصال لایه‌ی Channels به Redis
+- psycopg2-binary برای اتصال PostgreSQL (در صورت فعال بودن)
+- pillow برای پردازش تصاویر
+- pywebpush برای Web Push Notification (در صورت تنظیم VAPID)
+- django-allauth برای احراز هویت/ورود
+- django-cleanup برای پاک‌کردن فایل‌های Media هنگام حذف مدل
+- django-htmx برای تعاملات HTMX
 
 ## 1) آماده‌سازی سرور
 
@@ -20,6 +35,12 @@ sudo systemctl enable --now redis-server
 
 ```bash
 sudo apt install -y postgresql postgresql-contrib
+```
+
+اگر پیش‌نمایش فایل‌های Word/Excel به PDF را می‌خواهید (Office Preview):
+
+```bash
+sudo apt install -y libreoffice
 ```
 
 ## 2) ساخت یوزر و مسیر پروژه
@@ -46,14 +67,24 @@ pip install -r requirements.txt
 
 این پروژه در زمان اجرا به Node نیاز ندارد، چون خروجی Tailwind به‌صورت فایل آماده در static موجود است.
 
-برای تغییر Tailwind:
+برای تغییر Tailwind روی لینوکس:
 
 ```bash
-cd frontend
+cd /opt/pesk-messenger/frontend
+npm ci
 npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify
 ```
 
 روی VPS فقط زمانی Node لازم است که بخواهید روی خود سرور Tailwind را build کنید.
+
+نکته:
+
+- این مرحله به pip نیاز ندارد؛ فقط Node.js (پیشنهادی: 18+ یا 20 LTS) و npm لازم است.
+- pip فقط برای نصب وابستگی‌های Python پروژه استفاده می‌شود (مرحله 3). پیشنهاد: داخل venv از pip نسخه `>=23,<26` استفاده کنید:
+
+```bash
+python3 -m pip install --upgrade "pip>=23,<26"
+```
 
 ## 5) تنظیم ENV روی سرور
 
@@ -63,6 +94,16 @@ npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify
 
 `/etc/pesk-messenger/pesk-messenger.env`
 
+نحوه‌ی لود شدن env در کد (طبق [settings.py](~/messenger/a_core/settings.py)):
+
+- اگر متغیر `DJANGO_ENV_FILE` ست شده باشد، ابتدا همان فایل خوانده می‌شود.
+- در غیر این صورت اولین فایل موجود از این لیست خوانده می‌شود:
+  - `./messenger.env`
+  - `./.env`
+  - `/etc/messenger/messenger.env`
+  - `/etc/pesk-messenger/pesk-messenger.env`
+- اگر یک کلید از قبل در Environment پروسه ست شده باشد (مثلاً توسط systemd `EnvironmentFile=`)، فایل env آن مقدار را Override نمی‌کند.
+
 نمونه محتوا:
 
 ```env
@@ -71,10 +112,17 @@ DJANGO_SECRET_KEY=CHANGE_ME_TO_A_RANDOM_LONG_SECRET
 DJANGO_ALLOWED_HOSTS=example.com,www.example.com
 DJANGO_CSRF_TRUSTED_ORIGINS=https://example.com,https://www.example.com
 
+APP_VERSION=dev
+APP_RESET_REQUIRED=0
+APP_RESET_MESSAGE=
+
+CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL=0
+
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 
 OFFLINE_MODE=0
+IGNORE_NAVIGATOR_ONLINE=0
 
 WEBPUSH_VAPID_PUBLIC_KEY=
 WEBPUSH_VAPID_PRIVATE_KEY=
@@ -83,12 +131,88 @@ WEBPUSH_VAPID_CLAIMS_SUB=mailto:admin@example.com
 SMSIR_API_KEY=
 SMSIR_LINE_NUMBER=
 SMSIR_TEMPLATE_ID=
+
+# اگر PostgreSQL فعال است:
+DATABASE_NAME=chat_db
+DATABASE_USER=postgres
+DATABASE_PASSWORD=CHANGE_ME
+DATABASE_HOST=127.0.0.1
+DATABASE_PORT=5432
+
+# اگر PostgreSQL فعال نیست (SQLite):
+# SQLITE_PATH=/opt/pesk-messenger/db.sqlite3
 ```
 
-نکته‌ها:
+نکته‌های مهم امنیتی:
 
-- اگر `OFFLINE_MODE=1` باشد، ارسال SMS و WebPush سمت سرور غیرفعال می‌شود.
-- اگر `OFFLINE_MODE=0` باشد ولی کلیدهای WebPush یا SMS خالی باشند، برنامه بدون خطا اجرا می‌شود؛ فقط نوتیفیکیشن‌های مربوطه فعال نمی‌شوند.
+- فایل env را داخل ریپو Commit نکنید و آن را عمومی نکنید (به‌خصوص `DJANGO_SECRET_KEY`، کلیدهای VAPID و کلیدهای SMS).
+- اگر به اشتباه Secretها را منتشر کرده‌اید، فوراً Rotate کنید و کلیدهای جدید بسازید.
+
+### معنی و کاربرد گزینه‌های ENV
+
+**هسته‌ی Django**
+
+- `DJANGO_DEBUG` (پیش‌فرض: `1`): حالت توسعه/پروداکشن. در پروداکشن حتماً `0` باشد.
+- `DJANGO_SECRET_KEY` (پیش‌فرض: مقدار ناامن داخلی): کلید امنیتی Django؛ در پروداکشن باید طولانی و تصادفی باشد.
+- `DJANGO_ALLOWED_HOSTS` (پیش‌فرض: `localhost,127.0.0.1,*`): لیست Hostهایی که Django قبول می‌کند (CSV). در پروداکشن `*` نگذارید.
+- `DJANGO_CSRF_TRUSTED_ORIGINS` (پیش‌فرض: خالی): لیست Originهای مجاز برای CSRF (CSV) و باید شامل scheme باشد (مثل `https://example.com`).
+- `DJANGO_ENV_FILE` (اختیاری): مسیر فایل env سفارشی که قبل از بقیه تلاش می‌شود.
+
+**نسخه/آپدیت PWA**
+
+- `APP_VERSION` (پیش‌فرض: `dev-<mtime>`): برای Cache Busting روی فایل‌های Static و Service Worker استفاده می‌شود. در پروداکشن بهتر است شماره نسخه‌ی Deploy را بگذارید.
+- `APP_RESET_REQUIRED` (پیش‌فرض: `0`): اگر `1` باشد، UI آپدیت به کاربر می‌گوید بروزرسانی نیاز به پاکسازی داده‌های سایت دارد.
+- `APP_RESET_MESSAGE` (پیش‌فرض: خالی): پیام تکمیلی برای `APP_RESET_REQUIRED`.
+- `IGNORE_NAVIGATOR_ONLINE` (پیش‌فرض: در Debug=1 مقدار 1، در Debug=0 مقدار 0): اگر `1` باشد، UI وضعیت آنلاین/آفلاین مرورگر را نادیده می‌گیرد.
+
+**قابلیت‌های چت**
+
+- `CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL` (پیش‌فرض: `0`): اگر `1` باشد، اتاق `public_chat` برای همه‌ی کاربران قابل مشاهده/جستجو است؛ اگر `0` باشد فقط برای اعضا و مدیران.
+
+**Channels / Redis**
+
+- `REDIS_HOST` (پیش‌فرض: `localhost`): آدرس Redis برای Channels.
+- `REDIS_PORT` (پیش‌فرض: `6379`): پورت Redis برای Channels.
+
+**دیتابیس**
+
+- اگر یکی از این‌ها ست شود، PostgreSQL فعال می‌شود: `POSTGRES_HOST/POSTGRES_DB/POSTGRES_USER/POSTGRES_PASSWORD` یا `DATABASE_HOST/DATABASE_NAME/DATABASE_USER/DATABASE_PASSWORD`.
+- این پروژه برای مقداردهی به Database از `DATABASE_*` استفاده می‌کند و اگر نبود از `POSTGRES_*` می‌خواند.
+- متغیرهای قابل تنظیم:
+  - `DATABASE_NAME` یا `POSTGRES_DB` (پیش‌فرض: `chat_db`)
+  - `DATABASE_USER` یا `POSTGRES_USER` (پیش‌فرض: `postgres`)
+  - `DATABASE_PASSWORD` یا `POSTGRES_PASSWORD` (پیش‌فرض: خالی)
+  - `DATABASE_HOST` یا `POSTGRES_HOST` (پیش‌فرض: `localhost`)
+  - `DATABASE_PORT` یا `POSTGRES_PORT` (پیش‌فرض: `5432`)
+- اگر PostgreSQL فعال نشود، SQLite استفاده می‌شود:
+  - `SQLITE_PATH` (پیش‌فرض: `./db.sqlite3`)
+
+**HTTPS / Security (فقط وقتی `DJANGO_DEBUG=0`)**
+
+- `DJANGO_SECURE_SSL_REDIRECT` (پیش‌فرض: `1`): ریدایرکت HTTP به HTTPS (در پشت Nginx/Proxy باید `X-Forwarded-Proto` درست تنظیم شود).
+- `DJANGO_SESSION_COOKIE_SECURE` (پیش‌فرض: `1`): ارسال Session Cookie فقط روی HTTPS.
+- `DJANGO_CSRF_COOKIE_SECURE` (پیش‌فرض: `1`): ارسال CSRF Cookie فقط روی HTTPS.
+- `DJANGO_SECURE_HSTS_SECONDS` (پیش‌فرض: `0`): فعال‌سازی HSTS با ثانیه‌ی دلخواه (مثلاً `31536000`).
+- `DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS` (پیش‌فرض: `0`): اعمال HSTS روی زیردامنه‌ها.
+- `DJANGO_SECURE_HSTS_PRELOAD` (پیش‌فرض: `0`): سازگار با HSTS preload (فقط اگر مطمئنید).
+
+**حالت آفلاین و وابستگی‌های اینترنتی**
+
+- `OFFLINE_MODE` (پیش‌فرض: `0`): اگر `1` باشد، ارسال SMS و WebPush سمت سرور غیرفعال می‌شود.
+  - در حالت `OFFLINE_MODE=1`، ارسال OTP روی کنسول چاپ می‌شود.
+  - اگر `OFFLINE_MODE=0` باشد ولی کلیدهای WebPush یا SMS خالی باشند، برنامه اجرا می‌شود؛ فقط قابلیت‌های مربوطه فعال نمی‌شوند.
+
+**Web Push (PWA)**
+
+- `WEBPUSH_VAPID_PUBLIC_KEY`: کلید عمومی VAPID (Base64) برای مرورگر.
+- `WEBPUSH_VAPID_PRIVATE_KEY`: کلید خصوصی VAPID (برای سرور).
+- `WEBPUSH_VAPID_CLAIMS_SUB` (پیش‌فرض: خالی): مقدار `sub` در VAPID Claims (مثلاً `mailto:admin@example.com`).
+
+**SMS.ir**
+
+- `SMSIR_API_KEY`: کلید API برای SMS.ir.
+- `SMSIR_LINE_NUMBER`: شماره‌ی خط برای ارسال Bulk.
+- `SMSIR_TEMPLATE_ID`: شناسه‌ی Template برای OTP/Verify.
 
 ### تنظیم دیتابیس
 
@@ -234,6 +358,8 @@ sudo certbot --nginx -d example.com -d www.example.com
 
 ```env
 DJANGO_SECURE_SSL_REDIRECT=1
+DJANGO_SESSION_COOKIE_SECURE=1
+DJANGO_CSRF_COOKIE_SECURE=1
 DJANGO_SECURE_HSTS_SECONDS=31536000
 DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS=1
 DJANGO_SECURE_HSTS_PRELOAD=1

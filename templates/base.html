@@ -38,6 +38,18 @@
 
   <script>
     (function () {
+      try {
+        var dir = sessionStorage.getItem('tgNavDir') || '';
+        var root = document.documentElement;
+        if (dir === 'forward') root.classList.add('tg-nav-forward');
+        else if (dir === 'back') root.classList.add('tg-nav-back');
+      } catch (e) {
+      }
+    })();
+  </script>
+
+  <script>
+    (function () {
       const storageKey = 'theme';
       const root = document.documentElement;
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
@@ -174,6 +186,52 @@
       filter: blur(0.7px);
       opacity: 0.7;
       transition: filter 0.2s ease, opacity 0.2s ease;
+    }
+    @media (max-width: 767px) {
+      #tg-sidebar,
+      #tg-main {
+        will-change: transform;
+        transform: translateZ(0);
+      }
+
+      html.tg-nav-forward #tg-main {
+        animation: tgEnterFromRight 220ms cubic-bezier(.2,.8,.2,1) both;
+      }
+      html.tg-nav-back #tg-sidebar {
+        animation: tgEnterFromLeft 220ms cubic-bezier(.2,.8,.2,1) both;
+      }
+      html.tg-leave-forward #tg-sidebar {
+        animation: tgExitToLeft 140ms cubic-bezier(.2,.8,.2,1) both;
+      }
+      html.tg-leave-back #tg-main {
+        animation: tgExitToRight 140ms cubic-bezier(.2,.8,.2,1) both;
+      }
+
+      @keyframes tgEnterFromRight {
+        from { transform: translateX(100%); }
+        to { transform: translateX(0); }
+      }
+      @keyframes tgExitToLeft {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(-18%); opacity: 0.98; }
+      }
+      @keyframes tgEnterFromLeft {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(0); }
+      }
+      @keyframes tgExitToRight {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(18%); opacity: 0.98; }
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html.tg-nav-forward #tg-main,
+      html.tg-nav-back #tg-sidebar,
+      html.tg-leave-forward #tg-sidebar,
+      html.tg-leave-back #tg-main {
+        animation: none !important;
+      }
     }
   </style>
 </head>
@@ -573,9 +631,66 @@
       }
     }
 
+    function setTelegramNavDir(dir) {
+      try {
+        sessionStorage.setItem('tgNavDir', dir);
+      } catch (e) {
+      }
+    }
+
+    function clearTelegramNavDir() {
+      try {
+        sessionStorage.removeItem('tgNavDir');
+      } catch (e) {
+      }
+      document.documentElement.classList.remove('tg-nav-forward', 'tg-nav-back', 'tg-leave-forward', 'tg-leave-back');
+      delete document.documentElement.dataset.tgNavLock;
+    }
+
     function telegramBack() {
+      setTelegramNavDir('back');
+      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      if (isMobile) {
+        if (document.documentElement.dataset.tgNavLock === '1') return;
+        document.documentElement.dataset.tgNavLock = '1';
+        document.documentElement.classList.add('tg-leave-back');
+        window.setTimeout(() => {
+          window.location.href = '/';
+        }, 140);
+        return;
+      }
       window.location.href = '/';
     }
+
+    document.addEventListener(
+      'click',
+      (e) => {
+        const a = e.target && e.target.closest ? e.target.closest('#chats-list a.chat-item') : null;
+        if (!a) return;
+        if (e.defaultPrevented) return;
+        if (e.button !== 0) return;
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+        const href = (a.getAttribute('href') || '').toString();
+        if (!href) return;
+
+        const isMobile = window.matchMedia('(max-width: 767px)').matches;
+        setTelegramNavDir('forward');
+
+        if (!isMobile) return;
+        if (document.documentElement.dataset.tgNavLock === '1') return;
+        document.documentElement.dataset.tgNavLock = '1';
+        e.preventDefault();
+        document.documentElement.classList.add('tg-leave-forward');
+        window.setTimeout(() => {
+          window.location.href = href;
+        }, 140);
+      },
+      { capture: true }
+    );
+
+    window.addEventListener('pageshow', () => {
+      window.setTimeout(clearTelegramNavDir, 650);
+    });
 
     function rememberLastChatUrl() {
       const path = window.location.pathname || '';

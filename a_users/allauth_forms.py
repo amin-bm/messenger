@@ -1,4 +1,8 @@
+import math
+import time
+
 from django import forms
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.contrib.auth.validators import UnicodeUsernameValidator
 
@@ -6,6 +10,7 @@ from allauth.account.forms import SignupForm
 from allauth.account.forms import LoginForm
 from allauth.account.adapter import get_adapter
 from allauth.account import app_settings as allauth_app_settings
+from allauth.core.internal import ratelimit as rl_impl
 
 from .models import Profile
 
@@ -167,3 +172,46 @@ class PhoneLoginForm(LoginForm):
                 remember,
                 {"class": "h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"},
             )
+
+    def _login_failed_wait_seconds(self, credentials: dict) -> float:
+        if not self.request:
+            return 0
+        rates = rl_impl.parse_rates(allauth_app_settings.RATE_LIMITS.get("login_failed"))
+        if not rates:
+            return 0
+        adapter = get_adapter(self.request)
+        key = adapter._get_login_attempts_cache_key(self.request, **credentials)
+        now = time.time()
+        max_remaining = 0
+        for rate in rates:
+            cache_key = rl_impl.get_cache_key(
+                self.request,
+                action="login_failed",
+                rate=rate,
+                key=key,
+            )
+            history = cache.get(cache_key, [])
+            if not history:
+                continue
+            while history and history[-1] <= now - rate.duration:
+                history.pop()
+            if len(history) < rate.amount:
+                continue
+            remaining = (history[-1] + rate.duration) - now
+            if remaining > max_remaining:
+                max_remaining = remaining
+        return max_remaining
+
+    def _clean_with_password(self, credentials: dict):
+        try:
+            return super()._clean_with_password(credentials)
+        except ValidationError as e:
+            if getattr(e, "code", None) == "too_many_login_attempts":
+                remaining = self._login_failed_wait_seconds(credentials)
+                if remaining > 0:
+                    minutes = max(1, math.ceil(remaining / 60))
+                    raise ValidationError(
+                        f"تعداد تلاش‌های ناموفق بیش از حد مجاز شده است. لطفا {minutes} دقیقه دیگر تلاش کنید.",
+                        code="too_many_login_attempts",
+                    )
+            raise

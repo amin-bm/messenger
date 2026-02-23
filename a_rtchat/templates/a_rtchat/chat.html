@@ -1684,7 +1684,7 @@
         { capture: true }
       );
 
-      (function bindTapToOpenMenuOnTouch() {
+      (function bindLongPressToOpenMenuOnTouch() {
         const container = document.getElementById("chat_container");
         const list = document.getElementById("chat_messages");
         if (!container || !list) return;
@@ -1698,7 +1698,26 @@
           return;
         }
 
-        list.addEventListener("click", (e) => {
+        const longPressDelay = 450;
+        const moveTolerance = 10;
+        let pressTimer = null;
+        let pressMessageEl = null;
+        let pressStart = null;
+        let pressPoint = null;
+        let suppressClickUntil = 0;
+
+        function clearPress() {
+          if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+          }
+          pressMessageEl = null;
+          pressStart = null;
+          pressPoint = null;
+        }
+
+        list.addEventListener("pointerdown", (e) => {
+          if (e && e.pointerType && e.pointerType !== "touch") return;
           const interactive = e.target.closest(
             "a,button,input,textarea,select,label,img[data-zoom-src],.js-audio-msg,.js-audio-seek"
           );
@@ -1707,19 +1726,44 @@
           const messageEl = e.target.closest('li[data-message-id]');
           if (!messageEl) return;
 
-          if (menu && !menu.classList.contains("hidden") && menuMessageEl === messageEl) {
-            closeMessageMenu();
+          pressMessageEl = messageEl;
+          pressStart = { x: e.clientX || 0, y: e.clientY || 0 };
+          pressPoint = { x: e.clientX || 0, y: e.clientY || 0 };
+
+          if (pressTimer) clearTimeout(pressTimer);
+          pressTimer = setTimeout(() => {
+            if (!pressMessageEl) return;
+            if (menu && !menu.classList.contains("hidden") && menuMessageEl === pressMessageEl) {
+              closeMessageMenu();
+              suppressClickUntil = Date.now() + 600;
+              return;
+            }
+            openMessageMenu(pressMessageEl, pressPoint ? pressPoint.x : 0, pressPoint ? pressPoint.y : 0);
+            suppressClickUntil = Date.now() + 800;
+          }, longPressDelay);
+        }, { passive: true });
+
+        list.addEventListener("pointermove", (e) => {
+          if (!pressStart) return;
+          const dx = Math.abs((e.clientX || 0) - pressStart.x);
+          const dy = Math.abs((e.clientY || 0) - pressStart.y);
+          if (dx > moveTolerance || dy > moveTolerance) clearPress();
+        }, { passive: true });
+
+        list.addEventListener("pointerup", clearPress, { passive: true });
+        list.addEventListener("pointercancel", clearPress, { passive: true });
+
+        list.addEventListener("click", (e) => {
+          if (Date.now() < suppressClickUntil) {
             e.preventDefault();
             e.stopPropagation();
-            return;
           }
-
-          openMessageMenu(messageEl, e.clientX || 0, e.clientY || 0);
-          e.preventDefault();
-          e.stopPropagation();
         });
 
-        container.addEventListener("scroll", closeMessageMenu, { passive: true });
+        container.addEventListener("scroll", () => {
+          clearPress();
+          closeMessageMenu();
+        }, { passive: true });
       })();
 
       document.addEventListener("click", (e) => {

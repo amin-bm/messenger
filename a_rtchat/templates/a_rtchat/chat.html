@@ -194,7 +194,7 @@
              class="hidden items-center rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200 min-h-[36px] dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15">باز کردن</a>
 
           <button id="file_viewer_download_btn" type="button"
-                  class="flex items-center rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 min-h-[36px]">دانلود</button>
+                  class="hidden">دانلود</button>
 
           <button id="file_viewer_close_btn" type="button" aria-label="بستن"
                   class="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">
@@ -2003,13 +2003,61 @@
     async function doDownload(url, filename, mime) {
       const u = String(url || "").trim();
       if (!u) return;
-      if (await tryShareDownload(u, filename, mime)) return;
-      if (tryDownloadViaIframe(u)) return;
-      if (tryDownloadViaAnchor(u, filename)) return;
+
+      const isCoarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+
+      if (!isCoarse) {
+        tryDownloadViaAnchor(u, filename);
+        return;
+      }
+
+      var m = String(mime || "").toLowerCase();
+      var ext = String(filename || "").split(".").pop().toLowerCase();
+      var imageExts = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif"];
+      var videoExts = ["mp4", "mov", "m4v", "webm", "avi", "mkv"];
+      var isImage = m.startsWith("image/") || imageExts.indexOf(ext) >= 0;
+      var isVideo = m.startsWith("video/") || videoExts.indexOf(ext) >= 0;
+      var isMedia = isImage || isVideo;
+
+      if (isMedia && isIOS() && navigator.share && navigator.canShare) {
+        try {
+          var res = await fetch(u, { credentials: "same-origin" });
+          if (!res.ok) throw new Error("fetch failed");
+          var blob = await res.blob();
+          var type = m || String(blob.type || "") || (isImage ? "image/jpeg" : "video/mp4");
+          var name = String(filename || "") || (isImage ? "photo.jpg" : "video.mp4");
+          var file = new File([blob], name, { type: type });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file] });
+            return;
+          }
+        } catch (e) {
+          if (e && e.name === "AbortError") return;
+        }
+      }
+
       try {
-        window.location.href = u;
+        var res2 = await fetch(u, { credentials: "same-origin" });
+        if (!res2.ok) throw new Error("fetch failed");
+        var blob2 = await res2.blob();
+        var type2 = String(mime || "") || String(blob2.type || "") || "application/octet-stream";
+        var name2 = String(filename || "") || "file";
+        var blobUrl = URL.createObjectURL(new Blob([blob2], { type: type2 }));
+        var a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = name2;
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+          a.remove();
+          URL.revokeObjectURL(blobUrl);
+        }, 5000);
+        return;
       } catch (e) {
       }
+
+      tryDownloadViaAnchor(u, filename);
     }
 
     function renderLoading() {
@@ -2679,13 +2727,19 @@
 
       modal.classList.remove("hidden");
 
-      var forceShowOpen = isIOS() && (isPdf || isWord || isLegacyWord || isExcel);
-      if (shouldUseViewer() && !forceShowOpen) {
+      var isIOSStandalone = isIOS() && (window.navigator.standalone === true);
+      if (isIOSStandalone) {
         openBtn.classList.add("hidden");
         openBtn.classList.remove("flex");
       } else {
-        openBtn.classList.remove("hidden");
-        openBtn.classList.add("flex");
+        var forceShowOpen = isIOS() && (isPdf || isWord || isLegacyWord || isExcel);
+        if (shouldUseViewer() && !forceShowOpen) {
+          openBtn.classList.add("hidden");
+          openBtn.classList.remove("flex");
+        } else {
+          openBtn.classList.remove("hidden");
+          openBtn.classList.add("flex");
+        }
       }
 
       try {
@@ -2721,8 +2775,6 @@
 
     closeBtn.addEventListener("click", requestClose);
     backdrop.addEventListener("click", requestClose);
-    downloadBtn.addEventListener("click", () => doDownload(current.downloadUrl, current.filename, current.mime));
-
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !modal.classList.contains("hidden")) requestClose();
     });
@@ -4028,5 +4080,6 @@
     document.addEventListener("DOMContentLoaded", update);
     update();
   })();
+
 </script>
 {% endblock %}

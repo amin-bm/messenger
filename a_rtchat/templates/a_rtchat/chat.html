@@ -98,6 +98,15 @@
     </div>
   </div>
 
+  <div id="conn_status_wrap" class="hidden px-4 pt-3">
+    <div id="conn_status_bar" class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium">
+      <span id="conn_status_icon" class="inline-flex h-4 w-4 items-center justify-center"></span>
+      <span id="conn_status_text" class="min-w-0"></span>
+      <span id="conn_status_duration" class="text-xs font-normal opacity-80"></span>
+      <button id="conn_status_retry" type="button" class="hidden rounded-lg px-2 py-0.5 text-xs font-semibold">تلاش مجدد</button>
+    </div>
+  </div>
+
   <!-- Messages area -->
   <div id="chat_container" class="flex-1 min-h-0 overflow-y-auto p-4 bg-white/15 backdrop-blur-sm dark:bg-slate-950/15" style="overflow-anchor: none;">
     <ul id="chat_messages" class="flex flex-col gap-2">
@@ -407,6 +416,39 @@
     70% { box-shadow: 0 0 0 10px rgba(100, 116, 139, 0); }
     100% { box-shadow: 0 0 0 0 rgba(100, 116, 139, 0); }
   }
+  .rtchat-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: currentColor;
+    animation: rtchatSpin 0.9s linear infinite;
+  }
+  @keyframes rtchatSpin {
+    to { transform: rotate(360deg); }
+  }
+  .rtchat-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: currentColor;
+    display: inline-block;
+  }
+  .rtchat-shake {
+    animation: rtchatShake 0.45s ease;
+  }
+  @keyframes rtchatShake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    50% { transform: translateX(3px); }
+    75% { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+  }
+  #chat_root.rtchat-offline #chat_messages {
+    filter: blur(0.7px);
+    opacity: 0.7;
+    transition: filter 0.2s ease, opacity 0.2s ease;
+  }
 </style>
 <script>
   function scrollToBottom(time = 0, passes = 5) {
@@ -435,6 +477,252 @@
       requestAnimationFrame(step);
     }, delay);
   }
+
+  (function () {
+    const statusWrap = document.getElementById("conn_status_wrap");
+    const statusBar = document.getElementById("conn_status_bar");
+    const statusText = document.getElementById("conn_status_text");
+    const statusDuration = document.getElementById("conn_status_duration");
+    const statusIcon = document.getElementById("conn_status_icon");
+    const statusRetry = document.getElementById("conn_status_retry");
+    const chatRoot = document.getElementById("chat_root");
+    const messageForm = document.getElementById("chat_message_form");
+
+    let toastContainer = null;
+    let offlineStartedAt = null;
+    let wsConnected = null;
+    let wsDisconnectedAt = null;
+    let lastState = "";
+    let successTimer = 0;
+    let tickTimer = 0;
+    let reconnectTimer = 0;
+    const initialGraceUntil = Date.now() + 1500;
+
+    function ensureToastContainer() {
+      if (toastContainer && toastContainer.isConnected) return toastContainer;
+      const existing = document.getElementById("conn_toast_container");
+      if (existing) {
+        toastContainer = existing;
+        return existing;
+      }
+      const el = document.createElement("div");
+      el.id = "conn_toast_container";
+      el.className = "fixed left-1/2 -translate-x-1/2 bottom-28 z-[90] flex flex-col gap-2 items-center";
+      document.body.appendChild(el);
+      toastContainer = el;
+      return el;
+    }
+
+    function showToast(message, duration = 3500) {
+      const container = ensureToastContainer();
+      if (!container) return;
+      const toast = document.createElement("div");
+      toast.className =
+        "max-w-[90vw] rounded-xl bg-slate-900/90 text-white text-sm font-medium px-4 py-2 shadow-lg ring-1 ring-black/10 backdrop-blur transition-all duration-200 opacity-0 translate-y-1";
+      toast.textContent = String(message || "");
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.classList.remove("opacity-0", "translate-y-1");
+        toast.classList.add("opacity-100", "translate-y-0");
+      });
+      const removeLater = () => {
+        toast.classList.remove("opacity-100", "translate-y-0");
+        toast.classList.add("opacity-0", "translate-y-1");
+        setTimeout(() => toast.remove(), 220);
+      };
+      setTimeout(removeLater, Math.max(1200, Number(duration || 0)));
+    }
+
+    function formatDuration(ms) {
+      const total = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function setIcon(type) {
+      if (!statusIcon) return;
+      statusIcon.innerHTML = "";
+      const el = document.createElement("span");
+      if (type === "spinner") {
+        el.className = "rtchat-spinner";
+      } else {
+        el.className = "rtchat-dot";
+      }
+      statusIcon.appendChild(el);
+    }
+
+    function setState(state) {
+      if (!statusWrap || !statusBar) return;
+      if (state === lastState) return;
+      lastState = state;
+      clearTimeout(successTimer);
+      const base = "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium";
+      if (state === "hidden") {
+        statusWrap.classList.add("hidden");
+        return;
+      }
+      statusWrap.classList.remove("hidden");
+      statusBar.className = base;
+      statusRetry && statusRetry.classList.add("hidden");
+      if (state === "offline") {
+        statusBar.classList.add("bg-red-50", "text-red-700", "border", "border-red-200", "dark:bg-red-500/10", "dark:text-red-300", "dark:border-red-500/30");
+        statusText && (statusText.textContent = "اتصال اینترنت قطع است.");
+        setIcon("dot");
+      } else if (state === "reconnecting") {
+        statusBar.classList.add("bg-amber-50", "text-amber-700", "border", "border-amber-200", "dark:bg-amber-500/10", "dark:text-amber-300", "dark:border-amber-500/30");
+        statusText && (statusText.textContent = "در حال اتصال مجدد…");
+        setIcon("spinner");
+      } else if (state === "server") {
+        statusBar.classList.add("bg-purple-50", "text-purple-700", "border", "border-purple-200", "dark:bg-purple-500/10", "dark:text-purple-300", "dark:border-purple-500/30");
+        statusText && (statusText.textContent = "مشکل در اتصال به سرور.");
+        setIcon("dot");
+        statusRetry && statusRetry.classList.remove("hidden");
+      } else if (state === "online") {
+        statusBar.classList.add("bg-emerald-50", "text-emerald-700", "border", "border-emerald-200", "dark:bg-emerald-500/10", "dark:text-emerald-300", "dark:border-emerald-500/30");
+        statusText && (statusText.textContent = "اتصال برقرار شد.");
+        setIcon("dot");
+        successTimer = setTimeout(() => setState("hidden"), 2500);
+      }
+    }
+
+    function updateDuration() {
+      if (!statusDuration) return;
+      if (!offlineStartedAt || lastState === "online" || lastState === "hidden") {
+        statusDuration.textContent = "";
+        return;
+      }
+      statusDuration.textContent = `مدت قطع: ${formatDuration(Date.now() - offlineStartedAt)}`;
+    }
+
+    function startTicker() {
+      if (tickTimer) return;
+      tickTimer = setInterval(updateDuration, 1000);
+    }
+
+    function stopTicker() {
+      if (tickTimer) {
+        clearInterval(tickTimer);
+        tickTimer = 0;
+      }
+    }
+
+    function attemptReconnect() {
+      if (!messageForm) return;
+      if (window.htmx && typeof window.htmx.process === "function") window.htmx.process(messageForm);
+      if (window.htmx && typeof window.htmx.trigger === "function") window.htmx.trigger(messageForm, "htmx:wsReconnect");
+    }
+
+    function startReconnectTimer() {
+      if (reconnectTimer) return;
+      reconnectTimer = setInterval(() => {
+        const online = typeof navigator === "undefined" ? true : navigator.onLine !== false;
+        if (!online) return;
+        if (wsConnected) return;
+        attemptReconnect();
+      }, 5000);
+    }
+
+    function stopReconnectTimer() {
+      if (reconnectTimer) {
+        clearInterval(reconnectTimer);
+        reconnectTimer = 0;
+      }
+    }
+
+    function updateConnectivity() {
+      const online = typeof navigator === "undefined" ? true : navigator.onLine !== false;
+      if (!online) {
+        if (!offlineStartedAt) offlineStartedAt = Date.now();
+        wsConnected = false;
+        wsDisconnectedAt = wsDisconnectedAt || Date.now();
+        chatRoot && chatRoot.classList.add("rtchat-offline");
+        setState("offline");
+        startTicker();
+        stopReconnectTimer();
+        updateDuration();
+        return;
+      }
+
+      if (chatRoot) chatRoot.classList.remove("rtchat-offline");
+
+      if (wsConnected === null && Date.now() < initialGraceUntil) {
+        setState("hidden");
+        stopTicker();
+        return;
+      }
+
+      if (!wsConnected) {
+        const baseAt = wsDisconnectedAt || offlineStartedAt || Date.now();
+        offlineStartedAt = offlineStartedAt || baseAt;
+        const age = Date.now() - baseAt;
+        if (age < 15000) setState("reconnecting");
+        else setState("server");
+        startTicker();
+        startReconnectTimer();
+        updateDuration();
+        return;
+      }
+
+      if (offlineStartedAt || lastState === "reconnecting" || lastState === "server" || lastState === "offline") {
+        setState("online");
+      } else {
+        setState("hidden");
+      }
+      offlineStartedAt = null;
+      wsDisconnectedAt = null;
+      stopTicker();
+      stopReconnectTimer();
+      updateDuration();
+    }
+
+    function handleWsOpen() {
+      wsConnected = true;
+      updateConnectivity();
+    }
+
+    function handleWsDisconnected() {
+      wsConnected = false;
+      wsDisconnectedAt = wsDisconnectedAt || Date.now();
+      updateConnectivity();
+    }
+
+    if (statusRetry) {
+      statusRetry.addEventListener("click", () => {
+        attemptReconnect();
+        updateConnectivity();
+      });
+    }
+
+    document.body.addEventListener("htmx:wsOpen", handleWsOpen);
+    document.body.addEventListener("htmx:wsClose", handleWsDisconnected);
+    document.body.addEventListener("htmx:wsError", handleWsDisconnected);
+    window.addEventListener("online", updateConnectivity);
+    window.addEventListener("offline", updateConnectivity);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        attemptReconnect();
+        updateConnectivity();
+      }
+    });
+    window.addEventListener("focus", () => {
+      attemptReconnect();
+      updateConnectivity();
+    });
+
+    window.rtchatShowConnToast = showToast;
+    window.rtchatIsConnected = function () {
+      const online = typeof navigator === "undefined" ? true : navigator.onLine !== false;
+      return online && wsConnected === true;
+    };
+    window.rtchatRefreshConnectionUI = updateConnectivity;
+    window.rtchatAttemptReconnect = attemptReconnect;
+
+    setTimeout(updateConnectivity, 1600);
+    updateConnectivity();
+  })();
 
   (function () {
     let observer = null;
@@ -3317,6 +3605,13 @@
 
     async function sendVoice() {
       if (!recordedBlob) return;
+      if (typeof window.rtchatIsConnected === "function" && !window.rtchatIsConnected()) {
+        if (typeof window.rtchatShowConnToast === "function") {
+          window.rtchatShowConnToast("اتصال برقرار نیست. پیام صوتی ارسال نمی‌شود.", 4000);
+        }
+        if (typeof window.rtchatRefreshConnectionUI === "function") window.rtchatRefreshConnectionUI();
+        return;
+      }
       const url = fileForm.getAttribute("hx-post");
       if (!url) return;
 
@@ -3478,6 +3773,25 @@
       return Boolean(window.rtchatCurrentUploadXhr) || isVisible(progressWrapper);
     }
 
+    function isConnected() {
+      if (typeof window.rtchatIsConnected !== "function") return true;
+      return window.rtchatIsConnected();
+    }
+
+    function warnConnection(message) {
+      if (typeof window.rtchatShowConnToast === "function") {
+        window.rtchatShowConnToast(message, 4000);
+      }
+      if (typeof window.rtchatRefreshConnectionUI === "function") window.rtchatRefreshConnectionUI();
+    }
+
+    function shakeSendButton() {
+      if (!sendBtn) return;
+      sendBtn.classList.remove("rtchat-shake");
+      void sendBtn.offsetWidth;
+      sendBtn.classList.add("rtchat-shake");
+    }
+
     function ensureTicker() {
       if (tickTimer) return;
       tickTimer = setInterval(updateSendingIndicator, 500);
@@ -3544,8 +3858,14 @@
       }
     }
 
-    function handleSubmitCapture() {
+    function handleSubmitCapture(e) {
       if (!messageForm || !bodyInput) return;
+      if (!isConnected()) {
+        if (e && typeof e.preventDefault === "function") e.preventDefault();
+        warnConnection("اتصال برقرار نیست. پیام ارسال نمی‌شود.");
+        shakeSendButton();
+        return;
+      }
       const v = (bodyInput.value || "").trim();
       if (!v) return;
       if (fileInput && fileInput.files && fileInput.files.length) return;
@@ -3793,6 +4113,12 @@
     function uploadFileWithProgress(fileOverride) {
       const file = fileOverride || (fileInput.files ? fileInput.files[0] : null);
       if (!file) return;
+      if (!isConnected()) {
+        warnConnection("اتصال برقرار نیست. فایل ارسال نمی‌شود.");
+        fileInput.value = "";
+        update();
+        return;
+      }
 
       const url = fileForm.getAttribute("hx-post");
       if (!url) return;
@@ -3939,6 +4265,10 @@
 
     if (bodyInput) {
       bodyInput.addEventListener("paste", (e) => {
+        if (!isConnected()) {
+          warnConnection("اتصال برقرار نیست. فایل ارسال نمی‌شود.");
+          return;
+        }
         const img = imageFileFromPasteEvent(e);
         if (!img) return;
 
@@ -3960,6 +4290,11 @@
 
     sendBtn.addEventListener("click", (e) => {
       e.preventDefault();
+      if (!isConnected()) {
+        warnConnection("اتصال برقرار نیست. پیام ارسال نمی‌شود.");
+        shakeSendButton();
+        return;
+      }
       if (sendBlocked()) { update(); return; }
       if (hasFile()) uploadFileWithProgress();
       else if (hasText()) trySubmit(messageForm);
@@ -4040,6 +4375,11 @@
           e.preventDefault();
           dragDepth = 0;
           hideDropOverlay();
+
+          if (!isConnected()) {
+            warnConnection("اتصال برقرار نیست. فایل ارسال نمی‌شود.");
+            return;
+          }
 
           const files = e.dataTransfer && e.dataTransfer.files ? Array.from(e.dataTransfer.files) : [];
           const file = files[0] || null;

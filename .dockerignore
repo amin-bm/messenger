@@ -1,0 +1,13 @@
+.git
+.gitignore
+__pycache__/
+**/__pycache__/
+**/*.pyc
+.venv/
+venv/
+node_modules/
+frontend/node_modules/
+media/
+staticfiles/
+.env
+.DS_Store

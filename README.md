@@ -9,6 +9,85 @@
 - (اختیاری ولی پیشنهادی) PostgreSQL برای محیط Production
 - (اختیاری) LibreOffice/soffice برای پیش‌نمایش فایل‌های Office به PDF
 
+## اجرای پروژه با Docker (پیشنهادی برای سرور بدون اینترنت)
+
+اگر می‌خواهید پروژه را روی یک سرور «بدون اینترنت» و «بدون نصب Python/Django/Node/Redis/PostgreSQL/Nginx روی خود سرور» اجرا کنید، از این روش استفاده کنید.
+
+نکته‌ی مهم: تنها چیزی که روی سرور باید وجود داشته باشد Docker Engine و پلاگین/کامند Docker Compose است. (بدون Docker اصولاً اجرای کانتینر ممکن نیست.)
+
+فایل‌های مربوط به Docker در این ریپو:
+
+- [Dockerfile](./Dockerfile)
+- [docker-compose.yml](./docker-compose.yml)
+- [docker/nginx.conf](./docker/nginx.conf)
+
+### اجرای محلی (برای تست)
+
+```bash
+docker compose up -d --build
+docker compose logs -f web
+```
+
+بعد از بالا آمدن سرویس‌ها:
+
+- آدرس برنامه: `http://localhost/`
+- دیتابیس و فایل‌ها داخل Volumeهای Docker نگهداری می‌شوند (با `docker compose down` پاک نمی‌شوند مگر با `-v`)
+
+### دیپلوی روی سرور بدون اینترنت (انتقال آفلاین)
+
+ایده‌ی کلی این است که ایمیج‌ها را روی یک سیستم دارای اینترنت Build/Pull کنید، سپس به صورت فایل `.tar` منتقل کنید و روی سرور `docker load` بزنید.
+
+1) روی سیستم Build (دارای اینترنت) داخل ریشه پروژه:
+
+```bash
+docker compose build
+docker pull nginx:1.27-alpine postgres:16-alpine redis:7-alpine
+docker save -o pesk-messenger-images.tar pesk-messenger-web:latest nginx:1.27-alpine postgres:16-alpine redis:7-alpine
+```
+
+2) فایل‌های زیر را به سرور منتقل کنید:
+
+- `pesk-messenger-images.tar`
+- `docker-compose.yml`
+- پوشه `docker/` (برای `nginx.conf`)
+- یک فایل `.env` یا `messenger.env` شامل تنظیمات (Secretها، Hostها، پسورد دیتابیس و ...)
+
+3) روی سرور (بدون اینترنت):
+
+```bash
+docker load -i pesk-messenger-images.tar
+docker compose up -d --no-build
+docker compose ps
+```
+
+### آپدیت بعد از تغییر پروژه (بدون اینترنت)
+
+هر بار که پروژه آپدیت شد، کافی است روی سیستم دارای اینترنت ایمیج `web` را دوباره Build کنید و دوباره فایل `.tar` بسازید و به سرور منتقل کنید:
+
+روی سیستم Build:
+
+```bash
+docker compose build web
+docker save -o pesk-messenger-images.tar pesk-messenger-web:latest nginx:1.27-alpine postgres:16-alpine redis:7-alpine
+```
+
+روی سرور:
+
+```bash
+docker load -i pesk-messenger-images.tar
+docker compose up -d --no-build --force-recreate
+docker compose logs -f web
+```
+
+نکته‌ها:
+
+- برای اینکه کلاینت‌ها (PWA/Static) حتماً آپدیت را ببینند، مقدار `APP_VERSION` را در `.env` تغییر دهید (مثلاً شماره نسخه یا تاریخ).
+- اگر HTTPS ندارید، حتماً این‌ها را در `.env` روی `0` بگذارید تا ریدایرکت/کوکی امن مشکل ایجاد نکند:
+  - `DJANGO_SECURE_SSL_REDIRECT=0`
+  - `DJANGO_SESSION_COOKIE_SECURE=0`
+  - `DJANGO_CSRF_COOKIE_SECURE=0`
+- برای WebSocketها در Nginx تنظیمات لازم داخل `docker/nginx.conf` انجام شده و مسیرهای `ws/` را پشتیبانی می‌کند.
+
 ## وابستگی‌های Python (خلاصه)
 
 این پروژه بر پایه این ابزارها اجرا می‌شود:

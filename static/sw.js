@@ -149,7 +149,7 @@ async function cacheFirst(req) {
 
 async function networkFirstNavigation(req) {
   try {
-    const res = await fetch(req);
+    const res = await fetch(new Request(req, { cache: "no-store" }));
     if (res && res.ok) {
       const cache = await caches.open(CACHE_NAME);
       await cache.put(req, res.clone());

@@ -195,10 +195,10 @@
       }
 
       html.tg-nav-forward #tg-main {
-        animation: tgEnterFromRight 220ms cubic-bezier(.2,.8,.2,1) both;
+        animation: tgEnterFromLeft 220ms cubic-bezier(.2,.8,.2,1) both;
       }
       html.tg-nav-back #tg-sidebar {
-        animation: tgEnterFromLeft 220ms cubic-bezier(.2,.8,.2,1) both;
+        animation: tgEnterFromRight 220ms cubic-bezier(.2,.8,.2,1) both;
       }
       html.tg-leave-forward #tg-sidebar {
         animation: tgExitToLeft 140ms cubic-bezier(.2,.8,.2,1) both;
@@ -208,7 +208,7 @@
       }
 
       @keyframes tgEnterFromRight {
-        from { transform: translateX(100%); }
+        from { transform: translateX(-100%); }
         to { transform: translateX(0); }
       }
       @keyframes tgExitToLeft {
@@ -216,7 +216,7 @@
         to { transform: translateX(-18%); opacity: 0.98; }
       }
       @keyframes tgEnterFromLeft {
-        from { transform: translateX(-100%); }
+        from { transform: translateX(100%); }
         to { transform: translateX(0); }
       }
       @keyframes tgExitToRight {
@@ -1143,6 +1143,18 @@
       const RESET_REQUIRED_DEFAULT = metaContent("app-reset-required") === "1";
       const RESET_MESSAGE_DEFAULT = metaContent("app-reset-message") || "";
       const IGNORE_NAVIGATOR_ONLINE = metaContent("ignore-navigator-online") === "1";
+      const APP_VERSION_KEY = "pwaAppVersion";
+
+      (function () {
+        try {
+          const prev = localStorage.getItem(APP_VERSION_KEY) || "";
+          if (prev && prev !== APP_VERSION) {
+            sessionStorage.setItem("pwaCleanupPending", "1");
+          }
+          localStorage.setItem(APP_VERSION_KEY, APP_VERSION);
+        } catch (e) {
+        }
+      })();
 
       function rtchatIsOnline() {
         if (IGNORE_NAVIGATOR_ONLINE) return true;
@@ -1713,6 +1725,14 @@
       async function cleanupSiteDataIfNeeded() {
         if (sessionStorage.getItem("pwaCleanupPending") !== "1") return;
         sessionStorage.removeItem("pwaCleanupPending");
+
+        try {
+          if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all((regs || []).map((r) => (r && r.unregister ? r.unregister() : false)));
+          }
+        } catch (e) {
+        }
 
         try {
           if ("caches" in window) {

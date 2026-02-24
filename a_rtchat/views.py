@@ -261,6 +261,15 @@ def chat_view(request, chatroom_identifier='public_chat'):
             if member != request.user:
                 other_user = member
                 break
+    private_other_last_read = None
+    if chat_group.is_private and other_user:
+        other_state = (
+            ChatState.objects
+            .filter(user=other_user, group=chat_group)
+            .only("last_read")
+            .first()
+        )
+        private_other_last_read = other_state.last_read if other_state else None
 
     if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
         if _user_is_chat_group_admin(request.user, chat_group) and request.user not in chat_group.members.all():
@@ -307,6 +316,7 @@ def chat_view(request, chatroom_identifier='public_chat'):
                 'user' : request.user,
                 'chat_group': chat_group,
                 'is_group_admin': _user_is_chat_group_admin(request.user, chat_group),
+                'private_other_last_read': private_other_last_read,
             }
             return render(request, 'a_rtchat/partials/chat_message_p.html', context)
 
@@ -318,6 +328,7 @@ def chat_view(request, chatroom_identifier='public_chat'):
         'chatroom_ws_name': chat_group.group_name,
         'chat_group': chat_group,
         'is_group_admin': _user_is_chat_group_admin(request.user, chat_group),
+        'private_other_last_read': private_other_last_read,
         'chat_group_admin_ids': list(
             set(chat_group.admins.values_list("id", flat=True))
             | ({int(chat_group.admin_id)} if chat_group.admin_id else set())
@@ -335,6 +346,17 @@ def chat_messages_older(request, chatroom_identifier):
     _assert_user_can_access_chat_group(request, chat_group)
 
     chatroom_identifier = chat_group.group_slug or chat_group.group_name
+    private_other_last_read = None
+    if chat_group.is_private:
+        other_user = chat_group.members.exclude(id=request.user.id).first()
+        if other_user:
+            other_state = (
+                ChatState.objects
+                .filter(user=other_user, group=chat_group)
+                .only("last_read")
+                .first()
+            )
+            private_other_last_read = other_state.last_read if other_state else None
     _MSG_RELATED = (
         "author", "author__profile",
         "reply_to", "reply_to__author", "reply_to__author__profile",
@@ -379,6 +401,7 @@ def chat_messages_older(request, chatroom_identifier):
         "has_more": has_more,
         "next_before": next_before,
         "is_group_admin": _user_is_chat_group_admin(request.user, chat_group),
+        "private_other_last_read": private_other_last_read,
     }
     return render(request, "a_rtchat/partials/chat_messages_older.html", context)
 

@@ -249,6 +249,20 @@ def _public_chat_visible_to_user(user: User, public_chat: ChatGroup) -> bool:
         return True
     return public_chat.members.filter(id=user.id).exists()
 
+def _private_other_last_read(chatroom: ChatGroup, user: User):
+    if not getattr(chatroom, "is_private", False):
+        return None
+    other_id = chatroom.members.exclude(id=user.id).values_list("id", flat=True).first()
+    if not other_id:
+        return None
+    state = (
+        ChatState.objects
+        .filter(user_id=other_id, group=chatroom)
+        .only("last_read")
+        .first()
+    )
+    return state.last_read if state else None
+
 
 class ChatroomConsumer(WebsocketConsumer):
     def connect(self):
@@ -301,6 +315,11 @@ class ChatroomConsumer(WebsocketConsumer):
             "online-status",
             {"type": "online_status_handler", "target_user_ids": [self.user.id]}
         )
+        if self.chatroom.is_private:
+            async_to_sync(self.channel_layer.group_send)(
+                self.chatroom_name,
+                {"type": "read_receipt_handler", "reader_id": self.user.id}
+            )
 
     def disconnect(self, close_code):
         async_to_sync(self.channel_layer.group_discard)(
@@ -373,6 +392,7 @@ class ChatroomConsumer(WebsocketConsumer):
             'message': message,
             'user': self.user,
             'chat_group': self.chatroom,
+            'private_other_last_read': _private_other_last_read(self.chatroom, self.user),
         }
         html = render_to_string("a_rtchat/partials/chat_message_p.html", context=context)
         self.send(text_data=html)
@@ -387,6 +407,11 @@ class ChatroomConsumer(WebsocketConsumer):
             "online-status",
             {"type": "online_status_handler", "target_user_ids": [self.user.id]}
         )
+        if self.chatroom.is_private:
+            async_to_sync(self.channel_layer.group_send)(
+                self.chatroom_name,
+                {"type": "read_receipt_handler", "reader_id": self.user.id}
+            )
 
     def message_edited_handler(self, event):
         message = (
@@ -405,8 +430,49 @@ class ChatroomConsumer(WebsocketConsumer):
             'user': self.user,
             'chat_group': self.chatroom,
             'oob': True,
+            'private_other_last_read': _private_other_last_read(self.chatroom, self.user),
         }
         html = render_to_string("a_rtchat/chat_message.html", context=context)
+        self.send(text_data=html)
+
+    def read_receipt_handler(self, event):
+        if not getattr(self.chatroom, "is_private", False):
+            return
+        reader_id = event.get("reader_id")
+        if not reader_id or int(reader_id) == int(getattr(self.user, "id", 0) or 0):
+            return
+        reader_state = (
+            ChatState.objects
+            .filter(user_id=reader_id, group=self.chatroom)
+            .only("last_read")
+            .first()
+        )
+        if not reader_state:
+            return
+        last_read = reader_state.last_read
+        messages = list(
+            GroupMessage.objects
+            .filter(group=self.chatroom, author=self.user, created__lte=last_read)
+            .select_related(
+                "group",
+                "author", "author__profile",
+                "reply_to", "reply_to__author", "reply_to__author__profile",
+                "forwarded_from", "forwarded_from__profile",
+            )
+            .order_by("-created")[:50]
+        )[::-1]
+        if not messages:
+            return
+        context_base = {
+            "user": self.user,
+            "chat_group": self.chatroom,
+            "oob_swap": "outerHTML",
+            "private_other_last_read": last_read,
+        }
+        html = "".join(
+            render_to_string("a_rtchat/chat_message.html", context={**context_base, "message": m})
+            for m in messages
+        )
         self.send(text_data=html)
 
     def message_deleted_handler(self, event):

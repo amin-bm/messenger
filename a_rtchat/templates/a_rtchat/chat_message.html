@@ -27,7 +27,7 @@
     </div>
 
     <span class="absolute bottom-2 right-2 text-[10px] text-gray-500 dark:text-slate-300">
-      {{ message.created|date:"H:i" }}{% if message.edited %}<span class="ml-1 text-[10px] text-gray-400 dark:text-slate-400">edited</span>{% endif %}
+      {{ message.created|date:"H:i" }}{% if chat_group.is_private %}<span class="ml-1 text-[10px] text-gray-400 dark:text-slate-400">{% if private_other_last_read and private_other_last_read >= message.created %}✓✓{% else %}✓{% endif %}</span>{% endif %}{% if message.edited %}<span class="ml-1 text-[10px] text-gray-400 dark:text-slate-400">edited</span>{% endif %}
     </span>
   </div>
 </li>

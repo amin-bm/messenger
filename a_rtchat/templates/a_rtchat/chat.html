@@ -31,70 +31,83 @@
   </div>
 
   <!-- Chat header (Telegram-like) -->
-  <div class="flex items-center justify-between border-b border-slate-200/70 bg-white/35 px-4 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25">
-    <div class="flex items-center gap-3 min-w-0">
-      <button id="tg-back-btn" type="button" class="hidden -ml-2 !p-2 !rounded-lg !bg-transparent !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0 dark:!text-slate-300 dark:hover:!text-white dark:hover:!bg-white/10 dark:active:!bg-white/15" onclick="telegramBack()">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-        </svg>
-      </button>
-      {% if other_user %}
-        <div class="relative">
-          <div id="online-icon" class="gray-dot absolute -bottom-1 -right-1"></div>
-          <img class="w-10 h-10 rounded-full object-cover" src="{{ other_user.profile.avatar }}">
-        </div>
-
-        <div class="min-w-0">
-          <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
-            {{ other_user.profile.name }}
+  <div class="border-b border-slate-200/70 bg-white/35 px-4 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25">
+    <div id="chat_header_normal" class="flex items-center justify-between">
+      <div class="flex items-center gap-3 min-w-0">
+        <button id="tg-back-btn" type="button" class="hidden -ml-2 !p-2 !rounded-lg !bg-transparent !text-gray-600 hover:!text-gray-900 hover:!bg-gray-100 active:!bg-gray-200 !shadow-none !font-normal focus:outline-none focus:ring-0 dark:!text-slate-300 dark:hover:!text-white dark:hover:!bg-white/10 dark:active:!bg-white/15" onclick="telegramBack()">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </button>
+        {% if other_user %}
+          <div class="relative">
+            <div id="online-icon" class="gray-dot absolute -bottom-1 -right-1"></div>
+            <img class="w-10 h-10 rounded-full object-cover" src="{{ other_user.profile.avatar }}">
           </div>
-          <div class="text-xs text-gray-500 truncate dark:text-slate-300">
-            @{{ other_user.username }}
-          </div>
-        </div>
 
-      {% else %}
-        {% if chat_group.groupchat_name %}
-          <button id="group-members-trigger" type="button" class="flex items-center gap-3 min-w-0 text-left">
+          <div class="min-w-0">
+            <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
+              {{ other_user.profile.name }}
+            </div>
+            <div class="text-xs text-gray-500 truncate dark:text-slate-300">
+              @{{ other_user.username }}
+            </div>
+          </div>
+        {% else %}
+          {% if chat_group.groupchat_name %}
+            <button id="group-members-trigger" type="button" class="flex items-center gap-3 min-w-0 text-left">
+              <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
+                  {{ chat_group.groupchat_name }}
+                </div>
+                <div class="text-xs text-gray-500 dark:text-slate-300">
+                  {{ chat_group.members.count }} members
+                </div>
+              </div>
+            </button>
+          {% else %}
             <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
             <div class="min-w-0">
               <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
-                {{ chat_group.groupchat_name }}
+                Public chat
               </div>
               <div class="text-xs text-gray-500 dark:text-slate-300">
-                {{ chat_group.members.count }} members
+                <span id="online-count" class="pr-1"></span>online
               </div>
             </div>
-          </button>
-        {% else %}
-          <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
-          <div class="min-w-0">
-            <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
-              Public chat
-            </div>
-            <div class="text-xs text-gray-500 dark:text-slate-300">
-              <span id="online-count" class="pr-1"></span>online
-            </div>
-          </div>
+          {% endif %}
         {% endif %}
-      {% endif %}
+      </div>
+
+      <div class="flex items-center gap-2">
+        {% if chat_group.groupchat_name and is_group_admin %}
+          <a href="{% url 'edit-chatroom' chat_group.group_name %}"
+             class="p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-0 group dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 dark:active:bg-white/15">
+            <svg class="fill-gray-500 group-hover:fill-gray-900 dark:fill-slate-300 dark:group-hover:fill-white" width="16" height="16">
+              <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"></path>
+            </svg>
+          </a>
+        {% endif %}
+        {% if chat_group.members.exists %}
+          {% include 'a_rtchat/partials/modal_chat_leave.html' %}
+        {% endif %}
+      </div>
     </div>
 
-    <!-- actions -->
-    <div class="flex items-center gap-2">
-      {% if chat_group.groupchat_name and is_group_admin %}
-        <a href="{% url 'edit-chatroom' chat_group.group_name %}"
-           class="p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-0 group dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 dark:active:bg-white/15">
-          <svg class="fill-gray-500 group-hover:fill-gray-900 dark:fill-slate-300 dark:group-hover:fill-white" width="16" height="16">
-            <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61Zm.176 4.823L9.75 4.81l-6.286 6.287a.253.253 0 0 0-.064.108l-.558 1.953 1.953-.558a.253.253 0 0 0 .108-.064Zm1.238-3.763a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354Z"></path>
-          </svg>
-        </a>
-      {% endif %}
+    <div id="chat_header_select" class="hidden flex items-center justify-between">
+      <div class="flex items-center gap-3 min-w-0">
+        <button id="selection_cancel_btn" type="button" class="-ml-2 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15">Cancel</button>
+        <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">
+          <span id="selection_count">0</span>
+          <span class="text-gray-500 dark:text-slate-300">Selected</span>
+        </div>
+      </div>
 
-      {# اگر modal leave داری، دکمه‌اش رو همینجا بذار (اختیاری) #}
-      {% if chat_group.members.exists %}
-        {% include 'a_rtchat/partials/modal_chat_leave.html' %}
-      {% endif %}
+      <div class="flex items-center gap-2">
+        <button id="selection_forward_btn" type="button" class="rounded-lg bg-transparent px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 hover:text-gray-900 active:bg-gray-200 disabled:opacity-40 disabled:pointer-events-none dark:text-slate-200 dark:hover:bg-white/10 dark:hover:text-white dark:active:bg-white/15">Forward</button>
+        <button id="selection_delete_btn" type="button" class="rounded-lg bg-transparent px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 active:bg-red-100 disabled:opacity-40 disabled:pointer-events-none dark:hover:bg-red-500/10 dark:active:bg-red-500/15">Delete</button>
+      </div>
     </div>
   </div>
 
@@ -144,6 +157,12 @@
             <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
           </svg>
           <span>Copy</span>
+      </button>
+      <button type="button" data-menu-action="select" class="flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
+            <path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+          <span>Select</span>
       </button>
       <button type="button" data-menu-action="edit" class="hidden flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
@@ -406,6 +425,9 @@
     0% { box-shadow: 0 0 0 0 rgba(100, 116, 139, 0.5); }
     70% { box-shadow: 0 0 0 10px rgba(100, 116, 139, 0); }
     100% { box-shadow: 0 0 0 0 rgba(100, 116, 139, 0); }
+  }
+  .rtchat-selected .group {
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.85), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
   }
 </style>
 <script>
@@ -1194,7 +1216,7 @@
       });
     }
 
-    async function deleteMessageFromMessageEl(messageEl) {
+    async function deleteMessageFromMessageEl(messageEl, opts = null) {
       if (!messageEl) return;
       if (messageEl.dataset.deleting === "1") return;
 
@@ -1203,7 +1225,8 @@
       const messageId = messageEl.getAttribute("data-message-id") || "";
       if (!deleteUrl || !csrf || !messageId) return;
 
-      if (!window.confirm("پیام حذف شود؟")) return;
+      const shouldConfirm = !opts || opts.confirm !== false;
+      if (shouldConfirm && !window.confirm("پیام حذف شود؟")) return;
 
       messageEl.dataset.deleting = "1";
 
@@ -1229,9 +1252,10 @@
         if (replyInput.value === messageId) clearReply();
         const current = document.getElementById(`msg-${messageId}`);
         if (current) current.remove();
+        return true;
       } catch (e) {
         delete messageEl.dataset.deleting;
-        return;
+        return false;
       }
     }
 
@@ -1243,9 +1267,19 @@
     const forwardChatList = document.getElementById("forward_chat_list");
     const forwardHint = document.getElementById("forward_hint");
     const currentChatName = "{{ chatroom_ws_name|escapejs }}";
+    const headerNormal = document.getElementById("chat_header_normal");
+    const headerSelect = document.getElementById("chat_header_select");
+    const selectionCountEl = document.getElementById("selection_count");
+    const selectionCancelBtn = document.getElementById("selection_cancel_btn");
+    const selectionDeleteBtn = document.getElementById("selection_delete_btn");
+    const selectionForwardBtn = document.getElementById("selection_forward_btn");
+    const messagesList = document.getElementById("chat_messages");
     let menuMessageEl = null;
     let forwardMessageEl = null;
+    let forwardMessageEls = null;
     let ignoreDocumentClickUntil = 0;
+    let selectionMode = false;
+    const selectedMessageIds = new Set();
 
     if (menu && menu.dataset.portaled !== "1") {
       menu.dataset.portaled = "1";
@@ -1374,11 +1408,14 @@
       });
     }
 
-    async function forwardMessageToChat(messageEl, targetIdentifier) {
+    async function forwardMessageToChat(messageEl, targetIdentifier, opts = null) {
       if (!messageEl) return;
       const forwardUrl = messageEl.getAttribute("data-forward-url") || "";
       const csrf = getCsrfToken();
       if (!forwardUrl || !csrf) return;
+
+      const keepOpen = Boolean(opts && opts.keepOpen);
+      const quiet = Boolean(opts && opts.quiet);
 
       const formData = new FormData();
       formData.append("csrfmiddlewaretoken", csrf);
@@ -1394,18 +1431,44 @@
         body: formData,
       });
 
-      if (!res.ok) return;
-      closeForwardModal();
-      window.alert("پیام فوروارد شد");
+      if (!res.ok) return false;
+      if (!keepOpen) closeForwardModal();
+      if (!quiet) window.alert("پیام فوروارد شد");
+      return true;
     }
 
     function openForwardModalFromMessageEl(messageEl) {
       if (!forwardModal || !messageEl) return;
       forwardMessageEl = messageEl;
+      forwardMessageEls = null;
       forwardModal.classList.remove("hidden");
       if (forwardHint) forwardHint.textContent = "Select a chat";
       buildForwardList("");
       if (forwardSearchInput) forwardSearchInput.focus();
+    }
+
+    function openForwardModalFromMessageEls(messageEls) {
+      if (!forwardModal) return;
+      forwardMessageEl = null;
+      forwardMessageEls = (Array.isArray(messageEls) ? messageEls : []).filter(Boolean);
+      if (!forwardMessageEls.length) return;
+      forwardModal.classList.remove("hidden");
+      if (forwardHint) forwardHint.textContent = "Select a chat";
+      buildForwardList("");
+      if (forwardSearchInput) forwardSearchInput.focus();
+    }
+
+    async function forwardMessagesToChat(messageEls, targetIdentifier) {
+      const els = (Array.isArray(messageEls) ? messageEls : []).filter(Boolean);
+      if (!els.length) return;
+      let okCount = 0;
+      for (const el of els) {
+        const ok = await forwardMessageToChat(el, targetIdentifier, { keepOpen: true, quiet: true });
+        if (ok) okCount += 1;
+      }
+      closeForwardModal();
+      if (okCount) window.alert("پیام‌ها فوروارد شدند");
+      setSelectionMode(false);
     }
 
     function positionMenu(x, y) {
@@ -1446,6 +1509,120 @@
       positionMenu(x, y);
     }
 
+    function getMessageIdFromEl(messageEl) {
+      if (!messageEl) return "";
+      const mid = String(messageEl.getAttribute("data-message-id") || "").trim();
+      if (mid) return mid;
+      const idAttr = String(messageEl.id || "");
+      if (idAttr.startsWith("msg-")) return idAttr.slice(4);
+      return "";
+    }
+
+    function findMessageElById(messageId) {
+      const id = String(messageId || "").trim();
+      if (!id) return null;
+      let el = null;
+      try {
+        el = document.getElementById(`msg-${CSS.escape(id)}`);
+      } catch (e) {
+        el = document.getElementById(`msg-${id}`);
+      }
+      if (el) return el;
+      const scope = messagesList || document;
+      try {
+        if (window.CSS && typeof window.CSS.escape === "function") {
+          return scope.querySelector(`li[data-message-id="${window.CSS.escape(id)}"]`);
+        }
+      } catch (e) {
+      }
+      try {
+        return scope.querySelector(`li[data-message-id="${id.replace(/"/g, '\\"')}"]`);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function setMessageSelected(messageEl, selected) {
+      const id = getMessageIdFromEl(messageEl);
+      if (!id) return;
+      if (selected) selectedMessageIds.add(id);
+      else selectedMessageIds.delete(id);
+      if (messageEl && messageEl.classList) messageEl.classList.toggle("rtchat-selected", Boolean(selected));
+      if (selectionMode && selectedMessageIds.size === 0) {
+        setSelectionMode(false);
+        return;
+      }
+      updateSelectionUi();
+    }
+
+    function toggleMessageSelected(messageEl) {
+      const id = getMessageIdFromEl(messageEl);
+      if (!id) return;
+      setMessageSelected(messageEl, !selectedMessageIds.has(id));
+    }
+
+    function syncSelectionStyles() {
+      if (!messagesList) return;
+      const all = Array.from(messagesList.querySelectorAll('li[data-message-id], li[id^="msg-"]'));
+      all.forEach((li) => {
+        const id = getMessageIdFromEl(li);
+        const isSelected = Boolean(id && selectedMessageIds.has(id));
+        li.classList.toggle("rtchat-selected", isSelected);
+      });
+
+      for (const id of Array.from(selectedMessageIds)) {
+        const el = findMessageElById(id);
+        if (!el) selectedMessageIds.delete(id);
+      }
+
+      updateSelectionUi();
+    }
+
+    function setSelectionMode(next) {
+      selectionMode = Boolean(next);
+      if (!selectionMode) {
+        selectedMessageIds.clear();
+        syncSelectionStyles();
+      }
+
+      if (headerNormal) headerNormal.classList.toggle("hidden", selectionMode);
+      if (headerSelect) headerSelect.classList.toggle("hidden", !selectionMode);
+      if (selectionMode) closeMessageMenu();
+      updateSelectionUi();
+    }
+
+    function getSelectedMessageEls() {
+      const els = [];
+      for (const id of selectedMessageIds) {
+        const el = findMessageElById(id);
+        if (el) els.push(el);
+      }
+      return els;
+    }
+
+    function updateSelectionUi() {
+      const count = selectedMessageIds.size;
+      if (selectionCountEl) selectionCountEl.textContent = String(count);
+
+      if (selectionForwardBtn) selectionForwardBtn.disabled = !(selectionMode && count > 0);
+      if (selectionDeleteBtn) {
+        const anyDeletable = selectionMode && getSelectedMessageEls().some((el) => Boolean(el.getAttribute("data-delete-url")));
+        selectionDeleteBtn.disabled = !anyDeletable;
+      }
+    }
+
+    async function deleteSelectedMessages() {
+      const els = getSelectedMessageEls();
+      const deletable = els.filter((el) => Boolean(el && el.getAttribute && el.getAttribute("data-delete-url")));
+      if (!deletable.length) return;
+      if (!window.confirm(`${deletable.length} پیام حذف شود؟`)) return;
+
+      for (const el of deletable) {
+        await deleteMessageFromMessageEl(el, { confirm: false });
+      }
+      setSelectionMode(false);
+    }
+
     if (menu) {
       menu.addEventListener("click", (e) => {
         const btn = e.target.closest("button[data-menu-action]");
@@ -1480,6 +1657,12 @@
           closeMessageMenu();
           return;
         }
+        if (action === "select") {
+          setSelectionMode(true);
+          setMessageSelected(menuMessageEl, true);
+          closeMessageMenu();
+          return;
+        }
       });
     }
 
@@ -1495,7 +1678,12 @@
           const btn = e.target.closest("button[data-target-chat]");
           if (!btn) return;
           const target = btn.getAttribute("data-target-chat") || "";
-          if (!forwardMessageEl || !target) return;
+          if (!target) return;
+          if (forwardMessageEls && forwardMessageEls.length) {
+            forwardMessagesToChat(forwardMessageEls, target);
+            return;
+          }
+          if (!forwardMessageEl) return;
           forwardMessageToChat(forwardMessageEl, target);
         });
       }
@@ -1679,6 +1867,10 @@
           e.stopPropagation();
           if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
 
+          if (selectionMode) {
+            toggleMessageSelected(messageEl);
+            return;
+          }
           openMessageMenu(messageEl, x, y);
         },
         { capture: true }
@@ -1738,6 +1930,11 @@
               suppressClickUntil = Date.now() + 600;
               return;
             }
+            if (selectionMode) {
+              toggleMessageSelected(pressMessageEl);
+              suppressClickUntil = Date.now() + 800;
+              return;
+            }
             openMessageMenu(pressMessageEl, pressPoint ? pressPoint.x : 0, pressPoint ? pressPoint.y : 0);
             suppressClickUntil = Date.now() + 800;
           }, longPressDelay);
@@ -1766,6 +1963,23 @@
         }, { passive: true });
       })();
 
+      if (messagesList && messagesList.dataset.rtchatSelectBound !== "1") {
+        messagesList.dataset.rtchatSelectBound = "1";
+        messagesList.addEventListener(
+          "click",
+          (e) => {
+            if (!selectionMode) return;
+            const msg = e.target && e.target.closest ? e.target.closest('li[data-message-id], li[id^="msg-"]') : null;
+            if (!msg) return;
+            if (!msg.closest || !msg.closest("#chat_container")) return;
+            e.preventDefault();
+            e.stopPropagation();
+            toggleMessageSelected(msg);
+          },
+          { capture: true }
+        );
+      }
+
       document.addEventListener("click", (e) => {
         if (menu && !menu.classList.contains("hidden")) {
           const insideMenu = e.target.closest("#message_action_menu");
@@ -1787,10 +2001,26 @@
         if (e.key === "Escape") {
           closeMessageMenu();
           closeForwardModal();
+          if (selectionMode) setSelectionMode(false);
         }
       });
       window.addEventListener("resize", closeMessageMenu);
     }
+
+    if (selectionCancelBtn) selectionCancelBtn.addEventListener("click", () => setSelectionMode(false));
+    if (selectionDeleteBtn) selectionDeleteBtn.addEventListener("click", deleteSelectedMessages);
+    if (selectionForwardBtn) {
+      selectionForwardBtn.addEventListener("click", () => {
+        if (!selectionMode) return;
+        const els = getSelectedMessageEls();
+        if (!els.length) return;
+        openForwardModalFromMessageEls(els);
+      });
+    }
+
+    document.body.addEventListener("htmx:afterSwap", syncSelectionStyles);
+    document.body.addEventListener("htmx:oobAfterSwap", syncSelectionStyles);
+    document.body.addEventListener("htmx:wsAfterMessage", syncSelectionStyles);
 
     form.addEventListener("htmx:wsAfterSend", clearReply);
     form.addEventListener("htmx:wsAfterSend", () => setTimeout(resetBodyToInitialSize, 0));

@@ -1,4 +1,4 @@
-{% extends "layouts/telegram.html" %}
+{% extends chat_base_template|default:"layouts/telegram.html" %}
 
 {% block content %}
 
@@ -62,6 +62,7 @@
                   {{ chat_group.groupchat_name }}
                 </div>
                 <div class="text-xs text-gray-500 dark:text-slate-300">
+                  <span id="online-count" class="hidden"></span>
                   {{ chat_group.members.count }} members
                 </div>
               </div>
@@ -431,6 +432,35 @@
   }
 </style>
 <script>
+  var _rtchatMyGen = window._rtchatGen;
+  function isStale() {
+    return window._rtchatGen !== _rtchatMyGen;
+  }
+  var _on =
+    typeof window.RtChat !== "undefined" && window.RtChat.bodyOn
+      ? function (e, h, o) {
+          window.RtChat.bodyOn(e, h, o || false);
+        }
+      : function (e, h, o) {
+          document.body.addEventListener(e, h, o || false);
+        };
+  var _docOn =
+    typeof window.RtChat !== "undefined" && window.RtChat.docOn
+      ? function (e, h, o) {
+          window.RtChat.docOn(e, h, o || false);
+        }
+      : function (e, h, o) {
+          document.addEventListener(e, h, o || false);
+        };
+  var _winOn =
+    typeof window.RtChat !== "undefined" && window.RtChat.winOn
+      ? function (e, h, o) {
+          window.RtChat.winOn(e, h, o || false);
+        }
+      : function (e, h, o) {
+          window.addEventListener(e, h, o || false);
+        };
+
   function scrollToBottom(time = 0, passes = 5) {
     const delay = Math.max(0, Number(time || 0));
     const maxPasses = Math.max(1, Number(passes || 1));
@@ -539,12 +569,25 @@
 
     window.rtchatInitLazyImages = initLazyImages;
 
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => initLazyImages(document));
+    if (document.readyState === "loading")
+      _docOn("DOMContentLoaded", () => {
+        if (isStale()) return;
+        initLazyImages(document);
+      });
     else initLazyImages(document);
 
-    document.body.addEventListener("htmx:oobAfterSwap", (e) => initLazyImages(e && e.target ? e.target : document));
-    document.body.addEventListener("htmx:wsAfterMessage", () => initLazyImages(document));
-    document.body.addEventListener("htmx:afterSwap", (e) => initLazyImages(e && e.target ? e.target : document));
+    _on("htmx:oobAfterSwap", (e) => {
+      if (isStale()) return;
+      initLazyImages(e && e.target ? e.target : document);
+    });
+    _on("htmx:wsAfterMessage", () => {
+      if (isStale()) return;
+      initLazyImages(document);
+    });
+    _on("htmx:afterSwap", (e) => {
+      if (isStale()) return;
+      initLazyImages(e && e.target ? e.target : document);
+    });
   })();
 
 // ---------- IIFE مربوط به load older ----------
@@ -642,23 +685,32 @@
         }
     }
 
-    document.body.addEventListener("htmx:afterRequest", (e) => {
+    _on("htmx:afterRequest", (e) => {
+        if (isStale()) return;
         const t = (e && e.detail && e.detail.elt) ? e.detail.elt : (e && e.target ? e.target : null);
         if (t && t.id === "load_older") delete t.dataset.loading;
         const cur = document.getElementById("load_older");
         if (cur && cur.dataset.loading === "1") delete cur.dataset.loading;
     });
 
-    document.body.addEventListener("htmx:responseError", (e) => {
+    _on("htmx:responseError", (e) => {
+        if (isStale()) return;
         const t = (e && e.detail && e.detail.elt) ? e.detail.elt : (e && e.target ? e.target : null);
         if (t && t.id === "load_older") delete t.dataset.loading;
         const cur = document.getElementById("load_older");
         if (cur && cur.dataset.loading === "1") delete cur.dataset.loading;
     });
 
-    document.body.addEventListener("htmx:oobAfterSwap", initLoadOlder);
-    document.body.addEventListener("htmx:afterSwap", initLoadOlder);
-    document.body.addEventListener("htmx:afterSettle", (e) => {
+    _on("htmx:oobAfterSwap", () => {
+        if (isStale()) return;
+        initLoadOlder();
+    });
+    _on("htmx:afterSwap", () => {
+        if (isStale()) return;
+        initLoadOlder();
+    });
+    _on("htmx:afterSettle", (e) => {
+        if (isStale()) return;
         const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
         if (elt && elt.id === "load_older") {
             setTimeout(initLoadOlder, 50);
@@ -666,7 +718,10 @@
     });
 
     if (document.readyState === "loading")
-        document.addEventListener("DOMContentLoaded", initLoadOlder);
+        _docOn("DOMContentLoaded", () => {
+            if (isStale()) return;
+            initLoadOlder();
+        });
     else initLoadOlder();
 })();
 
@@ -689,7 +744,8 @@
       return msgs[0] || null;
     }
 
-    document.body.addEventListener("htmx:beforeRequest", (e) => {
+    _on("htmx:beforeRequest", (e) => {
+      if (isStale()) return;
       const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
       if (!elt || elt.id !== "load_older") return;
 
@@ -702,7 +758,8 @@
       };
     });
 
-    document.body.addEventListener("htmx:afterSettle", (e) => {
+    _on("htmx:afterSettle", (e) => {
+      if (isStale()) return;
       const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
       if (!elt || elt.id !== "load_older") return;
       if (!pending) return;
@@ -724,7 +781,8 @@
       if (deltaH) container.scrollTop = scrollTop + deltaH;
     });
 
-    document.body.addEventListener("htmx:responseError", (e) => {
+    _on("htmx:responseError", (e) => {
+      if (isStale()) return;
       const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
       if (elt && elt.id === "load_older") pending = null;
     });
@@ -834,11 +892,16 @@
     container.addEventListener("scroll", update, { passive: true });
 
     const recheck = () => requestAnimationFrame(update);
-    document.body.addEventListener("htmx:oobAfterSwap", recheck);
-    document.body.addEventListener("htmx:wsBeforeMessage", () => {
+    _on("htmx:oobAfterSwap", () => {
+      if (isStale()) return;
+      recheck();
+    });
+    _on("htmx:wsBeforeMessage", () => {
+      if (isStale()) return;
       wsWasNearBottom = isNearBottom();
     });
-    document.body.addEventListener("htmx:wsAfterMessage", (e) => {
+    _on("htmx:wsAfterMessage", (e) => {
+      if (isStale()) return;
       if (ownMessageScrollPending) {
         if (Date.now() > ownMessageScrollExpiresAt) clearOwnMessageScrollPending();
         else if (lastMessageIsMine()) {
@@ -852,7 +915,8 @@
       }
       recheck();
     });
-    document.body.addEventListener("htmx:afterSwap", (e) => {
+    _on("htmx:afterSwap", (e) => {
+      if (isStale()) return;
       const t = e && e.target ? e.target : null;
       if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) {
         if (ownMessageScrollPending) {
@@ -870,7 +934,8 @@
     });
 
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", () => {
+      _docOn("DOMContentLoaded", () => {
+        if (isStale()) return;
         try {
           if ("scrollRestoration" in history) history.scrollRestoration = "manual";
         } catch (e) {}
@@ -886,9 +951,10 @@
       setTimeout(recheck, 150);
     }
 
-    window.addEventListener(
+    _winOn(
       "load",
       () => {
+        if (isStale()) return;
         scheduleStickScroll(8);
       },
       { once: true }
@@ -965,15 +1031,26 @@
       window.rtchatEnsureDateSeparators();
     }
 
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run);
+    if (document.readyState === "loading")
+      _docOn("DOMContentLoaded", () => {
+        if (isStale()) return;
+        run();
+      });
     else run();
 
-    document.body.addEventListener("htmx:oobAfterSwap", run);
-    document.body.addEventListener("htmx:afterSwap", (e) => {
+    _on("htmx:oobAfterSwap", () => {
+      if (isStale()) return;
+      run();
+    });
+    _on("htmx:afterSwap", (e) => {
+      if (isStale()) return;
       const t = e && e.target ? e.target : null;
       if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) run();
     });
-    document.body.addEventListener("htmx:wsAfterMessage", run);
+    _on("htmx:wsAfterMessage", () => {
+      if (isStale()) return;
+      run();
+    });
   })();
   (function () {
     const params = new URLSearchParams(window.location.search || "");
@@ -1039,7 +1116,8 @@
       INITIAL_BODY_HEIGHT_PX = readInitialBodyHeightPx();
       autosizeBody();
       bodyInput.addEventListener("input", autosizeBody);
-      window.addEventListener("resize", () => {
+      _winOn("resize", () => {
+        if (isStale()) return;
         INITIAL_BODY_HEIGHT_PX = readInitialBodyHeightPx();
         autosizeBody();
       });
@@ -1157,7 +1235,10 @@
       autosizeEdit();
       textarea.focus();
       textarea.addEventListener("input", autosizeEdit);
-      window.addEventListener("resize", autosizeEdit);
+      _winOn("resize", () => {
+        if (isStale()) return;
+        autosizeEdit();
+      });
 
       cancelEditBtn.addEventListener("click", () => {
         const original = container.dataset.originalHtml || "";
@@ -1830,9 +1911,10 @@
       let lastPointerMessageEl = null;
       let lastPointerAt = 0;
 
-      document.addEventListener(
+      _docOn(
         "pointerdown",
         (e) => {
+          if (isStale()) return;
           const target = e && e.target ? e.target : null;
           if (!target || !target.closest) return;
           const inChat = Boolean(target.closest("#chat_container"));
@@ -1845,9 +1927,10 @@
         { capture: true }
       );
 
-      document.addEventListener(
+      _docOn(
         "contextmenu",
         (e) => {
+          if (isStale()) return;
           const x = (e && Number.isFinite(e.clientX)) ? e.clientX : 0;
           const y = (e && Number.isFinite(e.clientY)) ? e.clientY : 0;
 
@@ -2028,7 +2111,8 @@
         );
       }
 
-      document.addEventListener("click", (e) => {
+      _docOn("click", (e) => {
+        if (isStale()) return;
         if (menu && !menu.classList.contains("hidden")) {
           const insideMenu = e.target.closest("#message_action_menu");
           if (!insideMenu) closeMessageMenu();
@@ -2045,14 +2129,18 @@
         }
       });
 
-      document.addEventListener("keydown", (e) => {
+      _docOn("keydown", (e) => {
+        if (isStale()) return;
         if (e.key === "Escape") {
           closeMessageMenu();
           closeForwardModal();
           if (selectionMode) setSelectionMode(false);
         }
       });
-      window.addEventListener("resize", closeMessageMenu);
+      _winOn("resize", () => {
+        if (isStale()) return;
+        closeMessageMenu();
+      });
     }
 
     if (selectionCancelBtn) selectionCancelBtn.addEventListener("click", () => setSelectionMode(false));
@@ -2066,9 +2154,18 @@
       });
     }
 
-    document.body.addEventListener("htmx:afterSwap", syncSelectionStyles);
-    document.body.addEventListener("htmx:oobAfterSwap", syncSelectionStyles);
-    document.body.addEventListener("htmx:wsAfterMessage", syncSelectionStyles);
+    _on("htmx:afterSwap", () => {
+      if (isStale()) return;
+      syncSelectionStyles();
+    });
+    _on("htmx:oobAfterSwap", () => {
+      if (isStale()) return;
+      syncSelectionStyles();
+    });
+    _on("htmx:wsAfterMessage", () => {
+      if (isStale()) return;
+      syncSelectionStyles();
+    });
 
     form.addEventListener("htmx:wsAfterSend", clearReply);
     form.addEventListener("htmx:wsAfterSend", () => setTimeout(resetBodyToInitialSize, 0));
@@ -2094,19 +2191,29 @@
     modal.classList.add('hidden');
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    const trigger = document.getElementById('group-members-trigger');
-    const closeBtn = document.getElementById('group-members-close');
-    const backdrop = document.getElementById('group-members-backdrop');
+  (function () {
+    function bind() {
+      const trigger = document.getElementById('group-members-trigger');
+      const closeBtn = document.getElementById('group-members-close');
+      const backdrop = document.getElementById('group-members-backdrop');
 
-    if (trigger) trigger.addEventListener('click', openGroupMembersModal);
-    if (closeBtn) closeBtn.addEventListener('click', closeGroupMembersModal);
-    if (backdrop) backdrop.addEventListener('click', closeGroupMembersModal);
+      if (trigger) trigger.addEventListener('click', openGroupMembersModal);
+      if (closeBtn) closeBtn.addEventListener('click', closeGroupMembersModal);
+      if (backdrop) backdrop.addEventListener('click', closeGroupMembersModal);
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeGroupMembersModal();
-    });
-  });
+      _docOn('keydown', (e) => {
+        if (isStale()) return;
+        if (e.key === 'Escape') closeGroupMembersModal();
+      });
+    }
+
+    if (document.readyState === 'loading')
+      _docOn('DOMContentLoaded', () => {
+        if (isStale()) return;
+        bind();
+      });
+    else bind();
+  })();
 
   (function () {
     const modal = document.getElementById("file_viewer_modal");
@@ -3097,19 +3204,22 @@
 
     closeBtn.addEventListener("click", requestClose);
     backdrop.addEventListener("click", requestClose);
-    document.addEventListener("keydown", (e) => {
+    _docOn("keydown", (e) => {
+      if (isStale()) return;
       if (e.key === "Escape" && !modal.classList.contains("hidden")) requestClose();
     });
 
-    window.addEventListener("popstate", () => {
+    _winOn("popstate", () => {
+      if (isStale()) return;
       if (modal.classList.contains("hidden")) return;
       historyPushed = false;
       closeUI();
     });
 
-    document.addEventListener(
+    _docOn(
       "click",
       (e) => {
+        if (isStale()) return;
         if (!shouldUseViewer()) return;
         const a = e.target && e.target.closest ? e.target.closest("a.js-file-attachment") : null;
         if (!a || !a.getAttribute) return;
@@ -3129,7 +3239,8 @@
       { capture: true }
     );
 
-    document.addEventListener("click", async (e) => {
+    _docOn("click", async (e) => {
+      if (isStale()) return;
       const btn = e.target && e.target.closest ? e.target.closest("button.js-file-view-btn") : null;
       if (!btn) return;
 
@@ -3215,7 +3326,8 @@
       openViewer({ downloadUrl, previewUrl, filename, mime, forceView: true });
     });
 
-    document.addEventListener("click", (e) => {
+    _docOn("click", (e) => {
+      if (isStale()) return;
       const btn = e.target && e.target.closest ? e.target.closest("button.js-file-download-btn") : null;
       if (!btn) return;
 
@@ -3301,11 +3413,13 @@
 
     picker.addEventListener("click", (e) => e.stopPropagation());
 
-    document.addEventListener("click", () => {
+    _docOn("click", () => {
+      if (isStale()) return;
       if (isOpen()) close();
     });
 
-    document.addEventListener("keydown", (e) => {
+    _docOn("keydown", (e) => {
+      if (isStale()) return;
       if (e.key === "Escape") close();
     });
 
@@ -3466,9 +3580,21 @@
       });
     }
 
-    document.addEventListener("DOMContentLoaded", () => initAudioMessages(document));
-    document.body.addEventListener("htmx:afterSwap", (e) => initAudioMessages(e.target));
-    document.body.addEventListener("htmx:wsAfterMessage", () => initAudioMessages(document));
+    if (document.readyState === "loading")
+      _docOn("DOMContentLoaded", () => {
+        if (isStale()) return;
+        initAudioMessages(document);
+      });
+    else initAudioMessages(document);
+
+    _on("htmx:afterSwap", (e) => {
+      if (isStale()) return;
+      initAudioMessages(e.target);
+    });
+    _on("htmx:wsAfterMessage", () => {
+      if (isStale()) return;
+      initAudioMessages(document);
+    });
   })();
 
   (function () {
@@ -3914,17 +4040,30 @@
       messageForm.addEventListener("submit", handleSubmitCapture);
     }
 
-    document.body.addEventListener("htmx:wsAfterMessage", ackOneIfOwnLast);
-    document.body.addEventListener("htmx:oobAfterSwap", (e) => {
+    _on("htmx:wsAfterMessage", () => {
+      if (isStale()) return;
+      ackOneIfOwnLast();
+    });
+    _on("htmx:oobAfterSwap", (e) => {
+      if (isStale()) return;
       const t = e && e.target ? e.target : null;
       if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) { ackOneIfOwnLast(); update(); }
     });
-    document.body.addEventListener("htmx:afterSwap", (e) => {
+    _on("htmx:afterSwap", (e) => {
+      if (isStale()) return;
       const t = e && e.target ? e.target : null;
       if (t && (t.id === "chat_messages" || (typeof t.closest === "function" && t.closest("#chat_messages")))) { ackOneIfOwnLast(); update(); }
     });
-    window.addEventListener("online", () => { updateSendingIndicator(); update(); });
-    window.addEventListener("offline", () => { updateSendingIndicator(); update(); });
+    _winOn("online", () => {
+      if (isStale()) return;
+      updateSendingIndicator();
+      update();
+    });
+    _winOn("offline", () => {
+      if (isStale()) return;
+      updateSendingIndicator();
+      update();
+    });
     if (sendingRetryBtn) {
       sendingRetryBtn.addEventListener("click", () => {
         if (!messageForm || !bodyInput) return;
@@ -4443,15 +4582,21 @@
     fileInput.addEventListener("change", update);
     messageForm.addEventListener("reset", () => setTimeout(update, 0));
     fileForm.addEventListener("reset", () => setTimeout(update, 0));
-    document.body.addEventListener("htmx:afterRequest", (e) => {
+    _on("htmx:afterRequest", (e) => {
+      if (isStale()) return;
       const elt = e?.detail?.elt;
       if (elt && (elt === fileForm || elt.closest?.("#chat_file_form"))) setTimeout(update, 0);
     });
-    document.body.addEventListener("htmx:wsAfterSend", (e) => {
+    _on("htmx:wsAfterSend", (e) => {
+      if (isStale()) return;
       const elt = e?.detail?.elt;
       if (elt && (elt === messageForm || elt.closest?.("#chat_message_form"))) setTimeout(update, 0);
     });
-    document.addEventListener("DOMContentLoaded", update);
+    if (document.readyState === "loading")
+      _docOn("DOMContentLoaded", () => {
+        if (isStale()) return;
+        update();
+      });
     update();
   })();
 

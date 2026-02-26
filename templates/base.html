@@ -600,6 +600,26 @@
     document.body.addEventListener('htmx:afterSwap', refreshSidebarUI);
     document.body.addEventListener('htmx:afterSettle', refreshSidebarUI);
     document.body.addEventListener('htmx:wsAfterMessage', refreshSidebarUI);
+    document.addEventListener(
+      'htmx:wsBeforeMessage',
+      (e) => {
+        if (!window._rtchatNavToken) return;
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        else if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      },
+      { capture: true }
+    );
+    document.addEventListener(
+      'htmx:oobErrorNoTarget',
+      (e) => {
+        if (!window._rtchatNavToken) return;
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (e && typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        else if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+      },
+      { capture: true }
+    );
     window.addEventListener('popstate', refreshSidebarUI);
     window.addEventListener('resize', refreshSidebarUI);
 
@@ -649,17 +669,132 @@
 
     function telegramBack() {
       setTelegramNavDir('back');
-      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      var isMobile = window.matchMedia('(max-width: 767px)').matches;
+
       if (isMobile) {
         if (document.documentElement.dataset.tgNavLock === '1') return;
         document.documentElement.dataset.tgNavLock = '1';
         document.documentElement.classList.add('tg-leave-back');
-        window.setTimeout(() => {
-          window.location.href = '/';
+
+        window.setTimeout(function () {
+          if (typeof window.RtChat !== 'undefined' && window.RtChat.cleanup) window.RtChat.cleanup();
+          var content = document.getElementById('tg-chat-content');
+          if (content) content.innerHTML = '';
+          updateMobileLayout();
+          try { history.pushState({}, '', '/'); } catch (e) {}
+          highlightActiveChat();
+          clearTelegramNavDir();
         }, 140);
         return;
       }
-      window.location.href = '/';
+
+      if (typeof window.RtChat !== 'undefined' && window.RtChat.cleanup) window.RtChat.cleanup();
+      var content2 = document.getElementById('tg-chat-content');
+      if (content2) content2.innerHTML = '';
+      try { history.pushState({}, '', '/'); } catch (e2) {}
+      highlightActiveChat();
+      updateMobileLayout();
+    }
+
+    var _chatSkeletonHtml = [
+      '<div class="flex h-full min-h-0 flex-col">',
+      '  <div class="border-b border-slate-200/70 bg-white/35 px-4 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25">',
+      '    <div class="hidden"><span id="online-count"></span><div id="online-icon"></div></div>',
+      '    <div class="flex items-center gap-3 animate-pulse">',
+      '      <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-white/10 shrink-0"></div>',
+      '      <div class="flex-1"><div class="h-4 w-32 bg-gray-200 dark:bg-white/10 rounded mb-2"></div><div class="h-3 w-20 bg-gray-200 dark:bg-white/10 rounded"></div></div>',
+      '    </div>',
+      '  </div>',
+      '  <div class="flex-1 p-4 bg-blue-50 dark:bg-slate-950/15 space-y-3 animate-pulse">',
+      '    <div class="flex justify-end"><div class="h-10 w-48 bg-gray-200/60 dark:bg-white/5 rounded-2xl"></div></div>',
+      '    <div class="flex justify-start"><div class="h-10 w-56 bg-gray-200/60 dark:bg-white/5 rounded-2xl"></div></div>',
+      '    <div class="flex justify-end"><div class="h-10 w-40 bg-gray-200/60 dark:bg-white/5 rounded-2xl"></div></div>',
+      '    <div class="flex justify-start"><div class="h-14 w-64 bg-gray-200/60 dark:bg-white/5 rounded-2xl"></div></div>',
+      '    <div class="flex justify-end"><div class="h-10 w-36 bg-gray-200/60 dark:bg-white/5 rounded-2xl"></div></div>',
+      '  </div>',
+      '  <div class="border-t border-slate-200/70 p-3 pb-4 bg-white/35 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25">',
+      '    <div class="h-12 bg-gray-200/60 dark:bg-white/5 rounded-xl"></div>',
+      '  </div>',
+      '</div>',
+    ].join('');
+
+    function navigateToChat(href, opts) {
+      if (!href) return;
+      var options = opts || {};
+      var doPush = options.push !== false;
+
+      if (typeof window.RtChat !== 'undefined' && window.RtChat.cleanup) window.RtChat.cleanup();
+
+      var content = document.getElementById('tg-chat-content');
+      if (content) content.innerHTML = _chatSkeletonHtml;
+
+      if (doPush) {
+        try { history.pushState({}, '', href); } catch (e) {}
+        doPush = false;
+      }
+
+      updateMobileLayout();
+
+      if (!window.htmx || typeof window.htmx.ajax !== 'function') {
+        window.location.href = href;
+        return;
+      }
+
+      var myNavToken = Date.now().toString(36) + Math.random().toString(36).slice(2);
+      window._rtchatNavToken = myNavToken;
+      setTimeout(function () {
+        if (window._rtchatNavToken !== myNavToken) return;
+        var root = document.getElementById('chat_root');
+        if (!root) window.location.href = href;
+      }, 6000);
+
+      var ajaxPromise;
+      try {
+        ajaxPromise = window.htmx.ajax('GET', href, {
+          target: '#tg-chat-content',
+          swap: 'innerHTML settle:0s',
+          headers: { 'X-Chat-Nav': '1' },
+        });
+      } catch (e) {
+        window.location.href = href;
+        return;
+      }
+
+      var afterSwap = function () {
+        if (window._rtchatNavToken === myNavToken) delete window._rtchatNavToken;
+        highlightActiveChat();
+        clearTelegramNavDir();
+        updateMobileLayout();
+
+        if (typeof window.RtChat !== 'undefined' && window.RtChat.init) window.RtChat.init();
+
+        if (href.indexOf('/chat/room/') !== -1) {
+          try { localStorage.setItem('lastChatUrl', href); } catch (e) {}
+        }
+      };
+
+      if (ajaxPromise && typeof ajaxPromise.then === 'function') {
+        ajaxPromise.then(afterSwap).catch(function () {
+          window.location.href = href;
+        });
+      } else {
+        var settled = false;
+        var onSettle = function (e) {
+          if (settled) return;
+          var t = e && e.detail && e.detail.target;
+          if (t && t.id === 'tg-chat-content') {
+            settled = true;
+            document.body.removeEventListener('htmx:afterSettle', onSettle);
+            afterSwap();
+          }
+        };
+        document.body.addEventListener('htmx:afterSettle', onSettle);
+        setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          document.body.removeEventListener('htmx:afterSettle', onSettle);
+        }, 15000);
+      }
     }
 
     document.addEventListener(
@@ -673,20 +808,36 @@
         const href = (a.getAttribute('href') || '').toString();
         if (!href) return;
 
-        const isMobile = window.matchMedia('(max-width: 767px)').matches;
+        e.preventDefault();
+        var isMobile = window.matchMedia('(max-width: 767px)').matches;
         setTelegramNavDir('forward');
 
-        if (!isMobile) return;
-        if (document.documentElement.dataset.tgNavLock === '1') return;
-        document.documentElement.dataset.tgNavLock = '1';
-        e.preventDefault();
-        document.documentElement.classList.add('tg-leave-forward');
-        window.setTimeout(() => {
-          window.location.href = href;
-        }, 140);
+        if (isMobile) {
+          if (document.documentElement.dataset.tgNavLock === '1') return;
+          document.documentElement.dataset.tgNavLock = '1';
+          document.documentElement.classList.add('tg-leave-forward');
+          window.setTimeout(function () {
+            navigateToChat(href, { push: true });
+          }, 140);
+        } else {
+          navigateToChat(href, { push: true });
+        }
       },
       { capture: true }
     );
+
+    window.addEventListener('popstate', function () {
+      var path = window.location.pathname || '';
+      if (path.indexOf('/chat/room/') === 0) {
+        navigateToChat(path, { push: false });
+      } else {
+        if (typeof window.RtChat !== 'undefined' && window.RtChat.cleanup) window.RtChat.cleanup();
+        var content = document.getElementById('tg-chat-content');
+        if (content) content.innerHTML = '';
+        updateMobileLayout();
+        highlightActiveChat();
+      }
+    });
 
     window.addEventListener('pageshow', () => {
       window.setTimeout(clearTelegramNavDir, 650);
@@ -2298,6 +2449,8 @@
   <script src="{% static 'vendor/jszip.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
   <script src="{% static 'vendor/docx-preview.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
   <script src="{% static 'vendor/xlsx.full.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
+
+  <script src="{% static 'js/chat_runtime.js' %}?v={{ APP_VERSION|urlencode }}"></script>
 
   {% block javascript %}{% endblock %}
 </body>

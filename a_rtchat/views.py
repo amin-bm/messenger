@@ -335,6 +335,16 @@ def chat_view(request, chatroom_identifier='public_chat'):
         ),
     }
 
+    is_chat_nav = request.headers.get("X-Chat-Nav") == "1"
+    if not is_chat_nav:
+        hx_request = (request.headers.get("HX-Request") or "").lower() == "true"
+        hx_target = (request.headers.get("HX-Target") or "")
+        if hx_request and hx_target == "tg-chat-content":
+            is_chat_nav = True
+
+    if is_chat_nav:
+        context["chat_base_template"] = "a_rtchat/chat_base_empty.html"
+
     return render(request, 'a_rtchat/chat.html', context)
 
 @messenger_required

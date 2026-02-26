@@ -151,7 +151,7 @@
       <!-- Main chat panel -->
       <main id="tg-main" class="{% if '/chat/room/' in request.path %}block{% else %}hidden md:block{% endif %} relative z-10 flex-1 bg-white/20 min-w-0 backdrop-blur-sm dark:bg-slate-950/20">
         <!-- اینجا محتوای صفحه چت فعلی شما میاد -->
-        <div class="h-full">
+        <div id="tg-chat-content" class="h-full">
           {% block content %}{% endblock %}
         </div>
       </main>

@@ -191,7 +191,7 @@
       </div>
 
       <div class="p-4">
-        <input id="forward_search_input" type="text" class="w-full rounded-xl border border-gray-200/80 bg-white/70 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="Search chats..." />
+        <input id="forward_search_input" type="text" class="w-full rounded-xl border border-gray-200/80 bg-white/70 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="Search chats/contacts..." />
         <div id="forward_hint" class="mt-3 text-xs text-gray-500 dark:text-slate-300"></div>
         <div id="forward_chat_list" class="mt-3 max-h-[420px] overflow-y-auto"></div>
       </div>
@@ -1366,10 +1366,11 @@
     function buildForwardList(query = "") {
       if (!forwardChatList) return;
       const q = (query || "").trim().toLowerCase();
-      const items = [];
+      const chatItems = [];
+      const contactItems = [];
 
-      const links = document.querySelectorAll("#chats-list a.chat-item");
-      links.forEach((a) => {
+      const chatLinks = document.querySelectorAll("#chats-list a.chat-item");
+      chatLinks.forEach((a) => {
         const href = a.getAttribute("href") || "";
         if (!href) return;
         const url = new URL(href, window.location.origin);
@@ -1382,30 +1383,77 @@
         const identifier = a.getAttribute("data-chat-id") || getChatIdentifierFromUrl(href);
         if (!identifier) return;
         if (currentChatName && identifier === currentChatName) return;
-        items.push({ title, identifier });
+        chatItems.push({ title, identifier, subtitle: "" });
+      });
+
+      const contactLinks = document.querySelectorAll("#contacts-list a");
+      contactLinks.forEach((a) => {
+        const href = a.getAttribute("href") || "";
+        if (!href) return;
+
+        const titleEl = a.querySelector(".text-sm.font-medium");
+        const title = (titleEl ? titleEl.textContent : a.textContent || "").trim();
+        const subtitleEl = a.querySelector(".text-xs");
+        const subtitle = (subtitleEl ? subtitleEl.textContent : "").trim();
+
+        const combined = `${title} ${subtitle}`.trim().toLowerCase();
+        if (q && !combined.includes(q)) return;
+
+        const identifier = getChatIdentifierFromUrl(href);
+        if (!identifier) return;
+        contactItems.push({ title, identifier, subtitle });
       });
 
       forwardChatList.innerHTML = "";
 
-      if (!items.length) {
+      if (!chatItems.length && !contactItems.length) {
         const empty = document.createElement("div");
         empty.className = "rounded-xl border border-gray-100 bg-gray-50 px-3 py-3 text-sm text-gray-600 dark:border-white/10 dark:bg-white/10 dark:text-slate-300";
-        empty.textContent = q ? "No results" : "No chats";
+        empty.textContent = q ? "No results" : "No chats or contacts";
         forwardChatList.appendChild(empty);
         return;
       }
 
-      items.forEach((item) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "w-full rounded-xl px-3 py-3 text-left hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-white/10 dark:active:bg-white/15";
-        btn.dataset.targetChat = item.identifier;
-        const title = document.createElement("div");
-        title.className = "text-sm font-medium text-gray-900 truncate dark:text-slate-100";
-        title.textContent = item.title;
-        btn.appendChild(title);
-        forwardChatList.appendChild(btn);
-      });
+      const needHeaders = Boolean(chatItems.length && contactItems.length);
+
+      function appendHeader(text) {
+        const header = document.createElement("div");
+        header.className = "sticky top-0 z-[1] bg-white/85 px-2 py-1 text-[11px] font-semibold text-gray-500 backdrop-blur dark:bg-slate-900/85 dark:text-slate-300";
+        header.textContent = text;
+        forwardChatList.appendChild(header);
+      }
+
+      function appendItems(items) {
+        items.forEach((item) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "w-full rounded-xl px-3 py-3 text-left hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-white/10 dark:active:bg-white/15";
+          btn.dataset.targetChat = item.identifier;
+
+          const title = document.createElement("div");
+          title.className = "text-sm font-medium text-gray-900 truncate dark:text-slate-100";
+          title.textContent = item.title;
+          btn.appendChild(title);
+
+          if (item.subtitle) {
+            const subtitle = document.createElement("div");
+            subtitle.className = "mt-0.5 text-xs text-gray-500 truncate dark:text-slate-300";
+            subtitle.textContent = item.subtitle;
+            btn.appendChild(subtitle);
+          }
+
+          forwardChatList.appendChild(btn);
+        });
+      }
+
+      if (chatItems.length) {
+        if (needHeaders) appendHeader("Chats");
+        appendItems(chatItems);
+      }
+      if (contactItems.length) {
+        if (needHeaders) appendHeader("Contacts");
+        appendItems(contactItems);
+      }
     }
 
     async function forwardMessageToChat(messageEl, targetIdentifier, opts = null) {
@@ -1442,7 +1490,7 @@
       forwardMessageEl = messageEl;
       forwardMessageEls = null;
       forwardModal.classList.remove("hidden");
-      if (forwardHint) forwardHint.textContent = "Select a chat";
+      if (forwardHint) forwardHint.textContent = "Select a chat or contact";
       buildForwardList("");
       if (forwardSearchInput) forwardSearchInput.focus();
     }
@@ -1453,7 +1501,7 @@
       forwardMessageEls = (Array.isArray(messageEls) ? messageEls : []).filter(Boolean);
       if (!forwardMessageEls.length) return;
       forwardModal.classList.remove("hidden");
-      if (forwardHint) forwardHint.textContent = "Select a chat";
+      if (forwardHint) forwardHint.textContent = "Select a chat or contact";
       buildForwardList("");
       if (forwardSearchInput) forwardSearchInput.focus();
     }

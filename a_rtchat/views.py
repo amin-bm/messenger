@@ -278,7 +278,7 @@ def chat_view(request, chatroom_identifier='public_chat'):
             raise Http404
 
 
-    if request.htmx:
+    if request.htmx and request.method == "POST":
         form = ChatmessageCreateForm(request.POST)
         if form.is_valid():
             message = form.save(commit=False)

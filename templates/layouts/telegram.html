@@ -25,7 +25,9 @@
               <li x-data="{ dropdownOpen: false }" class="relative">
                 <button type="button" @click="dropdownOpen = !dropdownOpen" @click.away="dropdownOpen = false" class="inline-flex items-center gap-2 rounded-xl px-2 py-2 text-slate-700 hover:bg-black/5 active:bg-black/10 dark:text-slate-200 dark:hover:bg-white/10 dark:active:bg-white/15">
                   <img class="h-8 w-8 rounded-full object-cover ring-1 ring-black/5 dark:ring-white/10" src="{{ request.user.profile.avatar }}" alt="Avatar" />
-                  <img x-bind:class="dropdownOpen && 'rotate-180 duration-200'" class="h-4 w-4 opacity-70" src="{% static 'images/expand-arrow.png' %}" alt="Dropdown" />
+                  <span class="inline-flex items-center justify-center rounded-lg bg-black/10 p-1 dark:bg-transparent">
+                    <img x-bind:class="dropdownOpen && 'rotate-180 duration-200'" class="h-4 w-4 opacity-80" src="{% static 'images/expand-arrow.png' %}" alt="Dropdown" />
+                  </span>
                 </button>
                 <div x-show="dropdownOpen" x-cloak
                   class="absolute left-0 top-full mt-2 w-52 overflow-hidden rounded-2xl bg-white/90 text-black shadow-xl ring-1 ring-black/10 backdrop-blur-xl z-[200] text-left text-sm dark:bg-slate-900/90 dark:text-slate-100 dark:ring-white/10"

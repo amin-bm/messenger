@@ -667,6 +667,26 @@
       delete document.documentElement.dataset.tgNavLock;
     }
 
+    function _refreshSidebar() {
+      var presenceForm = document.getElementById('presence-ping-form');
+      if (presenceForm && window.htmx && typeof window.htmx.trigger === 'function') {
+        try { window.htmx.trigger(presenceForm, 'submit'); } catch (e) {}
+      }
+
+      var sidebarContent = document.getElementById('sidebar-content');
+      if (sidebarContent && !sidebarContent.innerHTML.trim()) {
+        window.setTimeout(function () {
+          var sc = document.getElementById('sidebar-content');
+          if (sc && !sc.innerHTML.trim()) {
+            var pf = document.getElementById('presence-ping-form');
+            if (pf && window.htmx && typeof window.htmx.trigger === 'function') {
+              try { window.htmx.trigger(pf, 'submit'); } catch (e) {}
+            }
+          }
+        }, 500);
+      }
+    }
+
     function telegramBack() {
       setTelegramNavDir('back');
       var isMobile = window.matchMedia('(max-width: 767px)').matches;
@@ -680,10 +700,11 @@
           if (typeof window.RtChat !== 'undefined' && window.RtChat.cleanup) window.RtChat.cleanup();
           var content = document.getElementById('tg-chat-content');
           if (content) content.innerHTML = '';
-          updateMobileLayout();
           try { history.pushState({}, '', '/'); } catch (e) {}
+          updateMobileLayout();
           highlightActiveChat();
           clearTelegramNavDir();
+          _refreshSidebar();
         }, 140);
         return;
       }
@@ -694,6 +715,7 @@
       try { history.pushState({}, '', '/'); } catch (e2) {}
       highlightActiveChat();
       updateMobileLayout();
+      _refreshSidebar();
     }
 
     var _chatSkeletonHtml = [

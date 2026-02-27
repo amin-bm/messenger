@@ -1,64 +1,175 @@
-مشکل احتمالی در telegramBack (نسخه جدید)
+وضعیت فعلی و تغییرات لازم
+الان چی داری و چی کار میکنه:
+text
 
-در نسخه‌ی جدید `telegramBack()` فقط URL عوض می‌شود و با `updateMobileLayout()` سایدبار نمایش/مخفی می‌شود، ولی محتوا‌ی `#sidebar-content` ممکن است خالی/قدیمی بماند؛ چون این بخش معمولاً از طریق WebSocket (`online_status_handler`) آپدیت می‌شود و وقتی دیگر full reload نداریم، همیشه تضمین نیست که بلافاصله پیام WS برسد.
+iOS:        cleanup خودکار → reload → همه چیز تازه ✅
+دسکتاپ:    مودال آپدیت میاد → کاربر تأیید میده → skipWaiting → reload ✅
+اندروید:   مثل دسکتاپ ✅
+سیستم فعلی درست کار میکنه. فقط دو تا بهبود کوچک لازمه:
 
-اصلاح دقیق در `templates/base.html`
+تغییر ۱: localStorage.clear() تنظیمات کاربر رو پاک نکنه
+الان هر بار ورژن عوض بشه، theme و sidebarTab و همه چیز پاک میشه. این رو عوض کن:
 
-1) در حالت موبایل، ترتیب را درست کن: اول `history.pushState('/', ...)` بعد `updateMobileLayout()` (تا layout بر اساس مسیر جدید محاسبه شود).
-2) بعد از برگشت، یک رفرش سبک برای WS انجام بده: با `htmx.trigger(presence-ping-form, 'submit')` یک ping بزن تا سرور eventهای لازم را بفرستد. اگر `#sidebar-content` هنوز خالی بود، یک بار دیگر با تاخیر کوتاه تکرار کن.
+تابع cleanupSiteDataIfNeeded رو کامل با این جایگزین کن:
 
-کد پیشنهادی (همان چیزی که باید در base.html اعمال شود):
+JavaScript
 
-```js
-function _refreshSidebar() {
-  var presenceForm = document.getElementById('presence-ping-form');
-  if (presenceForm && window.htmx && typeof window.htmx.trigger === 'function') {
-    try { window.htmx.trigger(presenceForm, 'submit'); } catch (e) {}
+async function cleanupSiteDataIfNeeded() {
+  if (sessionStorage.getItem("pwaCleanupPending") !== "1") return;
+  sessionStorage.removeItem("pwaCleanupPending");
+
+  var isFullReset = RESET_REQUIRED_DEFAULT;
+
+  // ═══ تنظیمات کاربر رو نگه دار (فقط وقتی reset کامل نیست) ═══
+  var preserve = {};
+  if (!isFullReset) {
+    var keepKeys = ['theme', 'sidebarTab', 'lastChatUrl'];
+    try {
+      keepKeys.forEach(function (k) {
+        var v = localStorage.getItem(k);
+        if (v !== null) preserve[k] = v;
+      });
+    } catch (e) {}
   }
 
-  var sidebarContent = document.getElementById('sidebar-content');
-  if (sidebarContent && !sidebarContent.innerHTML.trim()) {
-    window.setTimeout(function () {
-      var sc = document.getElementById('sidebar-content');
-      if (sc && !sc.innerHTML.trim()) {
-        var pf = document.getElementById('presence-ping-form');
-        if (pf && window.htmx && typeof window.htmx.trigger === 'function') {
-          try { window.htmx.trigger(pf, 'submit'); } catch (e) {}
-        }
+  // ═══ پاکسازی SW ═══
+  try {
+    if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+      var regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all((regs || []).map(function (r) { return r && r.unregister ? r.unregister() : false; }));
+    }
+  } catch (e) {}
+
+  // ═══ پاکسازی Cache API ═══
+  try {
+    if ("caches" in window) {
+      var names = await caches.keys();
+      await Promise.all(names.map(function (n) { return caches.delete(n); }));
+    }
+  } catch (e) {}
+
+  // ═══ پاکسازی IndexedDB ═══
+  if (isFullReset) {
+    try {
+      if (typeof indexedDB !== "undefined") {
+        var dbs = indexedDB.databases ? await indexedDB.databases() : [];
+        await Promise.all(
+          (dbs || [])
+            .map(function (db) { return db && db.name ? db.name : ""; })
+            .filter(Boolean)
+            .map(function (name) {
+              return new Promise(function (resolve) {
+                var req = indexedDB.deleteDatabase(name);
+                req.onsuccess = function () { resolve(true); };
+                req.onerror = function () { resolve(false); };
+                req.onblocked = function () { resolve(false); };
+              });
+            })
+        );
       }
-    }, 500);
+    } catch (e) {}
   }
+
+  // ═══ پاکسازی localStorage ═══
+  try { localStorage.clear(); } catch (e) {}
+
+  // ═══ تنظیمات رو برگردون ═══
+  try {
+    Object.keys(preserve).forEach(function (k) {
+      localStorage.setItem(k, preserve[k]);
+    });
+    localStorage.setItem(APP_VERSION_KEY, APP_VERSION);
+  } catch (e) {}
+
+  try { window.location.reload(); } catch (e) {}
 }
+تغییر ۲: cleanup فقط وقتی APP_RESET_REQUIRED هست اجرا بشه
+الان با هر تغییر ورژن cleanup اجرا میشه. اما ?v= مشکل cache رو حل میکنه، پس cleanup فقط وقتی واقعاً لازمه باید اجرا بشه:
 
-function telegramBack() {
-  setTelegramNavDir('back');
-  var isMobile = window.matchMedia('(max-width: 767px)').matches;
+IIFE مربوط به version check رو پیدا کن و با این جایگزین کن:
 
-  if (isMobile) {
-    if (document.documentElement.dataset.tgNavLock === '1') return;
-    document.documentElement.dataset.tgNavLock = '1';
-    document.documentElement.classList.add('tg-leave-back');
+JavaScript
 
-    window.setTimeout(function () {
-      if (typeof window.RtChat !== 'undefined' && window.RtChat.cleanup) window.RtChat.cleanup();
-      var content = document.getElementById('tg-chat-content');
-      if (content) content.innerHTML = '';
-      try { history.pushState({}, '', '/'); } catch (e) {}
-      updateMobileLayout();
-      highlightActiveChat();
-      clearTelegramNavDir();
-      _refreshSidebar();
-    }, 140);
+(function () {
+  try {
+    var prev = localStorage.getItem(APP_VERSION_KEY) || "";
+    if (prev && prev !== APP_VERSION) {
+      sessionStorage.setItem("pwaVersionChanged", "1");
+      if (window._dlog) window._dlog('Version changed: ' + prev + ' -> ' + APP_VERSION);
+      // فقط وقتی reset کامل لازمه، cleanup کن
+      if (RESET_REQUIRED_DEFAULT) {
+        sessionStorage.setItem("pwaCleanupPending", "1");
+      }
+    } else {
+      sessionStorage.removeItem("pwaVersionChanged");
+    }
+    localStorage.setItem(APP_VERSION_KEY, APP_VERSION);
+  } catch (e) {
+  }
+})();
+تغییر ۳: iOS flow رو ساده‌تر کن در runFullUpdate
+تابع runFullUpdate رو کامل با این جایگزین کن:
+
+JavaScript
+
+async function runFullUpdate() {
+  if (!canShowPwaUpdateModal()) {
+    markPwaUpdatePending();
     return;
   }
+  if (pwaFlowRunning) return;
+  pwaFlowRunning = true;
 
-  if (typeof window.RtChat !== 'undefined' && window.RtChat.cleanup) window.RtChat.cleanup();
-  var content2 = document.getElementById('tg-chat-content');
-  if (content2) content2.innerHTML = '';
-  try { history.pushState({}, '', '/'); } catch (e2) {}
-  highlightActiveChat();
-  updateMobileLayout();
-  _refreshSidebar();
+  try {
+    // ═══ اگه SW waiting داریم (دسکتاپ/اندروید) ═══
+    if (pwaWaitingWorker) {
+      pwaStatusText = "";
+      pwaStatusKind = "info";
+      showUpdateModal();
+
+      if (!pwaPreparedOk) {
+        var ok = await prepareUpdate();
+        if (!ok) return;
+      }
+      await applyUpdate();
+      return;
+    }
+
+    // ═══ بقیه حالات (iOS یا وقتی waiting نیست) ═══
+    pwaStatusText = "در حال بروزرسانی...";
+    pwaStatusKind = "info";
+    showUpdateModal();
+
+    // SW رو unregister و cache رو پاک کن
+    try {
+      if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+        var regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all((regs || []).map(function (r) { return r && r.unregister ? r.unregister() : null; }));
+      }
+    } catch (e) {}
+
+    try {
+      if ("caches" in window) {
+        var cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(function (n) { return caches.delete(n); }));
+      }
+    } catch (e) {}
+
+    // reload
+    try {
+      window.location.reload(true);
+    } catch (e) {
+      window.location.reload();
+    }
+  } finally {
+    pwaFlowRunning = false;
+    var modal = document.getElementById("pwa-update-modal");
+    if (modal && modal.style && modal.style.display !== "none") renderUpdateModal();
+  }
 }
-```
-
+خلاصه تغییرات
+#	چی	چرا
+۱	cleanupSiteDataIfNeeded جدید	تنظیمات کاربر (theme, tab) حفظ بشه
+۲	IIFE version check	cleanup فقط با APP_RESET_REQUIRED اجرا بشه
+۳	runFullUpdate جدید	iOS بدون waiting هم درست کار کنه
+هیچ چیز دیگه‌ای عوض نمیشه. مودال آپدیت برای دسکتاپ/اندروید همون‌جوری کار میکنه. sw.js تغییری نمیخواد.

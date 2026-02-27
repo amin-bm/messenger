@@ -94,6 +94,11 @@ self.addEventListener("activate", (event) => {
         )
       )
       .then(() => self.clients.claim())
+      .then(() => {
+        // کمی صبر کن تا client controllerchange رو process کنه، بعد پیام بفرست
+        return new Promise(resolve => setTimeout(resolve, 100));
+      })
+      .then(() => notifyClients({ type: "SW_ACTIVATED", version: SW_VERSION }))
   );
 });
 
@@ -102,6 +107,13 @@ self.addEventListener("message", (event) => {
 
   if (data === "SKIP_WAITING") {
     self.skipWaiting();
+    return;
+  }
+
+  if (data && data.type === "GET_VERSION") {
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ type: "VERSION_REPLY", version: SW_VERSION });
+    }
     return;
   }
 

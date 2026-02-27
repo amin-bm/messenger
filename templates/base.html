@@ -1318,11 +1318,20 @@
       const IGNORE_NAVIGATOR_ONLINE = metaContent("ignore-navigator-online") === "1";
       const APP_VERSION_KEY = "pwaAppVersion";
 
+      // ورژن صفحه‌ای که الان لود شده رو در sessionStorage ذخیره کن
+      // این قبل از register SW انجام میشه — بعد از controllerchange ازش استفاده میکنیم
+      const PAGE_VERSION_AT_LOAD_KEY = "pwaPageVersionAtLoad";
+      try { sessionStorage.setItem(PAGE_VERSION_AT_LOAD_KEY, APP_VERSION); } catch(e) {}
+
       (function () {
         try {
           const prev = localStorage.getItem(APP_VERSION_KEY) || "";
           if (prev && prev !== APP_VERSION) {
-            sessionStorage.setItem("pwaCleanupPending", "1");
+            sessionStorage.setItem("pwaVersionChanged", "1");
+            if (window._dlog) window._dlog('Version changed: ' + prev + ' -> ' + APP_VERSION);
+            if (RESET_REQUIRED_DEFAULT) sessionStorage.setItem("pwaCleanupPending", "1");
+          } else {
+            sessionStorage.removeItem("pwaVersionChanged");
           }
           localStorage.setItem(APP_VERSION_KEY, APP_VERSION);
         } catch (e) {
@@ -1362,7 +1371,9 @@
       }
 
       function canShowPwaUpdateModal() {
-        return isAuthenticated() && !isAccountRoute();
+        const result = isAuthenticated() && !isAccountRoute();
+        if (window._dlog) window._dlog('canShowPwaUpdateModal=' + result + ' auth=' + isAuthenticated() + ' accountRoute=' + isAccountRoute());
+        return result;
       }
 
       function markPwaUpdatePending() {
@@ -1656,8 +1667,10 @@
       }
 
       function showUpdateModal() {
+        if (window._dlog) window._dlog('showUpdateModal called, canShow=' + canShowPwaUpdateModal());
         if (!canShowPwaUpdateModal()) {
           markPwaUpdatePending();
+          if (window._dlog) window._dlog('showUpdateModal: blocked (not auth or account route), marked pending');
           return;
         }
         clearPwaUpdatePending();
@@ -1717,7 +1730,7 @@
         const steps = [];
         steps.push(`۱) بررسی: ${pwaWaitingWorker ? "✓" : pwaChecking ? "…" : "—"}`);
         steps.push(`۲) دانلود: ${pwaPreparedOk ? "✓" : pwaPreparing ? "…" : "—"}`);
-        steps.push(`۳) اعمال: ${sessionStorage.getItem("pwaApplyUpdate") === "1" ? "…" : "—"}`);
+        steps.push(`۳) اعمال: ${sessionStorage.getItem("pwaApplyUpdate") ? "…" : "—"}`);
         lines.push(steps.join("   "));
         if (pwaPreparing) lines.push("در حال دانلود بروزرسانی...");
         if (pwaWaitingWorker && !pwaPreparedOk) lines.push("نسخه جدید دریافت شده است، اما دانلود کامل نشده.");
@@ -1727,7 +1740,7 @@
 
         status.textContent = lines.join("\n");
         if (btnRun) {
-          btnRun.disabled = pwaFlowRunning || pwaChecking || pwaPreparing || sessionStorage.getItem("pwaApplyUpdate") === "1";
+          btnRun.disabled = pwaFlowRunning || pwaChecking || pwaPreparing || Boolean(sessionStorage.getItem("pwaApplyUpdate"));
           btnRun.style.opacity = btnRun.disabled ? "0.55" : "1";
           btnRun.style.cursor = btnRun.disabled ? "not-allowed" : "pointer";
           btnRun.textContent = btnRun.disabled ? "در حال انجام..." : "آپدیت";
@@ -1838,6 +1851,10 @@
           showUpdateModal();
           return false;
         }
+        if (pwaWaitingWorker.state === 'activated' || pwaWaitingWorker.state === 'activating') {
+          window.location.reload();
+          return true;
+        }
         if (!pwaPreparedOk) {
           pwaStatusText = "مرحله ۳ (اعمال): ابتدا دانلود بروزرسانی را کامل کنید.";
           pwaStatusKind = "error";
@@ -1846,7 +1863,7 @@
         }
         const needsCleanup = RESET_REQUIRED_DEFAULT;
 
-        sessionStorage.setItem("pwaApplyUpdate", "1");
+        sessionStorage.setItem("pwaApplyUpdate", Date.now().toString());
         if (needsCleanup) sessionStorage.setItem("pwaCleanupPending", "1");
         else sessionStorage.removeItem("pwaCleanupPending");
 
@@ -1874,20 +1891,46 @@
         }
         if (pwaFlowRunning) return;
         pwaFlowRunning = true;
-        pwaStatusText = "";
-        pwaStatusKind = "info";
-        showUpdateModal();
 
         try {
-          if (!pwaWaitingWorker) {
-            const hasUpdate = await manualCheckForUpdate();
-            if (!hasUpdate) return;
+          if (pwaWaitingWorker) {
+            pwaStatusText = "";
+            pwaStatusKind = "info";
+            showUpdateModal();
+
+            if (!pwaPreparedOk) {
+              const ok = await prepareUpdate();
+              if (!ok) return;
+            }
+            await applyUpdate();
+            return;
           }
-          if (!pwaPreparedOk) {
-            const ok = await prepareUpdate();
-            if (!ok) return;
+
+          pwaStatusText = "در حال بروزرسانی...";
+          pwaStatusKind = "info";
+          showUpdateModal();
+
+          try {
+            if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              await Promise.all((regs || []).map((r) => r && r.unregister ? r.unregister() : null));
+            }
+          } catch (e) {
           }
-          await applyUpdate();
+
+          try {
+            if ("caches" in window) {
+              const cacheNames = await caches.keys();
+              await Promise.all(cacheNames.map((n) => caches.delete(n)));
+            }
+          } catch (e) {
+          }
+
+          try {
+            window.location.reload(true);
+          } catch (e) {
+            window.location.reload();
+          }
         } finally {
           pwaFlowRunning = false;
           const modal = document.getElementById("pwa-update-modal");
@@ -1898,6 +1941,20 @@
       async function cleanupSiteDataIfNeeded() {
         if (sessionStorage.getItem("pwaCleanupPending") !== "1") return;
         sessionStorage.removeItem("pwaCleanupPending");
+
+        const isFullReset = RESET_REQUIRED_DEFAULT;
+
+        const preserve = {};
+        if (!isFullReset) {
+          const keepKeys = ['theme', 'sidebarTab', 'lastChatUrl'];
+          try {
+            keepKeys.forEach((k) => {
+              const v = localStorage.getItem(k);
+              if (v !== null) preserve[k] = v;
+            });
+          } catch (e) {
+          }
+        }
 
         try {
           if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
@@ -1915,29 +1972,39 @@
         } catch (e) {
         }
 
-        try {
-          if (typeof indexedDB !== "undefined") {
-            const dbs = indexedDB.databases ? await indexedDB.databases() : [];
-            await Promise.all(
-              (dbs || [])
-                .map((db) => (db && db.name ? db.name : ""))
-                .filter(Boolean)
-                .map(
-                  (name) =>
-                    new Promise((resolve) => {
-                      const req = indexedDB.deleteDatabase(name);
-                      req.onsuccess = () => resolve(true);
-                      req.onerror = () => resolve(false);
-                      req.onblocked = () => resolve(false);
-                    })
-                )
-            );
+        if (isFullReset) {
+          try {
+            if (typeof indexedDB !== "undefined") {
+              const dbs = indexedDB.databases ? await indexedDB.databases() : [];
+              await Promise.all(
+                (dbs || [])
+                  .map((db) => (db && db.name ? db.name : ""))
+                  .filter(Boolean)
+                  .map(
+                    (name) =>
+                      new Promise((resolve) => {
+                        const req = indexedDB.deleteDatabase(name);
+                        req.onsuccess = () => resolve(true);
+                        req.onerror = () => resolve(false);
+                        req.onblocked = () => resolve(false);
+                      })
+                  )
+              );
+            }
+          } catch (e) {
           }
-        } catch (e) {
         }
 
         try {
           localStorage.clear();
+        } catch (e) {
+        }
+
+        try {
+          Object.keys(preserve).forEach((k) => {
+            localStorage.setItem(k, preserve[k]);
+          });
+          localStorage.setItem(APP_VERSION_KEY, APP_VERSION);
         } catch (e) {
         }
 
@@ -1948,7 +2015,11 @@
       }
 
       async function registerServiceWorker() {
-        if (!("serviceWorker" in navigator)) return null;
+        if (!("serviceWorker" in navigator)) {
+          if (window._dlog) window._dlog('SW: serviceWorker NOT in navigator');
+          return null;
+        }
+        if (window._dlog) window._dlog('SW: registering sw.js?v=' + APP_VERSION);
         try {
           const reg = await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(APP_VERSION)}`, {
             updateViaCache: "none",
@@ -1956,8 +2027,33 @@
           swRegistration = reg;
           pwaUpdateReg = reg;
 
+          if (window._dlog) {
+            window._dlog('SW: registered OK');
+            window._dlog('SW: controller=' + Boolean(navigator.serviceWorker.controller));
+            window._dlog('SW: reg.installing=' + Boolean(reg.installing));
+            window._dlog('SW: reg.waiting=' + Boolean(reg.waiting) + (reg.waiting ? ' state='+reg.waiting.state : ''));
+            window._dlog('SW: reg.active=' + Boolean(reg.active) + (reg.active ? ' state='+reg.active.state : ''));
+            window._dlog('SW: pwaVersionChanged=' + sessionStorage.getItem("pwaVersionChanged"));
+          }
+
           navigator.serviceWorker.addEventListener("message", (e) => {
             const data = e && e.data;
+            if (window._dlog) window._dlog('SW: message received type=' + (data && data.type) + (data && data.version ? ' v='+data.version : ''));
+
+            if (data && data.type === "SW_ACTIVATED") {
+              const swVer = (data.version || "").toString().trim();
+              // مقایسه با ورژنی که صفحه باهاش لود شده بود
+              let pageVerAtLoad = '';
+              try { pageVerAtLoad = sessionStorage.getItem(PAGE_VERSION_AT_LOAD_KEY) || APP_VERSION; } catch(e) {}
+              if (window._dlog) window._dlog('SW_ACTIVATED: swVer=' + swVer + ' pageVerAtLoad=' + pageVerAtLoad);
+              if (swVer && pageVerAtLoad && swVer !== pageVerAtLoad) {
+                if (window._dlog) window._dlog('SW_ACTIVATED: version mismatch -> reloading');
+                try { sessionStorage.setItem(PAGE_VERSION_AT_LOAD_KEY, swVer); } catch(e) {}
+                window.location.reload();
+              }
+              return;
+            }
+
             if (!data || data.type !== "PWA_UPDATE_PREPARED") return;
             if (typeof pwaPrepareResolver === "function") {
               const fn = pwaPrepareResolver;
@@ -1969,26 +2065,61 @@
           if (!document.body.dataset.swReloadBound) {
             document.body.dataset.swReloadBound = "1";
             navigator.serviceWorker.addEventListener("controllerchange", () => {
-              if (sessionStorage.getItem("pwaApplyUpdate") === "1") {
-                sessionStorage.removeItem("pwaApplyUpdate");
-                window.location.reload();
+              const val = sessionStorage.getItem("pwaApplyUpdate");
+              if (window._dlog) window._dlog('SW: controllerchange! pwaApplyUpdate=' + val);
+              if (val) {
+                const ts = parseInt(val, 10);
+                if (!isNaN(ts) && Date.now() - ts < 60000) {
+                  sessionStorage.removeItem("pwaApplyUpdate");
+                  window.location.reload();
+                } else {
+                  sessionStorage.removeItem("pwaApplyUpdate");
+                }
+                return;
+              }
+              // SW جدید بدون درخواست کاربر activate شد
+              // ورژن رو از scriptURL چک کن
+              try {
+                const ctrl = navigator.serviceWorker.controller;
+                const swUrl = ctrl ? ctrl.scriptURL : '';
+                const swVerMatch = swUrl.match(/[?&]v=([^&]+)/);
+                const swVer = swVerMatch ? decodeURIComponent(swVerMatch[1]) : '';
+                let pageVerAtLoad = APP_VERSION;
+                try { pageVerAtLoad = sessionStorage.getItem(PAGE_VERSION_AT_LOAD_KEY) || APP_VERSION; } catch(e) {}
+                if (window._dlog) window._dlog('SW: controllerchange swVer=' + swVer + ' pageVerAtLoad=' + pageVerAtLoad);
+                if (swVer && pageVerAtLoad && swVer !== pageVerAtLoad) {
+                  // ورژن SW با ورژن صفحه فرق داره — modal نشون بده
+                  if (window._dlog) window._dlog('SW: version mismatch -> showing update modal');
+                  pwaStatusText = "نسخه جدید نصب شد. برای اعمال تغییرات، آپدیت را بزنید.";
+                  pwaStatusKind = "info";
+                  showUpdateModal();
+                }
+              } catch(e) {
+                if (window._dlog) window._dlog('SW: controllerchange check error: ' + e);
               }
             });
           }
 
           if (reg.waiting) {
+            if (window._dlog) window._dlog('SW: waiting worker found on register! showing modal');
             pwaWaitingWorker = reg.waiting;
             pwaPreparedOk = false;
             pwaPrepareFailed = [];
             pwaStatusText = "نسخه جدید آماده است.";
             showUpdateModal();
+          } else {
+            if (window._dlog) window._dlog('SW: no waiting worker on register');
           }
 
           reg.addEventListener("updatefound", () => {
             const w = reg.installing;
+            if (window._dlog) window._dlog('SW: updatefound! installing=' + Boolean(w));
             if (!w) return;
             w.addEventListener("statechange", () => {
+              if (window._dlog) window._dlog('SW: installing statechange -> ' + w.state + ' controller=' + Boolean(navigator.serviceWorker.controller));
               if (w.state === "installed" && navigator.serviceWorker.controller) {
+                // SW جدید waiting — tab قدیمی هنوز باز بود (desktop/android)
+                if (window._dlog) window._dlog('SW: installed+controller -> showing modal');
                 pwaWaitingWorker = reg.waiting || w;
                 pwaPreparedOk = false;
                 pwaPrepareFailed = [];
@@ -1998,8 +2129,28 @@
             });
           });
 
+          // Poll every 5s to detect if waiting worker appears after registration
+          let pollCount = 0;
+          const pollTimer = setInterval(() => {
+            pollCount++;
+            if (pollCount > 12) { clearInterval(pollTimer); return; } // stop after 1 min
+            if (reg.waiting && !pwaWaitingWorker) {
+              if (window._dlog) window._dlog('SW: POLL detected waiting worker! state=' + reg.waiting.state);
+              pwaWaitingWorker = reg.waiting;
+              pwaPreparedOk = false;
+              pwaPrepareFailed = [];
+              pwaStatusText = "نسخه جدید آماده است.";
+              showUpdateModal();
+              clearInterval(pollTimer);
+            }
+            if (window._dlog && pollCount <= 3) {
+              window._dlog('SW: poll#'+pollCount+' waiting='+Boolean(reg.waiting)+' installing='+Boolean(reg.installing));
+            }
+          }, 5000);
+
           return reg;
         } catch (e) {
+          if (window._dlog) window._dlog('SW: register FAILED: ' + e);
           return null;
         }
       }
@@ -2117,12 +2268,15 @@
       });
 
       document.addEventListener("DOMContentLoaded", async () => {
+        if (window._dlog) window._dlog('DOMContentLoaded: APP_VERSION=' + APP_VERSION);
         lastSnapshot = mergeSnapshots(loadSnapshot() || {}, readSnapshotFromDom());
         saveSnapshot(lastSnapshot);
         await cleanupSiteDataIfNeeded();
         await registerServiceWorker();
         try {
-          if (sessionStorage.getItem("pwaUpdatePending") === "1" && canShowPwaUpdateModal() && pwaWaitingWorker) {
+          const pending = sessionStorage.getItem("pwaUpdatePending") === "1";
+          if (window._dlog) window._dlog('pwaUpdatePending=' + pending + ' canShow=' + canShowPwaUpdateModal() + ' hasWaiting=' + Boolean(pwaWaitingWorker));
+          if (pending && canShowPwaUpdateModal() && pwaWaitingWorker) {
             showUpdateModal();
           }
         } catch (e) {
@@ -2475,5 +2629,6 @@
   <script src="{% static 'js/chat_runtime.js' %}?v={{ APP_VERSION|urlencode }}"></script>
 
   {% block javascript %}{% endblock %}
+
 </body>
 </html>

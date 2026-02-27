@@ -1,175 +1,203 @@
-وضعیت فعلی و تغییرات لازم
-الان چی داری و چی کار میکنه:
-text
-
-iOS:        cleanup خودکار → reload → همه چیز تازه ✅
-دسکتاپ:    مودال آپدیت میاد → کاربر تأیید میده → skipWaiting → reload ✅
-اندروید:   مثل دسکتاپ ✅
-سیستم فعلی درست کار میکنه. فقط دو تا بهبود کوچک لازمه:
-
-تغییر ۱: localStorage.clear() تنظیمات کاربر رو پاک نکنه
-الان هر بار ورژن عوض بشه، theme و sidebarTab و همه چیز پاک میشه. این رو عوض کن:
-
-تابع cleanupSiteDataIfNeeded رو کامل با این جایگزین کن:
+فیکس جامع — ۶ تغییر
+۱. بالای script — حذف capture listener قدیمی، جایگزین:
+بلوک _fvClosingViaUI و capture listener حذف شود. فقط این بماند:
 
 JavaScript
 
-async function cleanupSiteDataIfNeeded() {
-  if (sessionStorage.getItem("pwaCleanupPending") !== "1") return;
-  sessionStorage.removeItem("pwaCleanupPending");
+var _fileViewerClosedAt = window._rtchatFileViewerClosedAt || 0;
+۲. تابع scrollToBottom — اضافه شدن گارد بیشتر:
+JavaScript
 
-  var isFullReset = RESET_REQUIRED_DEFAULT;
+function scrollToBottom(time = 0, passes = 5) {
+    const delay = Math.max(0, Number(time || 0));
+    const maxPasses = Math.max(1, Number(passes || 1));
 
-  // ═══ تنظیمات کاربر رو نگه دار (فقط وقتی reset کامل نیست) ═══
-  var preserve = {};
-  if (!isFullReset) {
-    var keepKeys = ['theme', 'sidebarTab', 'lastChatUrl'];
-    try {
-      keepKeys.forEach(function (k) {
-        var v = localStorage.getItem(k);
-        if (v !== null) preserve[k] = v;
+    setTimeout(() => {
+      if (window._rtchatLoadOlderActive) return;
+      if (window._rtchatSuppressScroll) return;               // ← NEW
+      const fileModal = document.getElementById("file_viewer_modal");
+      if (fileModal && !fileModal.classList.contains("hidden")) return;
+      if (Date.now() - _fileViewerClosedAt < 3000) return;
+
+      const container = document.getElementById("chat_container");
+      if (!container) return;
+
+      let remaining = maxPasses;
+      let lastHeight = -1;
+
+      const step = () => {
+        if (!container) return;
+        if (window._rtchatLoadOlderActive) return;
+        if (window._rtchatSuppressScroll) return;              // ← NEW
+        const fm = document.getElementById("file_viewer_modal");
+        if (fm && !fm.classList.contains("hidden")) return;
+        if (Date.now() - _fileViewerClosedAt < 3000) return;
+        const nextHeight = container.scrollHeight;
+        container.scrollTop = nextHeight;
+        remaining -= 1;
+
+        if (remaining <= 0) return;
+        if (nextHeight === lastHeight && remaining <= Math.max(0, maxPasses - 2)) return;
+        lastHeight = nextHeight;
+        requestAnimationFrame(step);
+      };
+
+      requestAnimationFrame(step);
+    }, delay);
+  }
+۳. IIFE دکمه scroll-to-bottom — ۳ تغییر:
+۳-الف) scheduleStickScroll:
+
+JavaScript
+
+    function scheduleStickScroll(passes = 4) {
+      if (!stickToBottom) return;
+      if (scheduled) return;
+      if (window._rtchatLoadOlderActive) return;
+      if (window._rtchatSuppressScroll) return;                // ← NEW
+      const fileModal = document.getElementById("file_viewer_modal");
+      if (fileModal && !fileModal.classList.contains("hidden")) return;
+      if (Date.now() - _fileViewerClosedAt < 3000) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        if (!stickToBottom) return;
+        if (window._rtchatSuppressScroll) return;              // ← NEW
+        const fm = document.getElementById("file_viewer_modal");
+        if (fm && !fm.classList.contains("hidden")) return;
+        if (Date.now() - _fileViewerClosedAt < 3000) return;
+        scrollToBottom(0, passes);
       });
-    } catch (e) {}
-  }
-
-  // ═══ پاکسازی SW ═══
-  try {
-    if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
-      var regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all((regs || []).map(function (r) { return r && r.unregister ? r.unregister() : false; }));
     }
-  } catch (e) {}
+۳-ب) ResizeObserver — اضافه کردن debounce:
 
-  // ═══ پاکسازی Cache API ═══
-  try {
-    if ("caches" in window) {
-      var names = await caches.keys();
-      await Promise.all(names.map(function (n) { return caches.delete(n); }));
-    }
-  } catch (e) {}
+JavaScript
 
-  // ═══ پاکسازی IndexedDB ═══
-  if (isFullReset) {
-    try {
-      if (typeof indexedDB !== "undefined") {
-        var dbs = indexedDB.databases ? await indexedDB.databases() : [];
-        await Promise.all(
-          (dbs || [])
-            .map(function (db) { return db && db.name ? db.name : ""; })
-            .filter(Boolean)
-            .map(function (name) {
-              return new Promise(function (resolve) {
-                var req = indexedDB.deleteDatabase(name);
-                req.onsuccess = function () { resolve(true); };
-                req.onerror = function () { resolve(false); };
-                req.onblocked = function () { resolve(false); };
-              });
-            })
-        );
+      if ("ResizeObserver" in window) {
+        if (ro) ro.disconnect();
+        var _roTimer = null;                                   // ← NEW
+        ro = new ResizeObserver(() => {
+          // debounce: address bar show/hide on mobile causes resize
+          if (_roTimer) clearTimeout(_roTimer);                // ← NEW
+          _roTimer = setTimeout(function() {                   // ← NEW
+            _roTimer = null;                                   // ← NEW
+            scheduleStickScroll(4);
+          }, 200);                                             // ← NEW
+        });
+        ro.observe(list);
       }
-    } catch (e) {}
-  }
+۳-ج) بعد از update، اضافه شود:
 
-  // ═══ پاکسازی localStorage ═══
-  try { localStorage.clear(); } catch (e) {}
+JavaScript
 
-  // ═══ تنظیمات رو برگردون ═══
-  try {
-    Object.keys(preserve).forEach(function (k) {
-      localStorage.setItem(k, preserve[k]);
+    window.rtchatForceRecalcSticky = function() {
+      stickToBottom = isNearBottom();
+    };
+۴. IIFE حفظ اسکرول (scroll anchor) — پرچم load_older:
+همان تغییری که قبلاً دادم بماند (window._rtchatLoadOlderActive). بدون تغییر.
+
+۵. تابع requestClose در file viewer — کامل جایگزین:
+JavaScript
+
+    function requestClose() {
+      var chatContainer = document.getElementById("chat_container");
+      var savedScrollTop = chatContainer ? chatContainer.scrollTop : null;
+
+      // ── suppress همه اسکرول‌ها ──
+      window._rtchatSuppressScroll = true;
+
+      closeUI();
+
+      if (historyPushed) {
+        historyPushed = false;
+        // به جای history.back() از replaceState استفاده میکنیم
+        // تا htmx صفحه رو re-render نکنه
+        try {
+          var st = Object.assign({}, window.history.state || {});
+          delete st.__fileViewerOpen;
+          st.__fileViewerClosed = true;
+          window.history.replaceState(st, "");
+        } catch (e) {}
+      }
+
+      // ── حفظ موقعیت اسکرول ──
+      if (chatContainer && savedScrollTop !== null) {
+        chatContainer.scrollTop = savedScrollTop;
+        var restoreCount = 0;
+        var restoreScroll = function () {
+          if (restoreCount > 20) return;
+          restoreCount++;
+          var cc = document.getElementById("chat_container");
+          if (cc) cc.scrollTop = savedScrollTop;
+          requestAnimationFrame(restoreScroll);
+        };
+        requestAnimationFrame(restoreScroll);
+        [50, 150, 300, 500, 750, 1200].forEach(function(ms) {
+          setTimeout(function () {
+            var cc = document.getElementById("chat_container");
+            if (cc) cc.scrollTop = savedScrollTop;
+          }, ms);
+        });
+      }
+
+      // ── recalc stickToBottom و رفع suppress ──
+      setTimeout(function() {
+        if (typeof window.rtchatForceRecalcSticky === 'function') window.rtchatForceRecalcSticky();
+      }, 500);
+      setTimeout(function() {
+        if (typeof window.rtchatForceRecalcSticky === 'function') window.rtchatForceRecalcSticky();
+      }, 1500);
+      setTimeout(function() {
+        window._rtchatSuppressScroll = false;
+        if (typeof window.rtchatForceRecalcSticky === 'function') window.rtchatForceRecalcSticky();
+      }, 3100);
+    }
+۶. هندلر popstate — کامل جایگزین:
+JavaScript
+
+    _winOn("popstate", () => {
+      if (isStale()) return;
+      if (modal.classList.contains("hidden")) return;
+
+      // کاربر دکمه Back مرورگر رو زده
+      historyPushed = false;
+
+      var chatContainer = document.getElementById("chat_container");
+      var savedScrollTop = chatContainer ? chatContainer.scrollTop : null;
+
+      window._rtchatSuppressScroll = true;
+      closeUI();
+
+      if (chatContainer && savedScrollTop !== null) {
+        chatContainer.scrollTop = savedScrollTop;
+        var restoreCount = 0;
+        var restoreScroll = function () {
+          if (restoreCount > 20) return;
+          restoreCount++;
+          var cc = document.getElementById("chat_container");
+          if (cc) cc.scrollTop = savedScrollTop;
+          requestAnimationFrame(restoreScroll);
+        };
+        requestAnimationFrame(restoreScroll);
+        [50, 150, 300, 500, 750, 1200].forEach(function(ms) {
+          setTimeout(function () {
+            var cc = document.getElementById("chat_container");
+            if (cc) cc.scrollTop = savedScrollTop;
+          }, ms);
+        });
+      }
+
+      setTimeout(function() {
+        if (typeof window.rtchatForceRecalcSticky === 'function') window.rtchatForceRecalcSticky();
+      }, 500);
+      setTimeout(function() {
+        window._rtchatSuppressScroll = false;
+        if (typeof window.rtchatForceRecalcSticky === 'function') window.rtchatForceRecalcSticky();
+      }, 3100);
     });
-    localStorage.setItem(APP_VERSION_KEY, APP_VERSION);
-  } catch (e) {}
-
-  try { window.location.reload(); } catch (e) {}
-}
-تغییر ۲: cleanup فقط وقتی APP_RESET_REQUIRED هست اجرا بشه
-الان با هر تغییر ورژن cleanup اجرا میشه. اما ?v= مشکل cache رو حل میکنه، پس cleanup فقط وقتی واقعاً لازمه باید اجرا بشه:
-
-IIFE مربوط به version check رو پیدا کن و با این جایگزین کن:
-
-JavaScript
-
-(function () {
-  try {
-    var prev = localStorage.getItem(APP_VERSION_KEY) || "";
-    if (prev && prev !== APP_VERSION) {
-      sessionStorage.setItem("pwaVersionChanged", "1");
-      if (window._dlog) window._dlog('Version changed: ' + prev + ' -> ' + APP_VERSION);
-      // فقط وقتی reset کامل لازمه، cleanup کن
-      if (RESET_REQUIRED_DEFAULT) {
-        sessionStorage.setItem("pwaCleanupPending", "1");
-      }
-    } else {
-      sessionStorage.removeItem("pwaVersionChanged");
-    }
-    localStorage.setItem(APP_VERSION_KEY, APP_VERSION);
-  } catch (e) {
-  }
-})();
-تغییر ۳: iOS flow رو ساده‌تر کن در runFullUpdate
-تابع runFullUpdate رو کامل با این جایگزین کن:
-
-JavaScript
-
-async function runFullUpdate() {
-  if (!canShowPwaUpdateModal()) {
-    markPwaUpdatePending();
-    return;
-  }
-  if (pwaFlowRunning) return;
-  pwaFlowRunning = true;
-
-  try {
-    // ═══ اگه SW waiting داریم (دسکتاپ/اندروید) ═══
-    if (pwaWaitingWorker) {
-      pwaStatusText = "";
-      pwaStatusKind = "info";
-      showUpdateModal();
-
-      if (!pwaPreparedOk) {
-        var ok = await prepareUpdate();
-        if (!ok) return;
-      }
-      await applyUpdate();
-      return;
-    }
-
-    // ═══ بقیه حالات (iOS یا وقتی waiting نیست) ═══
-    pwaStatusText = "در حال بروزرسانی...";
-    pwaStatusKind = "info";
-    showUpdateModal();
-
-    // SW رو unregister و cache رو پاک کن
-    try {
-      if ("serviceWorker" in navigator && navigator.serviceWorker.getRegistrations) {
-        var regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all((regs || []).map(function (r) { return r && r.unregister ? r.unregister() : null; }));
-      }
-    } catch (e) {}
-
-    try {
-      if ("caches" in window) {
-        var cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(function (n) { return caches.delete(n); }));
-      }
-    } catch (e) {}
-
-    // reload
-    try {
-      window.location.reload(true);
-    } catch (e) {
-      window.location.reload();
-    }
-  } finally {
-    pwaFlowRunning = false;
-    var modal = document.getElementById("pwa-update-modal");
-    if (modal && modal.style && modal.style.display !== "none") renderUpdateModal();
-  }
-}
-خلاصه تغییرات
-#	چی	چرا
-۱	cleanupSiteDataIfNeeded جدید	تنظیمات کاربر (theme, tab) حفظ بشه
-۲	IIFE version check	cleanup فقط با APP_RESET_REQUIRED اجرا بشه
-۳	runFullUpdate جدید	iOS بدون waiting هم درست کار کنه
-هیچ چیز دیگه‌ای عوض نمیشه. مودال آپدیت برای دسکتاپ/اندروید همون‌جوری کار میکنه. sw.js تغییری نمیخواد.
+خلاصه تغییرات و دلیل:
+تغییر	مشکل
+history.back() → replaceState()	ریشه مشکل: htmx صفحه رو re-render میکرد
+_rtchatSuppressScroll پرچم	بلاک کردن همه اسکرول‌ها ۳ ثانیه بعد از بستن
+ResizeObserver debounce	address bar موبایل باعث اسکرول تصادفی میشد
+حذف capture popstate listener	دیگه نیازی نیست چون back() صدا نمیشه

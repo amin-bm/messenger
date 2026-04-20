@@ -463,56 +463,7 @@
 
   var _fileViewerClosedAt = window._rtchatFileViewerClosedAt || 0;
 
- // ═══════ DEBUG OVERLAY — بعد از رفع حذف شود ═══════
-(function(){
-  var el=document.createElement('div');el.id='rtdbg';
-  el.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:99999;max-height:32vh;overflow-y:auto;background:rgba(0,0,0,.93);color:#0f0;font:10px/1.3 monospace;padding:4px 6px;-webkit-overflow-scrolling:touch;';
-  
-  var bar=document.createElement('div');
-  bar.style.cssText='position:sticky;top:0;z-index:1;display:flex;gap:4px;justify-content:flex-end;padding:2px 0 4px;';
-
-  function mkBtn(txt,color,fn){
-    var b=document.createElement('button');b.textContent=txt;
-    b.style.cssText='background:'+color+';color:#fff;border:none;padding:3px 10px;font:12px sans-serif;cursor:pointer;border-radius:4px;';
-    b.onclick=fn;return b;
-  }
-
-  bar.appendChild(mkBtn('📋 Copy','#2563eb',function(){
-    var pre=el.querySelector('pre');
-    var txt=pre?pre.textContent:'(empty)';
-    if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(txt).then(function(){window.rtLog('✅ copied');}).catch(function(){fallbackCopy(txt);});
-    }else{fallbackCopy(txt);}
-    function fallbackCopy(t){var ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;left:-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();window.rtLog('✅ copied (fallback)');}
-  }));
-
-  bar.appendChild(mkBtn('🗑 Clear','#dc2626',function(){
-    L=[];var pre=el.querySelector('pre');if(pre)pre.textContent='(cleared)';
-    window.rtLog('🗑 cleared');
-  }));
-
-  bar.appendChild(mkBtn('✕','#444',function(){
-    el.style.display=el.style.display==='none'?'':'none';
-  }));
-
-  el.appendChild(bar);document.body.appendChild(el);
-  var L=[];
-  window.rtLog=function(m){
-    var d=new Date();
-    var t=String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0')+'.'+String(d.getMilliseconds()).padStart(3,'0');
-    L.push(t+' '+m);if(L.length>200)L=L.slice(-200);
-    var pre=el.querySelector('pre');if(!pre){pre=document.createElement('pre');pre.style.cssText='margin:0;white-space:pre-wrap;word-break:break-all;';el.appendChild(pre);}
-    pre.textContent=L.join('\n');el.scrollTop=99999;
-  };
-  window.rtLog('dbg ready');
-})();
-// ═══════ END DEBUG ═══════
-
   function scrollToBottom(time = 0, passes = 5) {
-    // DEBUG ▼
-    var _stk=(new Error).stack||'';var _c=_stk.split('\n').slice(1,3).join(' ← ').replace(/\s+/g,' ').substring(0,150);
-    window.rtLog&&window.rtLog('⬇ STB('+time+','+passes+') '+_c);
-    // DEBUG ▲
     const delay = Math.max(0, Number(time || 0));
     const maxPasses = Math.max(1, Number(passes || 1));
 
@@ -915,9 +866,6 @@
     }
 
     function scheduleStickScroll(passes = 4) {
-      // DEBUG ▼
-      window.rtLog&&window.rtLog('📌 schedStick stb='+stickToBottom+' loadOld='+!!window._rtchatLoadOlderActive+' fvAge='+(Date.now()-_fileViewerClosedAt));
-      // DEBUG ▲
       if (!stickToBottom) return;
       if (scheduled) return;
       if (window._rtchatLoadOlderActive) return;
@@ -946,9 +894,6 @@
         mo = new MutationObserver((mutations) => {
           for (const m of mutations) {
             if (m.type === "childList" && m.addedNodes && m.addedNodes.length) {
-              // DEBUG ▼
-              window.rtLog&&window.rtLog('🧬 MO added='+m.addedNodes.length+' stb='+stickToBottom);
-              // DEBUG ▲
               scheduleStickScroll(4);
               break;
             }
@@ -964,9 +909,6 @@
           if (_roTimer) clearTimeout(_roTimer);
           _roTimer = setTimeout(function () {
             _roTimer = null;
-            // DEBUG ▼
-            window.rtLog&&window.rtLog('📐 RO stb='+stickToBottom);
-            // DEBUG ▲
             scheduleStickScroll(4);
           }, 200);
         });
@@ -977,9 +919,6 @@
     function update() {
       const near = isNearBottom();
       if (Date.now() - _fileViewerClosedAt >= 2000) {
-        // DEBUG ▼
-        if(stickToBottom!==near)window.rtLog&&window.rtLog('🔄 stb '+stickToBottom+'→'+near);
-        // DEBUG ▲
         stickToBottom = near;
       }
       btn.classList.toggle("opacity-0", near);
@@ -1010,9 +949,6 @@
     });
     _on("htmx:wsAfterMessage", (e) => {
       if (isStale()) return;
-      // DEBUG ▼
-      window.rtLog&&window.rtLog('📡 wsAfterMsg stb='+stickToBottom+' wsNear='+wsWasNearBottom+' ownPend='+ownMessageScrollPending);
-      // DEBUG ▲
       if (ownMessageScrollPending) {
         if (Date.now() > ownMessageScrollExpiresAt) clearOwnMessageScrollPending();
         else if (lastMessageIsMine()) {
@@ -2473,13 +2409,10 @@
       body.style.overflow = "";
       current = { downloadUrl: "", previewUrl: "", filename: "", mime: "", forceView: false };
       _fileViewerClosedAt = Date.now();
-      window._rtchatFileViewerClosedAt = _fileViewerClosedAt;   // ← اضافه شد
+      window._rtchatFileViewerClosedAt = _fileViewerClosedAt;
     }
 
     function requestClose() {
-      // DEBUG ▼
-      window.rtLog&&window.rtLog('🚪 reqClose histPush='+historyPushed);
-      // DEBUG ▲
       var chatContainer = document.getElementById("chat_container");
       var savedScrollTop = chatContainer ? chatContainer.scrollTop : null;
 

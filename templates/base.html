@@ -1328,7 +1328,6 @@
           const prev = localStorage.getItem(APP_VERSION_KEY) || "";
           if (prev && prev !== APP_VERSION) {
             sessionStorage.setItem("pwaVersionChanged", "1");
-            if (window._dlog) window._dlog('Version changed: ' + prev + ' -> ' + APP_VERSION);
             if (RESET_REQUIRED_DEFAULT) sessionStorage.setItem("pwaCleanupPending", "1");
           } else {
             sessionStorage.removeItem("pwaVersionChanged");
@@ -1372,7 +1371,6 @@
 
       function canShowPwaUpdateModal() {
         const result = isAuthenticated() && !isAccountRoute();
-        if (window._dlog) window._dlog('canShowPwaUpdateModal=' + result + ' auth=' + isAuthenticated() + ' accountRoute=' + isAccountRoute());
         return result;
       }
 
@@ -1667,10 +1665,8 @@
       }
 
       function showUpdateModal() {
-        if (window._dlog) window._dlog('showUpdateModal called, canShow=' + canShowPwaUpdateModal());
         if (!canShowPwaUpdateModal()) {
           markPwaUpdatePending();
-          if (window._dlog) window._dlog('showUpdateModal: blocked (not auth or account route), marked pending');
           return;
         }
         clearPwaUpdatePending();
@@ -2016,10 +2012,8 @@
 
       async function registerServiceWorker() {
         if (!("serviceWorker" in navigator)) {
-          if (window._dlog) window._dlog('SW: serviceWorker NOT in navigator');
           return null;
         }
-        if (window._dlog) window._dlog('SW: registering sw.js?v=' + APP_VERSION);
         try {
           const reg = await navigator.serviceWorker.register(`/sw.js?v=${encodeURIComponent(APP_VERSION)}`, {
             updateViaCache: "none",
@@ -2027,27 +2021,15 @@
           swRegistration = reg;
           pwaUpdateReg = reg;
 
-          if (window._dlog) {
-            window._dlog('SW: registered OK');
-            window._dlog('SW: controller=' + Boolean(navigator.serviceWorker.controller));
-            window._dlog('SW: reg.installing=' + Boolean(reg.installing));
-            window._dlog('SW: reg.waiting=' + Boolean(reg.waiting) + (reg.waiting ? ' state='+reg.waiting.state : ''));
-            window._dlog('SW: reg.active=' + Boolean(reg.active) + (reg.active ? ' state='+reg.active.state : ''));
-            window._dlog('SW: pwaVersionChanged=' + sessionStorage.getItem("pwaVersionChanged"));
-          }
-
           navigator.serviceWorker.addEventListener("message", (e) => {
             const data = e && e.data;
-            if (window._dlog) window._dlog('SW: message received type=' + (data && data.type) + (data && data.version ? ' v='+data.version : ''));
 
             if (data && data.type === "SW_ACTIVATED") {
               const swVer = (data.version || "").toString().trim();
               // مقایسه با ورژنی که صفحه باهاش لود شده بود
               let pageVerAtLoad = '';
               try { pageVerAtLoad = sessionStorage.getItem(PAGE_VERSION_AT_LOAD_KEY) || APP_VERSION; } catch(e) {}
-              if (window._dlog) window._dlog('SW_ACTIVATED: swVer=' + swVer + ' pageVerAtLoad=' + pageVerAtLoad);
               if (swVer && pageVerAtLoad && swVer !== pageVerAtLoad) {
-                if (window._dlog) window._dlog('SW_ACTIVATED: version mismatch -> reloading');
                 try { sessionStorage.setItem(PAGE_VERSION_AT_LOAD_KEY, swVer); } catch(e) {}
                 window.location.reload();
               }
@@ -2066,7 +2048,6 @@
             document.body.dataset.swReloadBound = "1";
             navigator.serviceWorker.addEventListener("controllerchange", () => {
               const val = sessionStorage.getItem("pwaApplyUpdate");
-              if (window._dlog) window._dlog('SW: controllerchange! pwaApplyUpdate=' + val);
               if (val) {
                 const ts = parseInt(val, 10);
                 if (!isNaN(ts) && Date.now() - ts < 60000) {
@@ -2086,40 +2067,31 @@
                 const swVer = swVerMatch ? decodeURIComponent(swVerMatch[1]) : '';
                 let pageVerAtLoad = APP_VERSION;
                 try { pageVerAtLoad = sessionStorage.getItem(PAGE_VERSION_AT_LOAD_KEY) || APP_VERSION; } catch(e) {}
-                if (window._dlog) window._dlog('SW: controllerchange swVer=' + swVer + ' pageVerAtLoad=' + pageVerAtLoad);
                 if (swVer && pageVerAtLoad && swVer !== pageVerAtLoad) {
                   // ورژن SW با ورژن صفحه فرق داره — modal نشون بده
-                  if (window._dlog) window._dlog('SW: version mismatch -> showing update modal');
                   pwaStatusText = "نسخه جدید نصب شد. برای اعمال تغییرات، آپدیت را بزنید.";
                   pwaStatusKind = "info";
                   showUpdateModal();
                 }
               } catch(e) {
-                if (window._dlog) window._dlog('SW: controllerchange check error: ' + e);
               }
             });
           }
 
           if (reg.waiting) {
-            if (window._dlog) window._dlog('SW: waiting worker found on register! showing modal');
             pwaWaitingWorker = reg.waiting;
             pwaPreparedOk = false;
             pwaPrepareFailed = [];
             pwaStatusText = "نسخه جدید آماده است.";
             showUpdateModal();
-          } else {
-            if (window._dlog) window._dlog('SW: no waiting worker on register');
           }
 
           reg.addEventListener("updatefound", () => {
             const w = reg.installing;
-            if (window._dlog) window._dlog('SW: updatefound! installing=' + Boolean(w));
             if (!w) return;
             w.addEventListener("statechange", () => {
-              if (window._dlog) window._dlog('SW: installing statechange -> ' + w.state + ' controller=' + Boolean(navigator.serviceWorker.controller));
               if (w.state === "installed" && navigator.serviceWorker.controller) {
                 // SW جدید waiting — tab قدیمی هنوز باز بود (desktop/android)
-                if (window._dlog) window._dlog('SW: installed+controller -> showing modal');
                 pwaWaitingWorker = reg.waiting || w;
                 pwaPreparedOk = false;
                 pwaPrepareFailed = [];
@@ -2135,7 +2107,6 @@
             pollCount++;
             if (pollCount > 12) { clearInterval(pollTimer); return; } // stop after 1 min
             if (reg.waiting && !pwaWaitingWorker) {
-              if (window._dlog) window._dlog('SW: POLL detected waiting worker! state=' + reg.waiting.state);
               pwaWaitingWorker = reg.waiting;
               pwaPreparedOk = false;
               pwaPrepareFailed = [];
@@ -2143,14 +2114,10 @@
               showUpdateModal();
               clearInterval(pollTimer);
             }
-            if (window._dlog && pollCount <= 3) {
-              window._dlog('SW: poll#'+pollCount+' waiting='+Boolean(reg.waiting)+' installing='+Boolean(reg.installing));
-            }
           }, 5000);
 
           return reg;
         } catch (e) {
-          if (window._dlog) window._dlog('SW: register FAILED: ' + e);
           return null;
         }
       }
@@ -2268,14 +2235,12 @@
       });
 
       document.addEventListener("DOMContentLoaded", async () => {
-        if (window._dlog) window._dlog('DOMContentLoaded: APP_VERSION=' + APP_VERSION);
         lastSnapshot = mergeSnapshots(loadSnapshot() || {}, readSnapshotFromDom());
         saveSnapshot(lastSnapshot);
         await cleanupSiteDataIfNeeded();
         await registerServiceWorker();
         try {
           const pending = sessionStorage.getItem("pwaUpdatePending") === "1";
-          if (window._dlog) window._dlog('pwaUpdatePending=' + pending + ' canShow=' + canShowPwaUpdateModal() + ' hasWaiting=' + Boolean(pwaWaitingWorker));
           if (pending && canShowPwaUpdateModal() && pwaWaitingWorker) {
             showUpdateModal();
           }

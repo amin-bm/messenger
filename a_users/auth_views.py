@@ -67,7 +67,7 @@ def otp_login_start(request):
     now = int(timezone.now().timestamp())
     last_sent_at = int(request.session.get("otp_login_sent_at") or 0)
     if now - last_sent_at < 60:
-        messages.error(request, "برای ارسال مجدد کمی صبر کنید.")
+        messages.error(request, "برای دریافت رمز موقت به آقای مقدم یا آقای نصیری پیام دهید")
         return redirect(reverse("account_login") + "?otp=verify")
 
     otp = str(randint(100000, 999999))
@@ -79,7 +79,7 @@ def otp_login_start(request):
     request.session["otp_login_next"] = next_url
 
     if send_otp_sms_ir(phone, otp):
-        messages.success(request, "کد یکبار مصرف ارسال شد.")
+        messages.success(request, "برای دریافت رمز موقت به آقای مقدم یا آقای نصیری پیام دهید")
         return redirect(reverse("account_login") + "?otp=verify")
 
     _clear_otp_session(request.session)

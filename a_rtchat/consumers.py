@@ -17,9 +17,14 @@ from datetime import timedelta
 from django.contrib.auth.models import User
 from a_users.models import Profile, PushSubscription
 from .models import ChatGroup, GroupMessage, ChatState
-
+from .ws_logger import (
+    log_connect, log_disconnect, log_receive,
+    log_send, log_group_send, log_throttle,
+    log_db_query, log_error, log_stats
+)
 
 PRESENCE_TIMEOUT = timedelta(seconds=90)
+
 
 def _b64decode_any(value: str) -> bytes | None:
     raw = (value or "").strip()
@@ -45,18 +50,15 @@ def _normalize_vapid_private_key_for_pywebpush(raw_value: str) -> str:
         return ""
     if "BEGIN PRIVATE KEY" in raw or "BEGIN EC PRIVATE KEY" in raw:
         return raw
-
     decoded = _b64decode_any(raw)
     if not decoded:
         return raw
-
     try:
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.primitives.asymmetric import ec
         from cryptography.hazmat.primitives.serialization import load_der_private_key
     except Exception:
         return raw
-
     der = None
     try:
         load_der_private_key(decoded, password=None)
@@ -76,7 +78,6 @@ def _normalize_vapid_private_key_for_pywebpush(raw_value: str) -> str:
             )
         except Exception:
             return raw
-
     try:
         return base64.urlsafe_b64encode(der).decode("ascii").rstrip("=")
     except Exception:
@@ -86,29 +87,24 @@ def _normalize_vapid_private_key_for_pywebpush(raw_value: str) -> str:
 def _send_push_notifications_for_message(message_id: int) -> None:
     if bool(getattr(settings, "OFFLINE_MODE", False)):
         return
-
     private_key_raw = (getattr(settings, "WEBPUSH_VAPID_PRIVATE_KEY", "") or "").strip()
     private_key = _normalize_vapid_private_key_for_pywebpush(private_key_raw)
     public_key = (getattr(settings, "WEBPUSH_VAPID_PUBLIC_KEY", "") or "").strip()
     if not private_key or not public_key:
         return
-
     try:
         from pywebpush import webpush, WebPushException
     except Exception:
         return
-
     message = (
         GroupMessage.objects
         .select_related("group", "author", "author__profile")
         .get(id=message_id)
     )
     group = message.group
-
     member_ids = list(group.members.exclude(id=message.author_id).values_list("id", flat=True))
     if not member_ids:
         return
-
     muted_ids = set(
         ChatState.objects
         .filter(group=group, user_id__in=member_ids, is_muted=True)
@@ -117,7 +113,6 @@ def _send_push_notifications_for_message(message_id: int) -> None:
     target_ids = [uid for uid in member_ids if uid not in muted_ids]
     if not target_ids:
         return
-
     cutoff = _presence_cutoff()
     online_in_room_ids = set(
         group.users_online
@@ -127,21 +122,16 @@ def _send_push_notifications_for_message(message_id: int) -> None:
     target_ids = [uid for uid in target_ids if uid not in online_in_room_ids]
     if not target_ids:
         return
-
     body = ""
     if message.body:
         body = message.body
     elif message.file:
         body = f"📎 {message.filename or 'File'}"
-
     identifier = group.group_slug or group.group_name
     url = f"/chat/room/{identifier}"
-
     claims_sub = (getattr(settings, "WEBPUSH_VAPID_CLAIMS_SUB", "") or "").strip() or "mailto:admin@localhost"
     vapid_claims = {"sub": claims_sub}
-
     author_name = getattr(getattr(message.author, "profile", None), "name", None) or message.author.username
-
     subs = PushSubscription.objects.filter(user_id__in=target_ids)
     for sub in subs:
         title = "پیام جدید"
@@ -151,10 +141,8 @@ def _send_push_notifications_for_message(message_id: int) -> None:
             title = group.groupchat_name or "Public Chat"
         else:
             title = group.groupchat_name or identifier
-
         payload = {"title": title, "body": body, "url": url}
         sub_info = sub.subscription or {"endpoint": sub.endpoint, "keys": sub.keys}
-
         try:
             webpush(
                 subscription_info=sub_info,
@@ -208,10 +196,8 @@ def _contact_users_for_user(user: User):
         .exclude(id=user.id)
         .select_related("profile")
     )
-
     if _user_is_manager_or_staff(user):
         return contact_users
-
     viewer_profile = getattr(user, "profile", None)
     viewer_mode = getattr(viewer_profile, "contact_visibility_mode", Profile.CONTACT_VISIBILITY_ALL)
     allowed_ids_rel = getattr(viewer_profile, "contact_visible_to", None)
@@ -229,10 +215,8 @@ def _contact_users_for_user(user: User):
         .values_list("id", flat=True)
         .distinct()
     )
-
     if viewer_mode == Profile.CONTACT_VISIBILITY_SELECTED:
         return contact_users.filter(id__in=allowed_user_ids).distinct()
-
     visible_contacts = contact_users.filter(
         Q(profile__contact_visibility_mode=Profile.CONTACT_VISIBILITY_ALL)
         | Q(profile__contact_visible_to=user)
@@ -241,13 +225,13 @@ def _contact_users_for_user(user: User):
     return visible_contacts
 
 
-
 def _public_chat_visible_to_user(user: User, public_chat: ChatGroup) -> bool:
     if bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False)):
         return True
     if _user_is_manager_or_staff(user):
         return True
     return public_chat.members.filter(id=user.id).exists()
+
 
 def _private_other_last_read(chatroom: ChatGroup, user: User):
     if not getattr(chatroom, "is_private", False):
@@ -264,11 +248,15 @@ def _private_other_last_read(chatroom: ChatGroup, user: User):
     return state.last_read if state else None
 
 
+# ─── ChatroomConsumer ─────────────────────────────────────────────
 class ChatroomConsumer(WebsocketConsumer):
+
     def connect(self):
         self.user = self.scope['user']
         self.chatroom_name = self.scope['url_route']['kwargs']['chatroom_name']
         self.chatroom = get_object_or_404(ChatGroup, group_name=self.chatroom_name)
+
+        log_connect('ChatroomConsumer', self.user, f'room={self.chatroom_name}')
 
         if not getattr(self.user, "is_authenticated", False):
             self.close()
@@ -276,18 +264,15 @@ class ChatroomConsumer(WebsocketConsumer):
         if not _user_can_access_messenger(self.user):
             self.close()
             return
-
         if self.chatroom.group_name == "public_chat" and not _public_chat_visible_to_user(self.user, self.chatroom):
             self.close()
             return
-
         if self.chatroom.groupchat_name and self.chatroom.group_name != 'public_chat':
             if self.chatroom.is_admin(self.user) and self.user not in self.chatroom.members.all():
                 self.chatroom.members.add(self.user)
             if self.user not in self.chatroom.members.all():
                 self.close()
                 return
-
         if self.chatroom.is_private and self.user not in self.chatroom.members.all():
             self.close()
             return
@@ -297,7 +282,6 @@ class ChatroomConsumer(WebsocketConsumer):
             self.channel_name
         )
 
-        # Add user and update online users
         if self.user not in self.chatroom.users_online.all():
             self.chatroom.users_online.add(self.user)
             self.update_online_count()
@@ -305,28 +289,27 @@ class ChatroomConsumer(WebsocketConsumer):
 
         self.accept()
 
-        # mark as read when user opens room
         state, _ = ChatState.objects.get_or_create(user=self.user, group=self.chatroom)
         state.last_read = timezone.now()
         state.save(update_fields=['last_read'])
 
-        # ✅ refresh sidebar so unread becomes 0 immediately
-        async_to_sync(self.channel_layer.group_send)(
-            "online-status",
-            {"type": "online_status_handler", "target_user_ids": [self.user.id]}
-        )
+        log_group_send('ChatroomConsumer', 'online-status', 'online_status_handler', [self.user.id])
+       
         if self.chatroom.is_private:
+            log_group_send('ChatroomConsumer', self.chatroom_name, 'read_receipt_handler')
             async_to_sync(self.channel_layer.group_send)(
                 self.chatroom_name,
                 {"type": "read_receipt_handler", "reader_id": self.user.id}
             )
 
     def disconnect(self, close_code):
+        # close_code ممکنه None باشه اگه connection ناگهانی قطع بشه
+        code = close_code if close_code is not None else 1006  # 1006 = abnormal closure
+        log_disconnect('ChatroomConsumer', self.user, code, f'room={self.chatroom_name}')
         async_to_sync(self.channel_layer.group_discard)(
             self.chatroom_name,
             self.channel_name
         )
-
         if self.user in self.chatroom.users_online.all():
             self.chatroom.users_online.remove(self.user)
             self.update_online_count()
@@ -335,12 +318,13 @@ class ChatroomConsumer(WebsocketConsumer):
     def receive(self, text_data):
         _touch_last_seen(self.user)
         data = json.loads(text_data)
+        log_receive('ChatroomConsumer', self.user, data)
         body = data.get('body', '').strip()
         reply_to_id = str(data.get('reply_to') or '').strip()
 
         if not body:
             return
-        
+
         reply_to = None
         if reply_to_id.isdigit():
             reply_to = (
@@ -358,12 +342,12 @@ class ChatroomConsumer(WebsocketConsumer):
 
         transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
 
+        log_group_send('ChatroomConsumer', self.chatroom_name, 'message_handler')
         async_to_sync(self.channel_layer.group_send)(
             self.chatroom_name,
             {"type": "message_handler", "message_id": message.id}
         )
 
-        # ✅ refresh sidebar (last message + unread)
         target_user_ids = list(self.chatroom.members.values_list("id", flat=True))
         if (
             not target_user_ids
@@ -371,11 +355,14 @@ class ChatroomConsumer(WebsocketConsumer):
             and bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False))
         ):
             event = {"type": "online_status_handler"}
+            log_group_send('ChatroomConsumer', 'online-status', 'online_status_handler', 'broadcast')
         else:
             event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [self.user.id])}
+            log_group_send('ChatroomConsumer', 'online-status', 'online_status_handler', target_user_ids)
         async_to_sync(self.channel_layer.group_send)("online-status", event)
 
     def message_handler(self, event):
+        log_send('ChatroomConsumer', self.user, 'message_handler → send to client')
         _touch_last_seen(self.user)
         message = (
             GroupMessage.objects
@@ -387,7 +374,6 @@ class ChatroomConsumer(WebsocketConsumer):
             )
             .get(id=event['message_id'])
         )
-
         context = {
             'message': message,
             'user': self.user,
@@ -397,17 +383,13 @@ class ChatroomConsumer(WebsocketConsumer):
         html = render_to_string("a_rtchat/partials/chat_message_p.html", context=context)
         self.send(text_data=html)
 
-        # ✅ If user is viewing this room, mark as read (for incoming msgs too)
         state, _ = ChatState.objects.get_or_create(user=self.user, group=self.chatroom)
         state.last_read = timezone.now()
         state.save(update_fields=['last_read'])
 
-        # ✅ refresh sidebar so unread stays 0 while user is inside
-        async_to_sync(self.channel_layer.group_send)(
-            "online-status",
-            {"type": "online_status_handler", "target_user_ids": [self.user.id]}
-        )
+        
         if self.chatroom.is_private:
+            log_group_send('ChatroomConsumer', self.chatroom_name, 'read_receipt_handler')
             async_to_sync(self.channel_layer.group_send)(
                 self.chatroom_name,
                 {"type": "read_receipt_handler", "reader_id": self.user.id}
@@ -424,7 +406,6 @@ class ChatroomConsumer(WebsocketConsumer):
             )
             .get(id=event['message_id'])
         )
-
         context = {
             'message': message,
             'user': self.user,
@@ -486,21 +467,25 @@ class ChatroomConsumer(WebsocketConsumer):
         stale = list(self.chatroom.users_online.filter(profile__last_seen__lt=cutoff))
         if stale:
             self.chatroom.users_online.remove(*stale)
-        online_count = self.chatroom.users_online.filter(profile__last_seen__gte=cutoff).count() - 1
+        online_count = self.chatroom.users_online.filter(
+            profile__last_seen__gte=cutoff
+        ).count() - 1
+        log_group_send('ChatroomConsumer', self.chatroom_name, 'online_count_handler')
         async_to_sync(self.channel_layer.group_send)(
             self.chatroom_name,
-            {"type": "online_count_handler", "online_count": online_count}
+            {"type": "online_count_handler", "online_count": max(0, online_count)}
         )
 
     def online_count_handler(self, event):
+        # ✅ این تابع فقط online count رو نشون میده - هیچ throttle ای نداره
         online_count = event['online_count']
+        log_send('ChatroomConsumer', self.user, 'online_count_handler → client')
         author_ids = set(
             self.chatroom.chat_messages
             .order_by('-created')
             .values_list('author_id', flat=True)[:30]
         )
         users = User.objects.filter(id__in=author_ids).select_related('profile')
-
         context = {
             'online_count': online_count,
             'chat_group': self.chatroom,
@@ -510,11 +495,15 @@ class ChatroomConsumer(WebsocketConsumer):
         self.send(text_data=html)
 
 
+# ─── OnlineStatusConsumer ─────────────────────────────────────────
 class OnlineStatusConsumer(WebsocketConsumer):
+
     def connect(self):
-        self.user = self.scope['user']
+        self.user = self.scope['user']  # ✅ اول user رو set کن
         self.group_name = 'online-status'
         self.group = get_object_or_404(ChatGroup, group_name=self.group_name)
+
+        log_connect('OnlineStatusConsumer', self.user)  # ✅ بعد لاگ بزن
 
         if not _user_can_access_messenger(self.user):
             self.close()
@@ -533,10 +522,10 @@ class OnlineStatusConsumer(WebsocketConsumer):
         self.online_status()
 
     def disconnect(self, close_code):
+        log_disconnect('OnlineStatusConsumer', self.user, close_code)
         if self.user in self.group.users_online.all():
             self.group.users_online.remove(self.user)
         _touch_last_seen(self.user)
-
         async_to_sync(self.channel_layer.group_discard)(
             self.group_name,
             self.channel_name
@@ -551,14 +540,17 @@ class OnlineStatusConsumer(WebsocketConsumer):
             except Exception:
                 data = {}
             if (data or {}).get("type") == "ping":
-                self.online_status()
+                log_receive('OnlineStatusConsumer', self.user, data)
+                
 
     def online_status(self):
+        log_group_send('OnlineStatusConsumer', 'online-status', 'online_status_handler', 'broadcast')
         event = {'type': 'online_status_handler'}
         async_to_sync(self.channel_layer.group_send)(self.group_name, event)
 
     def online_status_handler(self, event):
         target_user_ids = (event or {}).get("target_user_ids")
+
         if target_user_ids is not None:
             if isinstance(target_user_ids, (list, tuple, set)):
                 if self.user.id not in target_user_ids:
@@ -566,6 +558,10 @@ class OnlineStatusConsumer(WebsocketConsumer):
             else:
                 if self.user.id != target_user_ids:
                     return
+
+        log_send('OnlineStatusConsumer', self.user, 'online_status_handler → sidebar')
+        log_db_query('OnlineStatusConsumer', 'my_chats+unread+contacts')
+
         now = timezone.now()
         cutoff = _presence_cutoff(now)
 
@@ -577,23 +573,19 @@ class OnlineStatusConsumer(WebsocketConsumer):
             self.group.users_online.filter(profile__last_seen__gte=cutoff).values_list('id', flat=True)
         )
 
-        # online users (global, except me)
         online_users = User.objects.filter(id__in=global_online_ids).exclude(id=self.user.id)
 
-        # last message subquery per chat
         last_msg_qs = GroupMessage.objects.filter(group=OuterRef('pk')).order_by('-created')
-        # state subquery per chat (for pinned/muted/last_read)
         state_qs = ChatState.objects.filter(user=self.user, group=OuterRef('pk'))
 
         my_chats = (
             self.user.chat_groups
             .all()
-            .prefetch_related('members__profile', 'users_online')
+            .prefetch_related('members__profile')  # ✅ users_online رو از prefetch حذف کن
             .annotate(
                 last_body=Subquery(last_msg_qs.values('body')[:1]),
                 last_created=Subquery(last_msg_qs.values('created')[:1]),
                 last_file=Subquery(last_msg_qs.values('file')[:1]),
-
                 last_read=Subquery(state_qs.values('last_read')[:1]),
                 is_pinned=Coalesce(Subquery(state_qs.values('is_pinned')[:1]), Value(False)),
                 is_muted=Coalesce(Subquery(state_qs.values('is_muted')[:1]), Value(False)),
@@ -601,11 +593,8 @@ class OnlineStatusConsumer(WebsocketConsumer):
         )
 
         chat_ids = [c.id for c in my_chats]
-
-        # states in one query
         states = {s.group_id: s for s in ChatState.objects.filter(user=self.user, group_id__in=chat_ids)}
 
-        # unread counts (bucket by last_read to avoid N+1)
         unread_map = {cid: 0 for cid in chat_ids}
         buckets = defaultdict(list)
         min_dt = timezone.make_aware(timezone.datetime(1970, 1, 1))
@@ -657,17 +646,11 @@ class OnlineStatusConsumer(WebsocketConsumer):
                 "last_time": (public_last.created if public_last else None),
             })
 
+        # ✅ این بخش کاملاً تغییر کرده
         for chatroom in my_chats:
-            stale_room = list(chatroom.users_online.filter(profile__last_seen__lt=cutoff))
-            if stale_room:
-                chatroom.users_online.remove(*stale_room)
-
-            is_online = (
-                chatroom.users_online
-                .filter(profile__last_seen__gte=cutoff)
-                .exclude(id=self.user.id)
-                .exists()
-            )
+            # ✅ بدون query - از global_online_ids و prefetch استفاده میکنیم
+            member_ids = {m.id for m in chatroom.members.all()}  # از prefetch - بدون query
+            is_online = bool((member_ids - {self.user.id}) & global_online_ids)
 
             last_text = ""
             if chatroom.last_body:
@@ -677,7 +660,6 @@ class OnlineStatusConsumer(WebsocketConsumer):
 
             last_time = chatroom.last_created
             unread_count = unread_map.get(chatroom.id, 0)
-
             is_pinned = bool(getattr(chatroom, "is_pinned", False))
             is_muted = bool(getattr(chatroom, "is_muted", False))
 
@@ -690,7 +672,6 @@ class OnlineStatusConsumer(WebsocketConsumer):
                 if not other:
                     continue
                 is_online = other.id in global_online_ids
-
                 sidebar_items.append({
                     "kind": "private",
                     "title": getattr(other.profile, "name", other.username),
@@ -706,7 +687,6 @@ class OnlineStatusConsumer(WebsocketConsumer):
                     "last_text": last_text,
                     "last_time": last_time,
                 })
-
             elif chatroom.groupchat_name and chatroom.group_name != 'public_chat':
                 sidebar_items.append({
                     "kind": "group",
@@ -723,8 +703,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
                     "last_text": last_text,
                     "last_time": last_time,
                 })
-
-        # sort: pinned first, then by last_time desc
+                
         min_time = min_dt
         public_items = [i for i in sidebar_items if i["kind"] == "public"]
         chat_items = [i for i in sidebar_items if i["kind"] != "public"]
@@ -735,12 +714,9 @@ class OnlineStatusConsumer(WebsocketConsumer):
 
         chat_items.sort(key=sort_key)
         sidebar_items = public_items + chat_items
-
         online_in_chats = any(i["is_online"] for i in sidebar_items)
 
-        # ---------- Contacts (all users except me) ----------
         contact_users = _contact_users_for_user(self.user)
-
         contacts = []
         for u in contact_users:
             contacts.append({
@@ -750,7 +726,6 @@ class OnlineStatusConsumer(WebsocketConsumer):
                 "is_online": (u.id in global_online_ids),
                 "url": f"/chat/{u.username}",
             })
-
         contacts.sort(key=lambda x: (not x["is_online"], x["name"].lower()))
 
         context = {
@@ -760,12 +735,5 @@ class OnlineStatusConsumer(WebsocketConsumer):
             "sidebar_items": sidebar_items,
             "contacts": contacts,
         }
-
         html = render_to_string("a_rtchat/partials/online_status.html", context=context)
         self.send(text_data=html)
-
-
-        
-
-
-       

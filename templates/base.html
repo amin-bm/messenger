@@ -586,7 +586,7 @@
         window.htmx.trigger(form, 'submit');
       };
 
-      send();
+      // send();
       window.setInterval(send, 30000);
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) send();

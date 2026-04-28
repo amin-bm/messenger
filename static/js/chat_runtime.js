@@ -73,9 +73,7 @@ window.RtChat = (function () {
     _winListeners = [];
 
     for (i = 0; i < _observers.length; i++) {
-      try {
-        _observers[i].disconnect();
-      } catch (e) {}
+      try { _observers[i].disconnect(); } catch (e) {}
     }
     _observers = [];
 
@@ -87,20 +85,36 @@ window.RtChat = (function () {
     }
     _timers = [];
 
-    var wsForm = document.getElementById('chat_message_form');
-    if (wsForm) {
-      try {
-        var api = window.htmx && window.htmx._('getInternalData');
-        if (api) {
-          var d = api(wsForm);
-          if (d && d.webSocket) {
-            d.webSocket.close();
-            d.webSocket = null;
-          }
-        }
-      } catch (e) {}
-    }
+// ✅ بستن WebSocket در htmx 2.x - روش درست
+(function closeStaleWS() {
+  // روش اصلی: از htmx-internal-data
+  var wsForm = document.getElementById('chat_message_form');
+  if (wsForm) {
+    try {
+      var internalData = wsForm['htmx-internal-data'];
+      if (internalData && internalData.webSocket) {
+        internalData.webSocket.close(1000, 'navigated away');
+        internalData.webSocket = null;
+      }
+    } catch (e) {}
+  }
 
+  // روش پشتیبان: از _wsInstances
+  if (window._wsInstances && Array.isArray(window._wsInstances)) {
+    window._wsInstances.forEach(function(ws) {
+      if (!ws) return;
+      if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) return;
+      try {
+        var wsPath = new URL(ws.url).pathname;
+        if (wsPath.includes('/ws/chatroom/')) {
+          ws.close(1000, 'navigated away');
+        }
+      } catch(e) {}
+    });
+  }
+})();
+
+    // audio cleanup
     var content = document.getElementById('tg-chat-content');
     if (content) {
       var audios = content.querySelectorAll('audio');
@@ -121,9 +135,7 @@ window.RtChat = (function () {
     }
 
     if (window.rtchatCurrentUploadXhr) {
-      try {
-        window.rtchatCurrentUploadXhr.abort();
-      } catch (e) {}
+      try { window.rtchatCurrentUploadXhr.abort(); } catch (e) {}
       delete window.rtchatCurrentUploadXhr;
     }
 
@@ -131,15 +143,11 @@ window.RtChat = (function () {
     for (i = 0; i < portalIds.length; i++) {
       var el = document.getElementById(portalIds[i]);
       if (el && el.dataset.portaled === '1') {
-        try {
-          el.remove();
-        } catch (e) {}
+        try { el.remove(); } catch (e) {}
       }
     }
 
-    try {
-      delete document.body.dataset.rtchatMsgMenuBound;
-    } catch (e) {}
+    try { delete document.body.dataset.rtchatMsgMenuBound; } catch (e) {}
 
     delete window.rtchatClearReply;
     delete window.rtchatMarkOwnMessageScrollPending;

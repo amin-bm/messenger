@@ -358,7 +358,7 @@
         {% csrf_token %}
         <input type="hidden" name="reply_to" id="reply_to_file_input" value="">
 
-        <input type="file" name="file" id="id_file"
+        <input type="file" name="file" id="id_file" multiple
                class="sr-only">
       </form>
 
@@ -4046,6 +4046,14 @@
       return `${truncateName(file.name || "file")} • ${formatBytes(file.size || 0)}`;
     }
 
+    function filesSummary(files) {
+      const list = Array.from(files || []);
+      if (!list.length) return "";
+      if (list.length === 1) return fileSummary(list[0]);
+      const totalBytes = list.reduce((sum, f) => sum + Number((f && f.size) || 0), 0);
+      return `${list.length} فایل انتخاب شده • ${formatBytes(totalBytes)}`;
+    }
+
     function hasText() {
       return Boolean(bodyInput) && (bodyInput.value || "").trim().length > 0;
     }
@@ -4289,6 +4297,18 @@
       }
     }
 
+    function setFileInputToFiles(files) {
+      try {
+        if (typeof DataTransfer !== "function") return false;
+        const dt = new DataTransfer();
+        Array.from(files || []).forEach((f) => { if (f) dt.items.add(f); });
+        fileInput.files = dt.files;
+        return true;
+      } catch (e) {
+        return false;
+      }
+}
+
     function lockTypingForFile(summary) {
       if (!bodyInput) return;
       if (!bodyInput.dataset.origPlaceholder) bodyInput.dataset.origPlaceholder = originalPlaceholder;
@@ -4409,8 +4429,11 @@
     }
 
     function uploadFileWithProgress(fileOverride) {
-      const file = fileOverride || (fileInput.files ? fileInput.files[0] : null);
-      if (!file) return;
+      const files = fileOverride
+        ? (Array.isArray(fileOverride) ? fileOverride.filter(Boolean) : [fileOverride])
+        : Array.from(fileInput.files || []);
+      if (!files.length) return;
+
       if (!isConnected()) {
         warnConnection("اتصال اینترنت قطع است. فایل ارسال نمی‌شود.");
         fileInput.value = "";
@@ -4426,84 +4449,93 @@
       const replyInput = document.getElementById("reply_to_input");
       const replyTo = replyInput ? (replyInput.value || "").trim() : "";
 
+      const isOverride = Boolean(fileOverride);
       uploadAborted = false;
-      if (fileOverride) lockTypingForFile(fileSummary(file));
-      showProgress(fileSummary(file));
+      const total = files.length;
+      let index = 0;
+
+      if (isOverride) lockTypingForFile(filesSummary(files));
       sendBtn.classList.add("hidden");
       if (typeof window.rtchatMarkOwnMessageScrollPending === "function") window.rtchatMarkOwnMessageScrollPending(120000);
 
-      if (Number(file.size || 0) >= CHUNK_THRESHOLD) {
-        uploadFileChunked(file, replyTo, csrfToken)
-          .then(() => {
-            if (uploadAborted) return;
-            hideProgress();
-            fileInput.value = "";
-            if (typeof window.rtchatClearReply === "function") window.rtchatClearReply();
-            if (fileOverride) unlockTypingAfterFile();
-            update();
-          })
-          .catch((err) => {
-            if (String(err && err.message) === "ABORTED") return;
-            hideProgress();
-            fileInput.value = "";
-            if (fileOverride) unlockTypingAfterFile();
-            update();
-            alert("آپلود فایل ناموفق بود. دوباره تلاش کنید.");
-          });
-        return;
+      function finishAll(hadError) {
+        hideProgress();
+        fileInput.value = "";
+        if (!hadError && typeof window.rtchatClearReply === "function") window.rtchatClearReply();
+        if (isOverride) unlockTypingAfterFile();
+        update();
       }
 
-      const formData = new FormData();
-      formData.append("file", file);
-      if (replyTo) formData.append("reply_to", replyTo);
-      if (csrfToken) formData.append("csrfmiddlewaretoken", csrfToken);
+      function uploadOne(file) {
+        const label = total > 1 ? `(${index + 1}/${total}) ${fileSummary(file)}` : fileSummary(file);
+        showProgress(label);
 
-      const xhr = new XMLHttpRequest();
-      currentXhr = xhr;
-      window.rtchatCurrentUploadXhr = xhr;
-      const totalBytes = Number(file.size || 0);
+        if (Number(file.size || 0) >= CHUNK_THRESHOLD) {
+          return uploadFileChunked(file, replyTo, csrfToken);
+        }
 
-      xhr.upload.addEventListener("progress", (e) => {
-        const denom = totalBytes > 0 ? totalBytes : Number(e.total || 0);
-        if (!(denom > 0)) return;
-        updateProgress((Number(e.loaded || 0) / denom) * 100);
-      });
+        return new Promise((resolve, reject) => {
+          const formData = new FormData();
+          formData.append("file", file);
+          if (replyTo) formData.append("reply_to", replyTo);
+          if (csrfToken) formData.append("csrfmiddlewaretoken", csrfToken);
 
-      xhr.addEventListener("load", () => {
-        const ok = xhr.status >= 200 && xhr.status < 300;
-        hideProgress();
-        fileInput.value = "";
-        if (ok && typeof window.rtchatClearReply === "function") window.rtchatClearReply();
-        if (fileOverride) unlockTypingAfterFile();
-        update();
-        if (!ok) alert("آپلود فایل ناموفق بود. دوباره تلاش کنید.");
-      });
+          const xhr = new XMLHttpRequest();
+          currentXhr = xhr;
+          window.rtchatCurrentUploadXhr = xhr;
+          const totalBytes = Number(file.size || 0);
 
-      xhr.addEventListener("error", () => {
-        hideProgress();
-        fileInput.value = "";
-        if (fileOverride) unlockTypingAfterFile();
-        update();
-        alert("آپلود فایل ناموفق بود. دوباره تلاش کنید.");
-      });
+          xhr.upload.addEventListener("progress", (e) => {
+            const denom = totalBytes > 0 ? totalBytes : Number(e.total || 0);
+            if (!(denom > 0)) return;
+            updateProgress((Number(e.loaded || 0) / denom) * 100);
+          });
 
-      xhr.addEventListener("abort", () => {
-        hideProgress();
-        if (fileOverride) unlockTypingAfterFile();
-        update();
-      });
+          xhr.addEventListener("load", () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else reject(new Error(`HTTP_${xhr.status}`));
+          });
+          xhr.addEventListener("error", () => reject(new Error("NETWORK_ERROR")));
+          xhr.addEventListener("abort", () => reject(new Error("ABORTED")));
 
-      xhr.open("POST", url, true);
-      if (csrfToken) xhr.setRequestHeader("X-CSRFToken", csrfToken);
-      xhr.setRequestHeader("HX-Request", "true");
-      xhr.withCredentials = true;
-      xhr.send(formData);
+          xhr.open("POST", url, true);
+          if (csrfToken) xhr.setRequestHeader("X-CSRFToken", csrfToken);
+          xhr.setRequestHeader("HX-Request", "true");
+          xhr.withCredentials = true;
+          xhr.send(formData);
+        });
+      }
+
+      function runNext() {
+        if (uploadAborted) {
+          finishAll(true);
+          return;
+        }
+        if (index >= total) {
+          finishAll(false);
+          return;
+        }
+        const file = files[index];
+        uploadOne(file)
+          .then(() => {
+            index += 1;
+            runNext();
+          })
+          .catch((err) => {
+            if (String(err && err.message) !== "ABORTED") {
+              alert(total > 1 ? `آپلود فایل ${index + 1} از ${total} ناموفق بود.` : "آپلود فایل ناموفق بود. دوباره تلاش کنید.");
+            }
+            finishAll(true);
+          });
+      }
+
+      runNext();
     }
 
     function update() {
       const recording = isVisible(stopBtn);
       const voicePreviewVisible = isVisible(previewEl);
-      if (hasFile()) lockTypingForFile(fileSummary(fileInput.files[0]));
+      if (hasFile()) lockTypingForFile(filesSummary(fileInput.files));
       else unlockTypingAfterFile();
 
       if (recording) {
@@ -4680,20 +4712,15 @@
           }
 
           const files = e.dataTransfer && e.dataTransfer.files ? Array.from(e.dataTransfer.files) : [];
-          const file = files[0] || null;
-          if (!file) return;
+          if (!files.length) return;
 
           if (hasInFlightUpload()) {
             alert("الان یک ارسال در حال انجام است. بعد از اتمام دوباره تلاش کنید.");
             return;
           }
 
-          if (files.length > 1) {
-            alert("فعلا فقط یک فایل را همزمان ارسال کنید.");
-          }
-
-          const setOk = setFileInputToFile(file);
-          if (!setOk) uploadFileWithProgress(file);
+          const setOk = setFileInputToFiles(files);
+          if (!setOk) uploadFileWithProgress(files);
           else {
             update();
             uploadFileWithProgress();

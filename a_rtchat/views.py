@@ -516,7 +516,7 @@ def create_groupchat(request):
     form = NewGroupForm()
 
     if request.method == 'POST':
-        form = NewGroupForm(request.POST)
+        form = NewGroupForm(request.POST, request.FILES)
         if form.is_valid():
             new_groupchat = form.save(commit=False)
             new_groupchat.admin = request.user
@@ -541,7 +541,7 @@ def chatroom_edit_view(request, chatroom_name):
     form = ChatRoomEditFrom(instance=chat_group)
 
     if request.method == 'POST':
-        form = ChatRoomEditFrom(request.POST, instance=chat_group)
+        form = ChatRoomEditFrom(request.POST, request.FILES, instance=chat_group)
         if form.is_valid():
             form.save()
 

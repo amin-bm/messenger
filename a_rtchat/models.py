@@ -37,6 +37,7 @@ class ChatGroup(models.Model):
    group_name = models.CharField(max_length=128, unique=True, default=generate_group_name)
    group_slug = models.SlugField(max_length=160, unique=True, null=True, blank=True, allow_unicode=True)
    groupchat_name = models.CharField(max_length=128, null=True, blank=True)
+   avatar = models.ImageField(upload_to='group_avatars/', null=True, blank=True)
    admin = models.ForeignKey(User, related_name='groupchats', null=True, blank=True, on_delete=models.SET_NULL)
    admins = models.ManyToManyField(User, related_name="admin_in_chat_groups", blank=True)
    users_online = models.ManyToManyField(User, related_name='online_in_groups', blank=True)

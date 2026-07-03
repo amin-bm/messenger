@@ -920,6 +920,29 @@
     <img id="img-modal-src" class="max-h-[90vh] max-w-[90vw] rounded-2xl shadow-2xl" alt="Preview" />
   </div>
 
+  <div id="profile-modal" class="fixed inset-0 hidden z-[9990] bg-black/50 p-4 items-center justify-center">
+    <div class="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
+      <button id="profile-modal-close" type="button" aria-label="بستن"
+              class="absolute top-3 left-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <div class="flex flex-col items-center px-6 pt-10 pb-6">
+        <img id="profile-modal-avatar" src="" data-zoom-src="" alt=""
+            class="h-28 w-28 rounded-full object-cover ring-4 ring-white shadow cursor-zoom-in dark:ring-slate-900" />
+        <div id="profile-modal-name" class="mt-4 text-lg font-semibold text-gray-900 dark:text-slate-100"></div>
+        <div id="profile-modal-username" class="text-sm text-gray-500 dark:text-slate-400"></div>
+
+        <a id="profile-modal-message-btn" href="#"
+          class="mt-6 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-center text-sm font-semibold text-white hover:bg-blue-700">
+          ارسال پیام
+        </a>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function () {
       const modal = document.getElementById('img-modal');
@@ -1183,6 +1206,70 @@
 
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
+      });
+    })();
+  </script>
+
+  <script>
+    (function () {
+      const modal = document.getElementById('profile-modal');
+      const closeBtn = document.getElementById('profile-modal-close');
+      const avatarImg = document.getElementById('profile-modal-avatar');
+      const nameEl = document.getElementById('profile-modal-name');
+      const usernameEl = document.getElementById('profile-modal-username');
+      const msgBtn = document.getElementById('profile-modal-message-btn');
+      if (!modal || !avatarImg || !nameEl || !usernameEl || !msgBtn) return;
+
+      function openProfileModal({ avatarUrl, name, username, chatUrl }) {
+        const src = (avatarUrl || '').trim();
+        avatarImg.src = src;
+        avatarImg.dataset.zoomSrc = src; // برای استفاده مجدد از img-modal موجود جهت زوم
+        nameEl.textContent = name || '';
+        usernameEl.textContent = username ? `@${username}` : '';
+
+        if (chatUrl) {
+          msgBtn.classList.remove('hidden');
+          msgBtn.setAttribute('href', chatUrl);
+        } else {
+          msgBtn.classList.add('hidden');
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeProfileModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = '';
+      }
+
+      // در دسترس بودن برای chat.html و بقیه صفحات
+      window.openProfileModal = openProfileModal;
+
+      closeBtn.addEventListener('click', closeProfileModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeProfileModal(); });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeProfileModal();
+      });
+
+      // کلیک روی آیتم‌های لیست مخاطبین (sidebar)
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest('#contacts-list a');
+        if (!a) return;
+        e.preventDefault();
+
+        const img = a.querySelector('img');
+        const nameNode = a.querySelector('.text-sm.font-medium');
+        const usernameNode = a.querySelector('.text-xs');
+
+        openProfileModal({
+          avatarUrl: img ? img.getAttribute('src') : '',
+          name: nameNode ? nameNode.textContent.trim() : '',
+          username: usernameNode ? usernameNode.textContent.replace('@', '').trim() : '',
+          chatUrl: a.getAttribute('href') || '',
+        });
       });
     })();
   </script>

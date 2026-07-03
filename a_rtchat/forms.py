@@ -16,7 +16,7 @@ class ChatmessageCreateForm(ModelForm):
 class NewGroupForm(ModelForm):
     class Meta:
         model = ChatGroup
-        fields = ('groupchat_name',)
+        fields = ('groupchat_name', 'avatar')
         widgets = {
             'groupchat_name': forms.TextInput(attrs={
                 'placeholder': 'Add name...',
@@ -24,16 +24,26 @@ class NewGroupForm(ModelForm):
                 'maxlength': '300',
                 'autofocus': True,
                 }),
+            'avatar': forms.ClearableFileInput(attrs={
+                'accept': 'image/*',
+                'class': 'sr-only',
+                'id': 'id_group_avatar',
+                }),
         }
 
 
 class ChatRoomEditFrom(ModelForm):
     class Meta:
         model = ChatGroup
-        fields = ['groupchat_name']
+        fields = ['groupchat_name', 'avatar']
         widgets = {
             'groupchat_name' : forms.TextInput(attrs={
                 'class': 'p-4 text-xl font-bold mb-4 rounded-xl bg-white/70 text-slate-900 backdrop-blur dark:bg-white/10 dark:text-slate-100',
                 'maxlength' : '300',
+                }),
+            'avatar': forms.ClearableFileInput(attrs={
+                'accept': 'image/*',
+                'class': 'sr-only',
+                'id': 'id_group_avatar',
                 }),
         }

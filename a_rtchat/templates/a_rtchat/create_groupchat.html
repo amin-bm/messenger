@@ -1,10 +1,49 @@
 {% extends 'layouts/box.html' %}
 {% block mobile_title %}Create chat{% endblock %}
 {% block content %}
-    <h1>New Group Chat</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form }}
-        <button class="button mt-2" type="submit">Create Group Chat</button>
-    </form>
+{% load static %}
+
+<h1>New Group Chat</h1>
+
+<form method="post" enctype="multipart/form-data" class="space-y-4">
+    {% csrf_token %}
+
+    <div class="flex flex-col items-center gap-3">
+        <div class="relative">
+            <img id="group_avatar_preview"
+                 src="{% static 'images/avatar.svg' %}"
+                 class="h-24 w-24 rounded-full object-cover bg-gray-200 ring-2 ring-white shadow"
+                 alt="Group avatar">
+            <label for="{{ form.avatar.id_for_label }}"
+                   class="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white cursor-pointer shadow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </label>
+        </div>
+        {{ form.avatar }}
+    </div>
+
+    <div>
+        {{ form.groupchat_name.label_tag }}
+        {{ form.groupchat_name }}
+    </div>
+
+    <button class="button mt-2" type="submit">Create Group Chat</button>
+</form>
+
+<script>
+(function () {
+    var input = document.getElementById('{{ form.avatar.id_for_label }}');
+    var preview = document.getElementById('group_avatar_preview');
+    if (!input || !preview) return;
+    input.classList.add('sr-only'); // input واقعی مخفی، فقط از دکمه‌ی پنسیل استفاده می‌شود
+    input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        var url = URL.createObjectURL(file);
+        preview.src = url;
+    });
+})();
+</script>
 {% endblock %}

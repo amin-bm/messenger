@@ -11,10 +11,16 @@
     <div class="flex flex-col items-center gap-3">
         <div class="relative w-24 h-24">
             <div class="w-full h-full rounded-full overflow-hidden bg-gray-200 ring-2 ring-white shadow">
-                <img id="group_avatar_preview"
-                     src="{{ chat_group.avatar.url }}"
-                     class="w-full h-full object-cover"
-                     alt="Group avatar">
+                {% if chat_group.avatar %}
+                    <img id="group_avatar_preview"
+                        src="{{ chat_group.avatar.url }}"
+                        class="w-full h-full object-cover"
+                        alt="Group avatar">
+                {% else %}
+                    <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0 flex items-center justify-center text-sm font-semibold text-gray-600">
+                        {{ chat_group.groupchat_name|slice:":1"|upper }}
+                    </div>
+                {% endif %}
             </div>
             <label for="{{ form.avatar.id_for_label }}"
                    class="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white cursor-pointer shadow">

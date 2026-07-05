@@ -1,0 +1,422 @@
+{% load static %}
+
+{# Use a unique ID per chat group to prevent conflicts when switching chats #}
+{# Remove any existing media gallery modals before adding this one #}
+<script>
+  (function () {
+    // Remove all other media gallery modals (keep only this chat's modal)
+    var existingModals = document.querySelectorAll('[id^="media-gallery-modal-"]');
+    existingModals.forEach(function(modal) {
+      if (modal.id !== 'media-gallery-modal-{{ chatroom_identifier|escapejs }}') {
+        modal.remove();
+      }
+    });
+  })();
+</script>
+
+<div id="media-gallery-modal-{{ chatroom_identifier }}" class="fixed inset-0 z-[80] hidden" role="dialog" aria-modal="true" aria-label="Media gallery">
+  <div id="media-gallery-backdrop-{{ chatroom_identifier }}" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+  <div class="relative mx-auto mt-4 w-[96%] max-w-5xl h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] flex flex-col overflow-hidden rounded-2xl bg-white/95 shadow-xl ring-1 ring-black/10 backdrop-blur-2xl dark:bg-slate-900/95 dark:ring-white/10">
+    <!-- Header -->
+    <div class="shrink-0 flex items-center justify-between gap-2 border-b border-slate-200/70 bg-white px-4 py-3 dark:border-white/10 dark:bg-slate-900">
+      <div class="min-w-0 flex-1">
+        <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
+          {% if is_group %}
+            {{ chat_group.groupchat_name }}
+          {% else %}
+            {{ chat_group.groupchat_name|default:"Media" }}
+          {% endif %}
+        </div>
+        <div class="text-[11px] text-gray-500 truncate dark:text-slate-300">
+          <span id="media-count">{{ media_items|length }}</span> items
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <div id="media-gallery-tabs" class="flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-white/10" role="tablist" aria-label="Media gallery tabs">
+          <button id="tab-media-{{ chatroom_identifier }}" type="button" role="tab" aria-selected="{% if active_tab == 'media' %}true{% else %}false{% endif %}" class="tab-btn rounded-md px-3 py-1.5 text-sm font-medium {% if active_tab == 'media' %}text-blue-600 bg-white shadow-sm dark:bg-white/10 dark:text-sky-400{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-200 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10{% endif %}">
+            Media
+          </button>
+          <button id="tab-files-{{ chatroom_identifier }}" type="button" role="tab" aria-selected="{% if active_tab == 'files' %}true{% else %}false{% endif %}" class="tab-btn rounded-md px-3 py-1.5 text-sm font-medium {% if active_tab == 'files' %}text-blue-600 bg-white shadow-sm dark:bg-white/10 dark:text-sky-400{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-200 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10{% endif %}">
+            Files
+          </button>
+          {% if is_group %}
+          <button id="tab-members-{{ chatroom_identifier }}" type="button" role="tab" aria-selected="{% if active_tab == 'members' %}true{% else %}false{% endif %}" class="tab-btn rounded-md px-3 py-1.5 text-sm font-medium {% if active_tab == 'members' %}text-blue-600 bg-white shadow-sm dark:bg-white/10 dark:text-sky-400{% else %}text-gray-600 hover:text-gray-900 hover:bg-gray-200 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10{% endif %}">
+            Members
+          </button>
+          {% endif %}
+        </div>
+
+        <button id="media-gallery-close-{{ chatroom_identifier }}" type="button" aria-label="Close media gallery" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Panels -->
+    <div id="media-gallery-panels-{{ chatroom_identifier }}" class="flex-1 min-h-0 overflow-hidden">
+      <!-- Media Panel (Telegram-style square grid) -->
+      <div id="panel-media-{{ chatroom_identifier }}" role="tabpanel" aria-labelledby="tab-media-{{ chatroom_identifier }}" class="media-grid h-full overflow-y-auto p-2 {% if active_tab != 'media' %}hidden{% endif %}">
+        {% if media_items %}
+          {% for item in media_items %}
+          <button type="button"
+                  class="media-tile group relative overflow-hidden bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:bg-white/5"
+                  data-message-id="{{ item.message_id }}"
+                  data-media-url="{{ item.url }}"
+                  data-media-type="{% if item.is_image %}image{% else %}video{% endif %}"
+                  data-filename="{{ item.filename }}"
+                  aria-label="View {{ item.filename }}">
+            {% if item.is_image %}
+              <img src="{{ item.thumb_url }}"
+                   alt="{{ item.filename }}"
+                   class="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105 group-active:scale-95"
+                   loading="lazy"
+                   decoding="async">
+            {% else %}
+              <video class="w-full h-full object-cover" muted playsinline preload="metadata">
+                <source src="{{ item.url }}" type="{{ item.mime_type }}">
+              </video>
+              <div class="absolute inset-0 flex items-center justify-center bg-black/25 group-hover:bg-black/35 transition-colors">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" class="text-white/90 drop-shadow group-hover:scale-110 transition-transform">
+                  <circle cx="12" cy="12" r="11" fill="currentColor" opacity="0.55"/>
+                  <polygon points="10,8 16,12 10,16" fill="#fff"/>
+                </svg>
+              </div>
+              <span class="absolute bottom-1 right-1 px-1 py-0.5 text-[10px] font-medium text-white bg-black/55 rounded-sm">Video</span>
+            {% endif %}
+
+            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 active:bg-black/15 transition-colors"></div>
+          </button>
+          {% endfor %}
+        {% else %}
+          <div class="col-span-full flex flex-col items-center justify-center py-20 text-center text-gray-500 dark:text-slate-400">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" class="mb-3 opacity-50">
+              <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="text-sm">No media in this chat</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Files Panel -->
+      <div id="panel-files-{{ chatroom_identifier }}" role="tabpanel" aria-labelledby="tab-files-{{ chatroom_identifier }}" class="hidden h-full overflow-y-auto p-3 {% if active_tab == 'files' %}!block{% endif %}">
+        {% if file_items %}
+        <div class="space-y-1.5">
+          {% for item in file_items %}
+          <a href="{{ item.url }}"
+             download
+             class="file-row flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-gray-50 transition-colors group dark:hover:bg-white/5"
+             title="{{ item.filename }}">
+            {# File-type icon with color-coded background #}
+            <div class="file-icon shrink-0 flex items-center justify-center w-10 h-10 rounded-lg text-sm font-bold uppercase
+              {% if item.extension == 'pdf' %}bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400
+              {% elif item.extension in 'doc,docx' %}bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400
+              {% elif item.extension in 'xls,xlsx,csv' %}bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400
+              {% elif item.extension in 'ppt,pptx' %}bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400
+              {% elif item.extension in 'zip,rar,7z,tar,gz' %}bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400
+              {% elif item.extension in 'exe,msi,dmg,app' %}bg-slate-200 text-slate-600 dark:bg-slate-700/40 dark:text-slate-300
+              {% elif item.extension in 'txt,log,md,json,yaml,yml' %}bg-gray-100 text-gray-600 dark:bg-gray-700/40 dark:text-gray-400
+              {% elif item.extension in 'py,js,html,css,java,cpp,c,rb,go,rs,ts' %}bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400
+              {% else %}bg-gray-100 text-gray-500 dark:bg-gray-700/40 dark:text-gray-400{% endif %}">
+              {{ item.extension|default:"?"|slice:":4" }}
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-sky-400">
+                {{ item.filename }}
+              </div>
+              <div class="flex items-center gap-2 text-[11px] text-gray-500 dark:text-slate-400">
+                {% if item.size_display %}
+                <span>{{ item.size_display }}</span>
+                <span>·</span>
+                {% endif %}
+                <span>{{ item.author_name }}</span>
+              </div>
+            </div>
+
+            {# Download arrow #}
+            <svg class="shrink-0 w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity dark:text-slate-500" viewBox="0 0 24 24" fill="none">
+              <path d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center py-20 text-center text-gray-500 dark:text-slate-400">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" class="mb-3 opacity-50">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p class="text-sm">No files in this chat</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Members Panel (for groups) -->
+      {% if is_group %}
+      <div id="panel-members-{{ chatroom_identifier }}" role="tabpanel" aria-labelledby="tab-members-{{ chatroom_identifier }}" class="hidden h-full overflow-y-auto p-3 {% if active_tab == 'members' %}block{% endif %}">
+        <div class="space-y-1">
+          {% for member in chat_group.members.all %}
+          <button type="button"
+                  class="profile-trigger flex items-center gap-3 rounded-xl px-3 py-2 w-full text-left hover:bg-gray-50 transition-colors"
+                  data-avatar-url="{{ member.profile.avatar }}"
+                  data-name="{{ member.profile.name }}"
+                  data-username="{{ member.username }}"
+                  data-chat-url="">
+            <img class="h-10 w-10 rounded-full object-cover" src="{{ member.profile.avatar }}">
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium text-gray-900 truncate dark:text-slate-100">{{ member.profile.name }}</div>
+              <div class="text-xs text-gray-500 truncate dark:text-slate-300">@{{ member.username }}</div>
+            </div>
+            {% if member.id in chat_group_admin_ids %}
+            <div class="text-xs font-semibold text-blue-600 dark:text-sky-400">Admin</div>
+            {% endif %}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Telegram-style media grid: square tiles, tiny gap, full-width columns.
+     Using explicit CSS so layout never depends on Tailwind rebuild/cache. */
+  .media-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: min-content;
+    gap: 3px;
+  }
+  /* Ensure Tailwind's .hidden always wins over .media-grid's display:grid
+     (inline <style> loads after tailwind.css, so .media-grid would otherwise
+     override .hidden and break tab switching). Higher specificity fixes it. */
+  .media-grid.hidden,
+  [id^="panel-members-"].hidden,
+  [id^="panel-files-"].hidden {
+    display: none !important;
+  }
+  [id^="panel-files-"].\!block,
+  [id^="panel-members-"].\!block {
+    display: block !important;
+  }
+  @media (min-width: 640px)  { .media-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (min-width: 768px)  { .media-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .media-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+  @media (min-width: 1280px) { .media-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+
+  /* Each tile is a square that fills its grid cell */
+  .media-grid .media-tile {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    cursor: pointer;
+    display: block;
+  }
+  .media-grid .media-tile > img,
+  .media-grid .media-tile > video {
+    position: static;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .media-tile video {
+    object-fit: cover;
+  }
+  .media-tile video::-webkit-media-controls {
+    display: none;
+  }
+  .media-tile:hover video::-webkit-media-controls {
+    display: flex;
+  }
+</style>
+
+<script>
+(function () {
+  var isStale = function () {
+    return window._rtchatGen !== window._rtchatMyGen;
+  };
+
+  // Use the chatroom_identifier from the template context to make IDs unique
+  var chatId = '{{ chatroom_identifier|escapejs }}';
+
+  var modal = document.getElementById('media-gallery-modal-' + chatId);
+  var backdrop = document.getElementById('media-gallery-backdrop-' + chatId);
+  var closeBtn = document.getElementById('media-gallery-close-' + chatId);
+  var mediaPanel = document.getElementById('panel-media-' + chatId);
+  var filesPanel = document.getElementById('panel-files-' + chatId);
+  var membersPanel = document.getElementById('panel-members-' + chatId);
+  var tabMedia = document.getElementById('tab-media-' + chatId);
+  var tabFiles = document.getElementById('tab-files-' + chatId);
+  var tabMembers = document.getElementById('tab-members-' + chatId);
+  var mediaCountEl = document.getElementById('media-count');
+  var chatContainer = document.getElementById('chat_container');
+  var headerTrigger = document.getElementById('chat-header-profile-trigger') || document.getElementById('group-members-trigger');
+
+  var _mediaGalleryClosedAt = 0;
+
+  // All known panels and tabs
+  var allPanels = [mediaPanel, filesPanel, membersPanel].filter(Boolean);
+  var allTabs = [
+    { tab: tabMedia,  name: 'media'  },
+    { tab: tabFiles,  name: 'files'  },
+    { tab: tabMembers, name: 'members' },
+  ].filter(function(t) { return t.tab; });
+
+  var activeClasses = ['bg-white', 'shadow-sm', 'text-blue-600', 'dark:bg-white/10', 'dark:text-sky-400'];
+  var inactiveClasses = ['text-gray-600', 'hover:text-gray-900', 'hover:bg-gray-200', 'dark:text-slate-300', 'dark:hover:text-white', 'dark:hover:bg-white/10'];
+
+  function _activateTab(tab) {
+    if (!tab) return;
+    activeClasses.forEach(function(c) { tab.classList.add(c); });
+    inactiveClasses.forEach(function(c) { tab.classList.remove(c); });
+    tab.setAttribute('aria-selected', 'true');
+  }
+
+  function _deactivateTab(tab) {
+    if (!tab) return;
+    activeClasses.forEach(function(c) { tab.classList.remove(c); });
+    inactiveClasses.forEach(function(c) { tab.classList.add(c); });
+    tab.setAttribute('aria-selected', 'false');
+  }
+
+  function openMediaGallery() {
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    showPanel('media');
+    if (typeof window.rtchatForceRecalcSticky === 'function') window.rtchatForceRecalcSticky();
+  }
+
+  function closeMediaGallery() {
+    if (!modal) return;
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+    _mediaGalleryClosedAt = Date.now();
+    window._rtchatMediaGalleryClosedAt = _mediaGalleryClosedAt;
+  }
+
+  function showPanel(which) {
+    // Hide all panels
+    allPanels.forEach(function(p) { p.classList.add('hidden'); });
+    // Deactivate all tabs
+    allTabs.forEach(function(t) { _deactivateTab(t.tab); });
+
+    // Show requested panel
+    var panelMap = { media: mediaPanel, files: filesPanel, members: membersPanel };
+    var tabMap  = { media: tabMedia,  files: tabFiles,  members: tabMembers };
+    if (panelMap[which]) panelMap[which].classList.remove('hidden');
+    if (tabMap[which])   _activateTab(tabMap[which]);
+  }
+
+  function handleTileClick(btn) {
+    var msgId = btn.getAttribute('data-message-id');
+    var url = btn.getAttribute('data-media-url');
+    var type = btn.getAttribute('data-media-type');
+    if (!msgId || !url) return;
+
+    closeMediaGallery();
+
+    // Use existing file viewer if available
+    if (typeof window.openFileViewer === 'function') {
+      window.openFileViewer({
+        downloadUrl: url,
+        previewUrl: url,
+        filename: btn.getAttribute('data-filename') || '',
+        mime: type === 'image' ? 'image/jpeg' : 'video/mp4',
+        forceView: true
+      });
+    } else {
+      // Fallback: open in new tab
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  // Bind events
+  function bindEvents() {
+    if (backdrop) backdrop.addEventListener('click', closeMediaGallery);
+    if (closeBtn) closeBtn.addEventListener('click', closeMediaGallery);
+    if (tabMedia) tabMedia.addEventListener('click', function() { showPanel('media'); });
+    if (tabFiles) tabFiles.addEventListener('click', function() { showPanel('files'); });
+    if (tabMembers) tabMembers.addEventListener('click', function() { showPanel('members'); });
+
+    // Media tile clicks
+    if (mediaPanel) {
+      mediaPanel.addEventListener('click', function (e) {
+        var tile = e.target.closest('.media-tile');
+        if (tile) handleTileClick(tile);
+      });
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function (e) {
+      if (isStale()) return;
+      if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+        closeMediaGallery();
+      }
+    });
+
+    // Click on header to open media gallery (for private chats) or toggle tabs (for groups)
+    if (headerTrigger) {
+      headerTrigger.addEventListener('click', function (e) {
+        // Don't interfere if clicking on profile trigger for profile modal
+        if (e.target.closest('.profile-trigger')) return;
+
+        var isGroup = document.getElementById('group-members-trigger') !== null;
+        if (isGroup) {
+          // For groups, the trigger already opens members modal
+          // We'll add a way to switch to media tab
+        } else {
+          // Private chat - open media gallery directly
+          openMediaGallery();
+        }
+      });
+    }
+
+    // Private chat media trigger button
+    var privateMediaTrigger = document.getElementById('private-media-trigger');
+    if (privateMediaTrigger) {
+      privateMediaTrigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openMediaGallery();
+      });
+    }
+  }
+
+  // Expose globally
+  window.openMediaGallery = openMediaGallery;
+  window.closeMediaGallery = closeMediaGallery;
+  window.showPanel = showPanel;
+
+  // Initialize and auto-open modal when loaded via HTMX
+  function init() {
+    if (isStale()) return;
+    bindEvents();
+    // Auto-open the modal when loaded (it's hidden by default in HTML)
+    openMediaGallery();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Re-bind after htmx swaps
+  document.body.addEventListener('htmx:afterSwap', function () {
+    if (isStale()) return;
+    bindEvents();
+    // Don't auto-open on subsequent swaps - only on initial load
+  });
+})();
+</script>

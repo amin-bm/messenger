@@ -1,7 +1,7 @@
 venv/
 node/
 media/
-logs/
+logs/ws_debug.log
 review.txt
 frontend/node_modules/
 __pycache__/

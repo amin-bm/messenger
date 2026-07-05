@@ -40,46 +40,64 @@
           </svg>
         </button>
         {% if other_user %}
-          <button type="button" id="chat-header-profile-trigger"
-                  class="profile-trigger flex items-center gap-3 min-w-0 text-left"
-                  data-avatar-url="{{ other_user.profile.avatar }}"
-                  data-name="{{ other_user.profile.name }}"
-                  data-username="{{ other_user.username }}"
-                  data-chat-url="">
-            <div class="relative">
-              <div id="online-icon" class="gray-dot absolute -bottom-1 -right-1"></div>
-              <img class="w-10 h-10 rounded-full object-cover" src="{{ other_user.profile.avatar }}">
-            </div>
+          <div class="flex items-center gap-2 min-w-0">
+            <button type="button" id="chat-header-profile-trigger"
+                    class="profile-trigger flex items-center gap-3 min-w-0 text-left"
+                    data-avatar-url="{{ other_user.profile.avatar }}"
+                    data-name="{{ other_user.profile.name }}"
+                    data-username="{{ other_user.username }}"
+                    data-chat-url="">
+              <div class="relative">
+                <div id="online-icon" class="gray-dot absolute -bottom-1 -right-1"></div>
+                <img class="w-10 h-10 rounded-full object-cover" src="{{ other_user.profile.avatar }}">
+              </div>
 
-            <div class="min-w-0">
-              <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
-                {{ other_user.profile.name }}
-              </div>
-              <div class="text-xs text-gray-500 truncate dark:text-slate-300">
-                @{{ other_user.username }}
-              </div>
-            </div>
-          </button>
-        {% else %}
-          {% if chat_group.groupchat_name %}
-            <button id="group-members-trigger" type="button" class="flex items-center gap-3 min-w-0 text-left">
-              {% if chat_group.avatar %}
-                <img class="h-10 w-10 rounded-full object-cover shrink-0" src="{{ chat_group.avatar.url }}">
-              {% else %}
-                <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0 flex items-center justify-center text-sm font-semibold text-gray-600">
-                  {{ chat_group.groupchat_name|slice:":1"|upper }}
-                </div>
-              {% endif %}
               <div class="min-w-0">
                 <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
-                  {{ chat_group.groupchat_name }}
+                  {{ other_user.profile.name }}
                 </div>
-                <div class="text-xs text-gray-500 dark:text-slate-300">
-                  <span id="online-count" class="hidden"></span>
-                  {{ chat_group.members.count }} members
+                <div class="text-xs text-gray-500 truncate dark:text-slate-300">
+                  @{{ other_user.username }}
                 </div>
               </div>
             </button>
+            <button id="private-media-trigger" type="button" class="p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-0 group dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 dark:active:bg-white/15" aria-label="Media" hx-get="{% url 'chat-media-gallery' chatroom_identifier %}" hx-target="body" hx-swap="beforeend" hx-trigger="click">
+              <svg class="fill-gray-500 group-hover:fill-gray-900 dark:fill-slate-300 dark:group-hover:fill-white" width="20" height="20" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        {% else %}
+          {% if chat_group.groupchat_name %}
+            <div class="flex items-center gap-2 min-w-0">
+              <button id="group-members-trigger" type="button" class="flex items-center gap-3 min-w-0 text-left" aria-label="Group members" hx-get="{% url 'chat-media-gallery' chatroom_identifier %}?tab=members" hx-target="body" hx-swap="beforeend" hx-trigger="click">
+                {% if chat_group.avatar %}
+                  <img class="h-10 w-10 rounded-full object-cover shrink-0" src="{{ chat_group.avatar.url }}">
+                {% else %}
+                  <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0 flex items-center justify-center text-sm font-semibold text-gray-600">
+                    {{ chat_group.groupchat_name|slice:":1"|upper }}
+                  </div>
+                {% endif %}
+                <div class="min-w-0">
+                  <div class="text-sm font-semibold text-gray-900 truncate dark:text-slate-100">
+                    {{ chat_group.groupchat_name }}
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-slate-300">
+                    <span id="online-count" class="hidden"></span>
+                    {{ chat_group.members.count }} members
+                  </div>
+                </div>
+              </button>
+              <button id="group-media-trigger" type="button" class="p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-0 group dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 dark:active:bg-white/15" aria-label="Group media" hx-get="{% url 'chat-media-gallery' chatroom_identifier %}" hx-target="body" hx-swap="beforeend" hx-trigger="click">
+                <svg class="fill-gray-500 group-hover:fill-gray-900 dark:fill-slate-300 dark:group-hover:fill-white" width="20" height="20" viewBox="0 0 24 24">
+                  <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                  <path d="M21 15l-5-5L5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           {% else %}
             <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0"></div>
             <div class="min-w-0">
@@ -379,41 +397,6 @@
   </div>
 
 </div>
-
-{% if chat_group.groupchat_name %}
-  <div id="group-members-modal" class="fixed inset-0 z-50 hidden">
-    <div id="group-members-backdrop" class="absolute inset-0 bg-black/40"></div>
-    <div class="relative mx-auto mt-16 w-[92%] max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
-      <div class="flex items-center justify-between border-b px-4 py-3">
-        <div class="min-w-0">
-          <div class="text-sm font-semibold text-gray-900 truncate">{{ chat_group.groupchat_name }}</div>
-          <div class="text-xs text-gray-500">{{ chat_group.members.count }} members</div>
-        </div>
-        <button id="group-members-close" type="button" class="rounded-lg px-2 py-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900">✕</button>
-      </div>
-      <div class="max-h-[70vh] overflow-y-auto p-2">
-        {% for member in chat_group.members.all %}
-          <button type="button"
-                  class="profile-trigger flex items-center gap-3 rounded-xl px-3 py-2 w-full text-left hover:bg-gray-50 transition-colors"
-                  data-avatar-url="{{ member.profile.avatar }}"
-                  data-name="{{ member.profile.name }}"
-                  data-username="{{ member.username }}"
-                  data-chat-url="">
-            <img class="h-10 w-10 rounded-full object-cover" src="{{ member.profile.avatar }}">
-            <div class="min-w-0 flex-1">
-              <div class="text-sm font-medium text-gray-900 truncate">{{ member.profile.name }}</div>
-              <div class="text-xs text-gray-500 truncate">@{{ member.username }}</div>
-            </div>
-            {% if member.id in chat_group_admin_ids %}
-              <div class="text-xs font-semibold text-blue-600">Admin</div>
-            {% endif %}
-          </button>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-{% endif %}
-
 
 {% endblock %}
 
@@ -2264,10 +2247,38 @@
   (function () {
     function bind() {
       const trigger = document.getElementById('group-members-trigger');
+      const mediaTrigger = document.getElementById('group-media-trigger');
       const closeBtn = document.getElementById('group-members-close');
       const backdrop = document.getElementById('group-members-backdrop');
 
-      if (trigger) trigger.addEventListener('click', openGroupMembersModal);
+      // For groups, the header trigger opens media gallery with members tab
+      if (trigger) {
+        trigger.addEventListener('click', function(e) {
+          // Don't open if clicking on profile trigger (for profile modal)
+          if (e.target.closest('.profile-trigger')) return;
+          if (typeof window.openMediaGallery === 'function') {
+            window.openMediaGallery();
+            // Switch to members tab
+            setTimeout(function() {
+              if (typeof window.showPanel === 'function') {
+                window.showPanel('members');
+              }
+            }, 0);
+          }
+        });
+      }
+
+      // Media button opens media gallery with media tab
+      if (mediaTrigger) {
+        mediaTrigger.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (typeof window.openMediaGallery === 'function') {
+            window.openMediaGallery();
+            // Media tab is default, no need to switch
+          }
+        });
+      }
+
       if (closeBtn) closeBtn.addEventListener('click', closeGroupMembersModal);
       if (backdrop) backdrop.addEventListener('click', closeGroupMembersModal);
 
@@ -2283,6 +2294,34 @@
         bind();
       });
     else bind();
+  })();
+
+  (function () {
+    function bind() {
+      const privateMediaTrigger = document.getElementById('private-media-trigger');
+      if (privateMediaTrigger) {
+        if (privateMediaTrigger.dataset.bound === '1') return;
+        privateMediaTrigger.dataset.bound = '1';
+        privateMediaTrigger.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (typeof window.openMediaGallery === 'function') {
+            window.openMediaGallery();
+          }
+        });
+      }
+    }
+
+    if (document.readyState === 'loading')
+      _docOn('DOMContentLoaded', () => {
+        if (isStale()) return;
+        bind();
+      });
+    else bind();
+
+    _docOn('htmx:afterSwap', () => {
+      if (isStale()) return;
+      bind();
+    });
   })();
 
   (function () {

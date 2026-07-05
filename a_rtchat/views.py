@@ -973,6 +973,116 @@ def chat_message_transcode(request, message_id):
         }
     )
 
+
+@messenger_required
+def chat_media_gallery(request, chatroom_identifier):
+    """Return media gallery (images and videos) for a chat group."""
+    if request.method != "GET":
+        return HttpResponse(status=405)
+
+    chat_group = get_chat_group_by_identifier(chatroom_identifier)
+    _assert_user_can_access_chat_group(request, chat_group)
+
+    chatroom_identifier = chat_group.group_slug or chat_group.group_name
+
+    # Get messages with any attached file (images, videos, documents)
+    file_messages = (
+        chat_group.chat_messages
+        .filter(file__isnull=False)
+        .select_related("author", "author__profile")
+        .order_by("-created")[:200]
+    )
+
+    media_items = []
+    file_items = []
+    for msg in file_messages:
+        if not msg.file:
+            continue
+        if msg.is_image or msg.is_video:
+            media_items.append({
+                "message_id": msg.id,
+                "url": msg.file.url,
+                "thumb_url": reverse('chat-message-thumb', args=[msg.id]) if msg.is_image else msg.file.url,
+                "filename": msg.filename,
+                "mime_type": msg.mime_type,
+                "is_image": msg.is_image,
+                "is_video": msg.is_video,
+                "created": msg.created,
+                "author_name": getattr(msg.author.profile, 'name', None) or msg.author.username,
+            })
+        elif not msg.is_audio:
+            # Documents: PDF, Word, Excel, ZIP, RAR, EXE, etc. (skip audio)
+            size_bytes = _file_size(msg.file)
+            file_items.append({
+                "message_id": msg.id,
+                "url": msg.file.url,
+                "filename": msg.filename,
+                "mime_type": msg.mime_type,
+                "extension": _file_extension(msg.filename),
+                "size_bytes": size_bytes,
+                "size_display": _format_file_size(size_bytes),
+                "created": msg.created,
+                "author_name": getattr(msg.author.profile, 'name', None) or msg.author.username,
+            })
+
+    is_group = bool(chat_group.groupchat_name) and not chat_group.is_private
+    chat_group_admin_ids = list(
+        set(chat_group.admins.values_list("id", flat=True))
+        | ({int(chat_group.admin_id)} if chat_group.admin_id else set())
+    )
+
+    # Handle tab parameter (media, files, or members)
+    active_tab = request.GET.get('tab', 'media')
+    if active_tab not in ('media', 'files', 'members'):
+        active_tab = 'media'
+
+    context = {
+        "chat_group": chat_group,
+        "chatroom_identifier": chatroom_identifier,
+        "media_items": media_items,
+        "file_items": file_items,
+        "is_group": is_group,
+        "chat_group_admin_ids": chat_group_admin_ids,
+        "active_tab": active_tab,
+    }
+    return render(request, "a_rtchat/partials/media_gallery.html", context)
+
+
+def _file_extension(filename):
+    """Return the lowercase file extension (without dot), e.g. 'pdf'."""
+    if not filename:
+        return ""
+    return os.path.splitext(filename)[1].lstrip(".").lower()
+
+
+def _file_size(file_field):
+    """Return the size in bytes of a FileField, or 0 if unavailable."""
+    try:
+        file_field.seek(0, os.SEEK_END)
+        size = file_field.tell()
+        file_field.seek(0)
+        return size
+    except Exception:
+        try:
+            return file_field.size
+        except Exception:
+            return 0
+
+
+def _format_file_size(size_bytes):
+    """Human-readable file size, e.g. '1.2 MB'."""
+    try:
+        size = float(size_bytes)
+    except (TypeError, ValueError):
+        return ""
+    if size < 1024:
+        return f"{int(size)} B"
+    for unit in ("KB", "MB", "GB", "TB"):
+        size /= 1024.0
+        if size < 1024:
+            return f"{size:.1f} {unit}"
+    return f"{size:.1f} PB"
+
 @messenger_required
 def chat_message_image_thumb(request, message_id):
     if request.method != "GET":

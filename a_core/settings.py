@@ -82,7 +82,11 @@ PROJECT_TITLE = "Pesk Messenger"
 _app_version_env = (_strip_wrapping_quotes(os.getenv("APP_VERSION", "dev")) or "").strip() or "dev"
 if _app_version_env == "dev":
     try:
-        _app_version_env = f"dev-{int((BASE_DIR / 'templates' / 'base.html').stat().st_mtime)}"
+        _assets_mtime = max(
+            (BASE_DIR / 'templates' / 'base.html').stat().st_mtime,
+            (BASE_DIR / 'static' / 'css' / 'tailwind.css').stat().st_mtime,
+        )
+        _app_version_env = f"dev-{int(_assets_mtime)}"
     except Exception:
         _app_version_env = "dev"
 APP_VERSION = _app_version_env

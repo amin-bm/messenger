@@ -492,7 +492,7 @@ def chat_search(request, chatroom_identifier):
         chat_group.chat_messages
         .filter(body__icontains=q)
         .select_related("author", "author__profile")
-        .order_by("-created")[:50]
+        .order_by("-created")[:500]
     )
 
     results = []

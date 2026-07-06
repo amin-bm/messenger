@@ -5032,6 +5032,123 @@
     update();
   })();
 
+  // ---------- Helper: load older messages until a target message is present ----------
+  // تابع کمکی برای لود پیام‌های قدیمی‌تر تا زمانی که پیام مورد نظر در DOM ظاهر شود.
+  // این تابع از مکانیزم #load_older موجود استفاده می‌کند و بعد از هر بار لود،
+  // بررسی می‌کند که آیا پیام هدف ظاهر شده است یا خیر.
+  window.rtchatLoadUntilMessage = function (targetMessageId, options) {
+    const opts = options || {};
+    const onFound = typeof opts.onFound === "function" ? opts.onFound : null;
+    const onMissing = typeof opts.onMissing === "function" ? opts.onMissing : null;
+    const maxAttempts = Math.max(1, Number(opts.maxAttempts) || 80);
+    const delayMs = Math.max(0, Number(opts.delay) || 250);
+
+    function findTarget() {
+      if (!targetMessageId) return null;
+      // getElementById به CSS.escape نیاز ندارد — رشته خام کافی است
+      // CSS.escape اعداد رو تبدیل می‌کند (مثلاً "5686" → "\35 686") و ID را خراب می‌کند
+      return document.getElementById("msg-" + targetMessageId);
+    }
+
+    return new Promise(function (resolve) {
+      if (findTarget()) {
+        console.log('[RTChat LoadUntil] target already in DOM');
+        if (onFound) { try { onFound(findTarget()); } catch (e) {} }
+        resolve({ found: true, attempts: 0 });
+        return;
+      }
+
+      console.log('[RTChat LoadUntil] target NOT in DOM, starting loop...');
+      let attempts = 0;
+      let lastLoadTime = 0;
+
+      function finish(found) {
+        console.log('[RTChat LoadUntil] finished, found:', found, 'attempts:', attempts);
+        resolve({ found: found, attempts: attempts });
+      }
+
+      function triggerLoad() {
+        if (isStale()) {
+          console.log('[RTChat LoadUntil] stale, aborting');
+          finish(false);
+          return;
+        }
+
+        const el = findTarget();
+        if (el) {
+          console.log('[RTChat LoadUntil] target FOUND after', attempts, 'attempts');
+          if (onFound) { try { onFound(el); } catch (e) {} }
+          finish(true);
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          console.log('[RTChat LoadUntil] max attempts reached:', attempts);
+          if (onMissing) { try { onMissing(); } catch (e) {} }
+          finish(false);
+          return;
+        }
+
+        const loader = document.getElementById("load_older");
+        if (!loader || !loader.getAttribute("hx-get")) {
+          // قبل از تسلیم، یک بار دیگه DOM رو چک کن
+          const el2 = findTarget();
+          if (el2) {
+            console.log('[RTChat LoadUntil] target FOUND on final check after no more older');
+            if (onFound) { try { onFound(el2); } catch (e) {} }
+            finish(true);
+            return;
+          }
+          // لاگ تمام پیام‌های موجود برای دیباگ
+          const allMsgs = document.querySelectorAll('#chat_messages li[id^="msg-"]');
+          const firstId = allMsgs[0] ? allMsgs[0].id : 'none';
+          const lastId = allMsgs.length > 1 ? allMsgs[allMsgs.length-1].id : firstId;
+          console.log('[RTChat LoadUntil] no more older messages. Looking for msg-' + targetMessageId);
+          console.log('[RTChat LoadUntil] DOM has', allMsgs.length, 'messages, first:', firstId, 'last:', lastId);
+          console.log('[RTChat LoadUntil] findTarget tried: msg-' + CSS.escape(String(targetMessageId)));
+          // مستقیم هم با getElementById چک کن
+          const direct = document.getElementById('msg-' + targetMessageId);
+          console.log('[RTChat LoadUntil] direct getElementById("msg-' + targetMessageId + '"):', direct);
+          if (onMissing) { try { onMissing(); } catch (e) {} }
+          finish(false);
+          return;
+        }
+
+        if (loader.dataset.loading === "1" || window._rtchatLoadOlderActive) {
+          console.log('[RTChat LoadUntil] already loading, waiting... (attempt:', attempts, ')');
+          setTimeout(triggerLoad, delayMs);
+          return;
+        }
+
+        const now = Date.now();
+        if (now - lastLoadTime < 400) {
+          setTimeout(triggerLoad, delayMs);
+          return;
+        }
+        lastLoadTime = now;
+        attempts += 1;
+        console.log('[RTChat LoadUntil] triggering load attempt:', attempts, 'suppress:', window._rtchatSuppressScroll);
+
+        loader.dataset.loading = "1";
+
+        if (window.htmx && typeof window.htmx.process === "function") {
+          window.htmx.process(loader);
+        }
+        const hxTrigger = (loader.getAttribute("hx-trigger") || "").trim();
+        const evt = hxTrigger && hxTrigger !== "revealed" ? hxTrigger : "rtchat-load-older";
+        if (window.htmx && typeof window.htmx.trigger === "function") {
+          window.htmx.trigger(loader, evt);
+        } else {
+          loader.dispatchEvent(new Event(evt, { bubbles: true }));
+        }
+
+        setTimeout(triggerLoad, delayMs);
+      }
+
+      triggerLoad();
+    });
+  };
+
   // ---------- Chat Search Functionality ----------
   (function () {
     const searchBar = document.getElementById("chat_search_bar");
@@ -5123,20 +5240,98 @@
       return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
 
-    function scrollToMessage(messageId) {
-      const messageEl = document.getElementById(`msg-${messageId}`);
-      if (messageEl) {
-        clearHighlights();
-        highlightMessage(messageEl, currentSearchQuery);
-        messageEl.classList.add("search-highlight-current");
+    function focusAndHighlight(messageEl, keepSuppressUntilDone) {
+      console.log('[RTChat Search] focusAndHighlight called, keepSuppress:', keepSuppressUntilDone, 'suppress:', window._rtchatSuppressScroll);
+      if (!messageEl) return;
+      clearHighlights();
+      highlightMessage(messageEl, currentSearchQuery);
+      messageEl.classList.add("search-highlight-current");
+
+      if (keepSuppressUntilDone) {
         messageEl.scrollIntoView({ behavior: "smooth", block: "center" });
 
-        // Remove highlight after a few seconds
-        setTimeout(() => {
-          messageEl.classList.remove("search-highlight-current");
-        }, 3000);
+        setTimeout(function () {
+          console.log('[RTChat Search] releasing scroll after jump');
+          window._rtchatSuppressScroll = false;
+          if (typeof window.rtchatForceRecalcSticky === "function") {
+            window.rtchatForceRecalcSticky();
+          }
+        }, 800);
+      } else {
+        window._rtchatSuppressScroll = true;
+        messageEl.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(function () {
+          window._rtchatSuppressScroll = false;
+          if (typeof window.rtchatForceRecalcSticky === "function") {
+            window.rtchatForceRecalcSticky();
+          }
+        }, 600);
       }
+
+      setTimeout(() => {
+        messageEl.classList.remove("search-highlight-current");
+      }, 3000);
+    }
+
+    function scrollToMessage(messageId) {
+      console.log('[RTChat Search] scrollToMessage called, messageId:', messageId);
+      const messageEl = document.getElementById(`msg-${messageId}`);
+      if (messageEl) {
+        console.log('[RTChat Search] message found in DOM immediately');
+        focusAndHighlight(messageEl);
+        hideSearchBar();
+        return;
+      }
+
+      console.log('[RTChat Search] message NOT in DOM, starting older load. suppress:', window._rtchatSuppressScroll);
       hideSearchBar();
+
+      window._rtchatSuppressScroll = true;
+      console.log('[RTChat Search] _rtchatSuppressScroll set to true');
+
+      let loadingHint = null;
+      if (chatContainer) {
+        loadingHint = document.createElement("div");
+        loadingHint.id = "search_jump_loading";
+        loadingHint.className = "fixed left-1/2 top-20 z-[90] -translate-x-1/2 rounded-xl bg-blue-600/90 px-4 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur";
+        loadingHint.textContent = "در حال بارگذاری پیام...";
+        document.body.appendChild(loadingHint);
+      }
+
+      function cleanupLoadingHint() {
+        if (loadingHint && loadingHint.parentNode) loadingHint.parentNode.removeChild(loadingHint);
+      }
+
+      function releaseScroll() {
+        console.log('[RTChat Search] releaseScroll called');
+        window._rtchatSuppressScroll = false;
+        if (typeof window.rtchatForceRecalcSticky === "function") {
+          window.rtchatForceRecalcSticky();
+        }
+      }
+
+      if (typeof window.rtchatLoadUntilMessage !== "function") {
+        console.log('[RTChat Search] rtchatLoadUntilMessage NOT found!');
+        cleanupLoadingHint();
+        releaseScroll();
+        return;
+      }
+
+      console.log('[RTChat Search] calling rtchatLoadUntilMessage...');
+      window.rtchatLoadUntilMessage(messageId, {
+        delay: 250,
+        maxAttempts: 120,
+          onFound: function (el) {
+          console.log('[RTChat Search] onFound callback! element:', el ? el.id : null);
+          cleanupLoadingHint();
+          setTimeout(function () { focusAndHighlight(el, true); }, 200);
+        },
+        onMissing: function () {
+          console.log('[RTChat Search] onMissing callback - message not found');
+          cleanupLoadingHint();
+          setTimeout(releaseScroll, 300);
+        },
+      });
     }
 
     function performSearch(query) {
@@ -5177,6 +5372,7 @@
             result.addEventListener("click", (e) => {
               e.preventDefault();
               const messageId = result.dataset.messageId;
+              console.log('[RTChat Search] result clicked, dataset.messageId:', messageId, 'type:', typeof messageId);
               if (messageId) scrollToMessage(messageId);
             });
           });

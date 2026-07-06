@@ -1,1 +1,1496 @@
 13:47:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:48:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:48:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:49:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:49:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:50:11 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:50:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:51:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:51:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:52:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:52:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:53:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:53:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:54:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:54:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:55:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:55:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:56:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:56:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:57:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:57:45 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:58:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:58:45 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:59:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+13:59:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:00:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:00:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:01:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:01:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:02:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:02:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:03:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:03:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:04:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:04:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:05:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:05:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:06:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:06:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:07:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:07:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:08:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:08:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:09:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:09:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:10:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:10:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:11:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:11:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:12:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:12:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:13:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:13:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:14:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:14:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:15:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:15:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:16:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:16:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:17:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:17:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:18:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:18:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:19:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:19:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:20:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:20:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:21:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:21:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:22:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:22:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:23:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:23:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:24:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:24:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:25:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:25:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:26:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:26:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:27:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:27:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:28:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:28:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:29:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:29:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:30:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:30:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:31:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:31:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:32:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:32:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:33:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:33:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:34:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:34:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:35:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:35:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:36:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:36:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:37:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:37:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:38:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:38:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:39:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:39:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:40:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:40:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:41:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:41:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:42:30 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:43:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:43:30 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:44:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:44:30 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:45:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:45:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:46:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:46:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:47:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:47:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:48:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:48:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:49:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:49:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:50:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:50:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:51:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:51:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:52:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:52:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:53:03 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:53:33 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:54:03 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:54:33 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:55:03 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:55:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:56:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:56:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:57:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:57:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:58:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:58:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:59:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+14:59:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:00:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:00:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:01:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:01:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:02:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:02:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:03:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:03:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:04:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:04:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:05:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:05:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:06:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:06:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:07:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:07:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:08:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:08:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:09:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:09:37 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:10:07 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:10:37 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:11:07 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:11:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:12:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:12:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:13:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:13:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:14:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:14:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:15:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:15:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:16:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:16:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:17:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:17:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:18:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:18:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:19:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:19:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:20:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:20:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:21:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:21:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:22:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:22:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:23:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:23:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:24:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:24:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:25:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:25:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:26:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:26:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:27:11 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:27:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:28:11 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:28:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:29:11 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:29:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:30:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:30:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:31:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:31:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:32:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:32:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:33:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:33:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:34:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:34:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:35:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:35:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:36:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:36:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:37:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:37:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:38:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:38:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:39:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:39:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:40:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:40:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:41:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:41:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:42:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:42:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:43:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:43:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:44:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:44:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:45:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:45:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:46:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:46:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:47:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:47:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:48:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:48:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:49:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:49:45 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:50:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:50:45 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:51:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:51:45 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:52:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:52:45 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:53:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:53:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:54:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:54:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:55:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:55:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:56:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:56:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:57:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:57:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:58:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:58:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:59:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+15:59:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:00:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:00:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:01:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:01:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:02:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:02:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:03:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:03:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:04:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:04:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:05:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:05:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:06:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:06:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:07:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:07:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:08:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:08:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:09:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:09:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:10:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:10:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:11:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:11:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:12:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:12:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:13:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:13:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:14:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:14:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:15:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:15:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:16:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:16:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:17:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:17:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:18:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:18:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:19:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:19:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:20:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:20:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:21:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:21:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:22:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:22:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:23:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:23:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:24:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:24:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:25:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:25:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:26:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:26:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:27:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:27:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:28:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:28:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:29:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:29:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:30:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:30:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:31:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:31:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:32:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:32:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:33:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:33:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:34:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:34:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:35:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:35:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:36:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:36:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:37:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:37:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:38:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:38:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:39:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:39:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:40:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:40:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:41:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:41:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:42:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:42:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:43:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:43:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:44:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:44:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:45:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:45:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:46:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:46:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:47:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:47:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:48:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:48:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:49:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:49:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:50:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:50:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:51:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:51:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:52:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:52:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:53:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:53:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:54:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:54:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:55:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:55:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:56:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:56:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:57:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:57:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:58:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:58:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:59:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+16:59:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:00:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:00:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:01:30 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:02:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:02:30 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:03:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:03:30 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:04:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:04:30 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:05:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:05:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:06:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:06:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:07:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:07:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:08:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:08:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:09:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:09:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:10:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:10:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:11:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:11:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:12:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:12:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:13:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:13:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:14:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:14:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:15:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:15:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:16:03 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:16:33 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:17:03 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:17:33 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:18:03 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:18:33 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:19:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:19:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:20:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:20:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:21:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:21:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:22:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:22:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:23:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:23:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:24:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:24:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:25:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:25:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:26:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:26:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:27:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:27:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:28:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:28:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:29:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:29:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:30:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:30:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:31:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:31:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:32:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:32:37 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:33:07 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:33:37 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:34:07 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:34:37 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:35:07 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:35:37 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:36:07 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:36:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:37:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:37:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:38:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:38:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:39:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:39:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:40:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:40:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:41:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:41:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:42:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:42:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:43:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:43:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:44:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:44:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:45:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:45:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:46:09 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:46:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:47:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:47:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:48:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:48:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:49:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:49:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:50:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:50:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:51:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:51:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:52:10 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:52:40 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:53:11 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:53:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:54:11 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:54:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:55:11 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:55:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:56:11 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:56:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:57:11 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:57:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:58:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:58:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:59:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+17:59:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:00:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:00:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:01:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:01:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:02:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:02:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:03:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:03:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:04:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:04:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:05:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:05:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:06:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:06:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:07:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:07:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:08:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:08:45 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:09:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:09:45 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:10:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:10:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:11:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:11:46 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:12:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:12:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:13:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:13:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:14:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:14:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:15:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:15:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:16:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:16:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:17:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:17:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:18:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:18:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:19:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:19:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:20:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:20:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:21:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:21:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:22:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:22:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:23:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:23:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:24:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:24:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:25:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:25:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:26:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:26:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:27:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:27:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:28:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:28:49 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:29:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:29:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:30:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:30:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:31:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:31:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:32:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:32:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:33:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:33:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:34:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:34:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:35:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:35:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:36:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:36:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:37:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:37:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:38:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:38:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:39:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:39:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:40:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:40:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:41:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:41:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:42:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:42:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:43:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:43:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:44:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:44:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:45:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:45:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:46:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:46:52 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:47:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:47:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:48:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:48:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:49:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:49:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:50:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:50:53 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:51:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:51:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:52:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:52:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:53:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:53:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:54:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:54:54 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:55:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:55:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:56:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:56:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:57:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:57:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:58:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:58:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:59:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+18:59:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:00:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:00:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:01:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:01:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:02:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:02:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:03:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:03:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:04:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:04:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:05:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:05:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:06:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:06:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:07:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:07:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:08:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:08:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:09:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:09:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:10:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:10:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:11:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:11:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:12:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:12:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:13:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:13:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:14:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:14:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:15:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:15:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:16:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:17:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:17:30 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:18:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:18:30 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:19:00 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:19:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:20:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:20:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:21:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:21:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:22:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:22:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:23:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:23:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:24:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:24:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:25:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:25:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:26:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:26:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:27:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:27:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:28:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:28:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+19:58:38 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=k65dyDxRS5ALHjHm3DRRkY
+19:58:38 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=k65dyDxRS5ALHjHm3DRRkY event=online_count_handler broadcast
+19:58:39 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+19:58:39 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+19:58:39 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+19:58:39 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+19:58:39 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+19:58:39 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+19:59:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+19:59:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:00:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:00:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:01:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:01:31 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=k65dyDxRS5ALHjHm3DRRkY
+20:01:31 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+20:01:31 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+20:02:13 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+20:02:13 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+20:02:13 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+20:02:13 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+20:02:13 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+20:02:13 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+20:02:13 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+20:02:13 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+20:02:13 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+20:02:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:03:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:03:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:04:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:04:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:05:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:05:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:06:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:06:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:07:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:07:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:08:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:08:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:09:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:09:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:10:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:10:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:11:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:11:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:12:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:12:43 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:13:13 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:13:44 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:14:14 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:15:15 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:16:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:17:17 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:18:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:19:19 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:20:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:21:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:22:22 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:23:23 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:24:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:25:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:26:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:27:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:28:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:29:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:30:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:31:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:32:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:33:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:34:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:35:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:36:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:37:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:38:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:39:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:40:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:41:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:42:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:43:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:44:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:45:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:46:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:47:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:48:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:49:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:50:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:51:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:52:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:53:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:54:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:54:25 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+20:54:25 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+20:54:25 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+20:54:26 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+20:54:26 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+20:54:26 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+20:54:26 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+20:54:26 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+20:54:26 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+20:54:26 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+20:54:26 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+20:54:26 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+20:54:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:55:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:55:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:56:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:56:56 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:57:26 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:58:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+20:59:07 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+20:59:07 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+20:59:07 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+20:59:07 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+20:59:07 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+20:59:07 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+20:59:07 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+20:59:07 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+20:59:07 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+20:59:07 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+20:59:07 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+20:59:07 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+20:59:07 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+20:59:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:00:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:00:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:01:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:01:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:02:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:02:32 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:02:32 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:02:32 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:02:32 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:02:32 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:02:32 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:02:33 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:02:33 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:02:33 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:02:33 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:02:33 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:02:33 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:02:33 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:03:01 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:03:01 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:03:01 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:03:01 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:03:01 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:03:01 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:03:01 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:03:01 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:03:01 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:03:01 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:03:01 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:03:01 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:03:01 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:03:28 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:03:28 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:03:28 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:03:28 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:03:28 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:03:28 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:03:28 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:03:28 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:03:28 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:03:28 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:03:28 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:03:28 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:03:28 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:03:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:04:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:04:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:05:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:05:59 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:06:29 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:07:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:08:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:09:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:10:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:11:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:12:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:13:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:14:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:15:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:16:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:17:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:18:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:19:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:20:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:21:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:22:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:23:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:24:17 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:24:17 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:24:17 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:24:17 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:24:17 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:24:17 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:24:17 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:24:17 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:24:17 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:24:17 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:24:17 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:24:17 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:24:17 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:24:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:24:56 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:24:56 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:24:56 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:24:57 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:24:57 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:24:57 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:24:57 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:24:57 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:24:57 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:24:57 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:24:57 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:24:57 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:24:57 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:25:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:25:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:26:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:26:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:27:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:27:57 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:28:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:29:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:30:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:31:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:32:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:32:41 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:32:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:32:41 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:32:41 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:32:41 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:32:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:32:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:32:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:32:41 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:32:41 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:32:41 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:32:41 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:32:41 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:33:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:33:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:34:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:34:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:35:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:35:42 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:36:24 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:36:36 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:36:36 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:36:36 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:36:36 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:36:36 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:36:36 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:36:36 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:36:36 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:36:36 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:36:36 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:36:36 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:36:36 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:36:36 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:37:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:37:30 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:37:30 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:37:30 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:37:30 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:37:30 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:37:30 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:37:30 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:37:30 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:37:30 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:37:30 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:37:30 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:37:30 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:37:30 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:38:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:38:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:39:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:39:31 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:40:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:40:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:40:30 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:40:30 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:40:30 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:40:30 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:40:30 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:40:30 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:40:30 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:40:30 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:40:30 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:40:30 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:40:30 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:40:30 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:40:30 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:40:36 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:40:36 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:40:36 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:40:36 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:40:48 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:40:48 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:40:48 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:40:48 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:40:48 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:40:48 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:40:49 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:40:49 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:40:49 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:41:18 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:41:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:41:55 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:41:55 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:41:55 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:41:55 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:42:36 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:42:36 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:42:36 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:42:36 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:42:36 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:42:36 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:42:36 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:42:36 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:42:36 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:43:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:43:21 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:43:21 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:43:21 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:43:21 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:43:21 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=gE7q3trVPDfugpcpe6zamC
+21:43:21 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=gE7q3trVPDfugpcpe6zamC event=online_count_handler broadcast
+21:43:21 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:43:21 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=gE7q3trVPDfugpcpe6zamC event=read_receipt_handler broadcast
+21:43:21 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:43:21 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:43:21 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:43:21 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:43:21 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:43:37 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:43:37 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:43:37 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:43:37 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:43:37 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:43:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:44:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:44:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:45:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:45:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:45:59 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=gE7q3trVPDfugpcpe6zamC
+21:45:59 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=gE7q3trVPDfugpcpe6zamC event=online_count_handler broadcast
+21:45:59 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:45:59 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:45:59 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:45:59 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:46:21 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:46:21 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:46:21 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:46:21 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:46:21 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:46:21 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:46:21 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:46:21 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:46:21 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:46:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:47:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:47:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:48:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:48:50 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=CE2B4CCLDRhT7hiHb9TgWd
+21:48:50 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=CE2B4CCLDRhT7hiHb9TgWd event=online_count_handler broadcast
+21:48:50 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:48:50 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:48:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:48:52 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1006 room=CE2B4CCLDRhT7hiHb9TgWd
+21:48:52 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=CE2B4CCLDRhT7hiHb9TgWd event=online_count_handler broadcast
+21:48:52 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:48:52 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:48:52 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:49:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:49:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:50:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:50:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:51:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:51:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:52:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:52:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:53:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:53:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:54:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:54:51 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:55:21 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:55:31 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:55:31 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:55:31 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:55:31 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:55:31 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:55:31 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:55:31 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:55:31 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:55:31 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:55:31 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:55:31 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:55:31 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:55:31 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:55:31 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:56:01 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:56:05 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:56:05 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:56:05 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:56:05 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:56:05 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:56:05 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:56:05 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:56:05 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:56:05 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:56:05 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:56:06 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:56:06 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:56:06 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:56:35 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:56:35 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:56:35 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:56:35 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:56:55 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:56:55 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:56:55 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:56:55 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:56:55 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:56:55 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:56:55 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:56:55 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:56:55 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:57:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:57:41 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+21:57:42 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:57:42 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:57:42 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:57:42 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:57:58 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:57:58 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:57:58 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:57:58 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:57:58 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:57:58 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:57:58 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:57:58 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:57:58 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:58:23 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:58:23 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:58:23 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:58:23 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:58:41 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:58:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:58:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:58:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:58:41 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:58:41 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:58:41 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:58:41 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:58:41 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:58:54 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+21:58:54 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:58:54 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+21:58:54 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:59:07 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+21:59:07 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+21:59:07 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+21:59:07 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+21:59:07 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+21:59:07 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+21:59:07 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+21:59:07 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+21:59:07 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+21:59:37 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:00:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:00:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:01:08 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:01:38 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:01:52 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:01:52 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:01:52 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:01:52 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:01:52 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:01:52 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:01:52 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:01:52 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:01:52 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:01:52 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:01:52 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:01:52 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:01:52 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:02:06 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:02:06 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:02:06 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:02:06 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:02:06 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:02:06 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:02:06 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:02:06 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:02:06 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:02:06 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:02:06 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:02:06 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:02:06 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:02:16 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:02:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:02:16 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:02:16 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:02:16 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:02:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:02:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:02:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:02:16 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:02:16 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:02:16 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:02:16 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:02:16 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:02:47 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:02:48 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:02:49 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:02:49 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:02:49 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:02:49 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:03:04 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:03:04 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:03:04 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:03:04 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:03:04 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:03:04 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:03:04 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:03:04 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:03:04 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:03:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:04:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:04:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:05:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:05:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:05:58 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:05:59 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:05:59 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:05:59 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:05:59 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:07:53 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:07:53 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:07:53 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:07:53 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:07:53 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:07:53 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:07:53 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:07:53 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:07:53 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:08:16 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:08:16 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:08:16 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:08:34 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:08:34 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:08:34 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:08:34 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:08:34 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:08:34 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:08:34 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:08:34 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:08:34 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:09:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:09:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:10:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:10:16 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:10:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:11:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:11:27 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:11:34 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:12:04 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:12:16 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:12:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:12:16 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:12:16 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:12:16 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:12:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:12:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:12:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:12:16 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:12:16 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:12:16 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:12:16 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:12:16 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:12:38 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:12:38 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:12:38 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:12:38 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:12:38 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:12:38 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:12:38 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:12:38 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:12:38 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:12:38 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:12:38 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:12:38 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:12:38 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:13:07 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:13:07 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:13:07 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:13:07 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:13:32 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:13:32 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:13:32 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:13:32 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:13:32 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:13:32 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:13:32 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:13:32 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:13:32 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:14:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:14:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:15:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:15:32 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:16:02 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:16:25 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:16:25 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:16:25 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:16:25 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:16:25 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:16:25 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:16:25 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:16:25 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:16:25 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:16:25 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:16:25 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:16:25 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:16:25 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:16:33 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:16:33 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:16:33 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:16:33 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:16:33 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:16:33 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:16:33 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:16:33 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:16:33 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:16:33 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:16:33 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:16:33 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:16:33 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:17:03 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:17:04 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:17:04 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:17:04 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:17:04 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:17:20 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:17:20 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:17:20 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:17:20 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:17:20 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:17:20 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:17:20 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:17:20 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:17:20 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:17:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:18:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:18:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:19:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:19:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:20:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:20:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:21:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:21:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:22:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:22:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:23:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:23:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:24:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:24:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:25:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:25:50 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:26:20 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:26:24 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:26:24 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:26:24 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:26:24 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:26:24 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:26:24 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:26:24 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:26:25 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:26:25 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:26:25 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:26:25 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:26:25 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:26:25 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:26:25 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:26:25 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:26:25 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:26:25 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:26:25 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:26:25 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:26:25 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:26:55 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:27:25 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:27:41 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:27:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:27:41 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:27:41 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:27:41 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:27:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:27:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:27:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:27:41 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:27:41 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:27:41 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:27:41 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:27:41 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:27:51 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:27:51 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:27:51 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:27:51 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:28:06 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:28:06 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:28:06 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:28:06 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:28:06 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:28:06 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:28:06 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:28:06 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:28:06 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:28:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:29:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:29:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:29:41 [DEBUG] [RECEIVE] ChatroomConsumer | user=amin(id=1) type=message body_len=4
+22:29:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=message_handler broadcast
+22:29:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1, 3]
+22:29:41 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=message_handler → send to client target=
+22:29:41 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:29:41 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:29:41 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:29:46 [DEBUG] [RECEIVE] ChatroomConsumer | user=amin(id=1) type=message body_len=4
+22:29:46 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=message_handler broadcast
+22:29:46 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1, 3]
+22:29:46 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=message_handler → send to client target=
+22:29:46 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:29:46 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:29:46 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:30:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:30:12 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=gWzHyoFp7SicsyStKDweak
+22:30:12 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=gWzHyoFp7SicsyStKDweak event=online_count_handler broadcast
+22:30:12 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:30:12 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:30:15 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1006 room=gWzHyoFp7SicsyStKDweak
+22:30:15 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=gWzHyoFp7SicsyStKDweak event=online_count_handler broadcast
+22:30:15 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:30:15 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:30:15 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:30:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:31:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:31:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:32:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:32:12 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1006 room=AqgufDyyVHbPWWC35nbKRs
+22:32:12 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:32:12 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:32:12 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:32:12 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1006 room=AqgufDyyVHbPWWC35nbKRs
+22:32:16 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=f87iLaaujKwe7f6gyWc68G
+22:32:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=f87iLaaujKwe7f6gyWc68G event=online_count_handler broadcast
+22:32:16 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:32:16 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:32:28 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1006 room=f87iLaaujKwe7f6gyWc68G
+22:32:28 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=f87iLaaujKwe7f6gyWc68G event=online_count_handler broadcast
+22:32:28 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:32:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:33:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:33:14 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:33:14 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:33:15 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:33:15 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:33:15 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:33:15 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:33:15 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:33:15 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:33:15 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:33:15 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:33:15 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:33:42 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:33:42 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:33:42 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:33:42 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:33:42 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:33:42 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:33:42 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:33:42 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:33:42 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:33:42 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:33:42 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:33:42 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:33:42 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:34:03 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:34:03 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:34:03 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:34:03 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:34:03 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:34:03 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:34:03 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:34:03 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:34:03 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:34:03 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:34:03 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:34:03 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:34:03 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:34:33 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:34:35 [INFO] [DISCONNECT] ChatroomConsumer | user=amin(id=1) code=1001 room=AqgufDyyVHbPWWC35nbKRs
+22:34:35 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:34:35 [INFO] [DISCONNECT] OnlineStatusConsumer | user=amin(id=1) code=1001
+22:34:35 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:34:35 [INFO] [CONNECT] ChatroomConsumer | user=amin(id=1) room=AqgufDyyVHbPWWC35nbKRs
+22:34:35 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=online_count_handler broadcast
+22:34:35 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=online-status event=online_status_handler target_ids=[1]
+22:34:35 [DEBUG] [GROUP_SEND] ChatroomConsumer → group=AqgufDyyVHbPWWC35nbKRs event=read_receipt_handler broadcast
+22:34:35 [DEBUG] [SEND] ChatroomConsumer | user=amin(id=1) event=online_count_handler → client target=
+22:34:35 [INFO] [CONNECT] OnlineStatusConsumer | user=amin(id=1)
+22:34:35 [DEBUG] [GROUP_SEND] OnlineStatusConsumer → group=online-status event=online_status_handler target_ids=broadcast
+22:34:35 [DEBUG] [SEND] OnlineStatusConsumer | user=amin(id=1) event=online_status_handler → sidebar target=
+22:34:35 [DEBUG] [DB] OnlineStatusConsumer | query=my_chats+unread+contacts
+22:35:05 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+22:35:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0

@@ -6,8 +6,9 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('', chat_view, name='home'),
     path('chat/new-groupchat/', create_groupchat, name='new-groupchat'),
-    path('chat/room/<chatroom_identifier>', chat_view, name='chatroom'),
     path('chat/room/<chatroom_identifier>/older', chat_messages_older, name='chat-messages-older'),
+    path('chat/room/<chatroom_identifier>/search', chat_search, name='chat-search'),
+    path('chat/room/<chatroom_identifier>', chat_view, name='chatroom'),
     path('chat/search/', sidebar_search, name='sidebar-search'),
     path('chat/<username>', get_or_create_chatroom, name='start-chat'),
     path('chat/message/<int:message_id>/edit', chat_message_edit, name='chat-message-edit'),

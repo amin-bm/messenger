@@ -474,6 +474,47 @@ def sidebar_search(request):
 
 
 @messenger_required
+def chat_search(request, chatroom_identifier):
+    """
+    Search messages within a specific chatroom.
+    Returns highlighted message snippets with jump-to-message functionality.
+    """
+    q = (request.GET.get("q") or "").strip()
+    if not q:
+        return render(request, "a_rtchat/partials/chat_search_results.html", {"q": "", "results": [], "chatroom_identifier": chatroom_identifier})
+
+    chat_group = get_chat_group_by_identifier(chatroom_identifier)
+    _assert_user_can_access_chat_group(request, chat_group)
+
+    chatroom_identifier = chat_group.group_slug or chat_group.group_name
+
+    message_qs = (
+        chat_group.chat_messages
+        .filter(body__icontains=q)
+        .select_related("author", "author__profile")
+        .order_by("-created")[:50]
+    )
+
+    results = []
+    for m in message_qs:
+        author_name = getattr(getattr(m.author, "profile", None), "name", None) or m.author.username
+        results.append({
+            "message_id": m.id,
+            "author": author_name,
+            "author_is_me": m.author_id == request.user.id,
+            "created": m.created,
+            "body": m.body,
+            "snippet_html": _build_highlight_snippet(m.body or "", q),
+        })
+
+    return render(request, "a_rtchat/partials/chat_search_results.html", {
+        "q": q,
+        "results": results,
+        "chatroom_identifier": chatroom_identifier,
+    })
+
+
+@messenger_required
 def get_or_create_chatroom(request, username):
     if request.user.username == username:
         return redirect('home')

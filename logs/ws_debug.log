@@ -1,2 +1,1 @@
-12:27:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
-12:28:35 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=amin(id=1) type=ping body_len=0
+13:47:39 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0

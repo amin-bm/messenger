@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<div id="chat_root" class="flex h-full min-h-0 flex-col" style="position: relative;">
+<div id="chat_root" class="flex h-full min-h-0 flex-col" style="position: relative;" data-chatroom-identifier="{{ chatroom_identifier }}">
 
   <div id="chat_drop_overlay" class="pointer-events-none absolute inset-0 z-[75] hidden">
     <div class="absolute inset-0 bg-slate-900/25 backdrop-blur-[1px]"></div>
@@ -121,6 +121,17 @@
             </svg>
           </a>
         {% endif %}
+        <button
+          id="chat_search_toggle"
+          type="button"
+          class="p-2 rounded-lg bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 active:bg-gray-200 focus:outline-none focus:ring-0 group dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 dark:active:bg-white/15"
+          aria-label="Search in chat"
+        >
+          <svg class="fill-gray-500 group-hover:fill-gray-900 dark:fill-slate-300 dark:group-hover:fill-white" width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+            <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
         {% if chat_group.members.exists %}
           {% include 'a_rtchat/partials/modal_chat_leave.html' %}
         {% endif %}
@@ -141,6 +152,47 @@
         <button id="selection_delete_btn" type="button" class="rounded-lg bg-transparent px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 active:bg-red-100 disabled:opacity-40 disabled:pointer-events-none dark:hover:bg-red-500/10 dark:active:bg-red-500/15">Delete</button>
       </div>
     </div>
+  </div>
+
+  <!-- Chat Search Bar -->
+  <div id="chat_search_bar" class="hidden border-b border-slate-200/70 bg-white/50 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/30">
+    <div class="flex items-center gap-2">
+      <div class="relative flex-1">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <input
+          id="chat_search_input"
+          type="text"
+          placeholder="Search in this chat..."
+          class="w-full rounded-xl bg-white/70 pl-10 pr-10 py-2 text-sm border border-slate-200/70 text-slate-900 placeholder:text-slate-500 backdrop-blur outline-none focus:ring-2 focus:ring-blue-300 focus:border-transparent dark:bg-white/10 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400"
+          dir="auto"
+          autocomplete="off"
+        />
+        <button
+          id="chat_search_clear"
+          type="button"
+          class="hidden absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/10"
+          aria-label="Clear search"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <button
+        id="chat_search_close"
+        type="button"
+        class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+        aria-label="Close search"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div id="chat_search_results" class="mt-2 hidden"></div>
   </div>
 
   <!-- Messages area -->
@@ -430,6 +482,48 @@
   }
   .rtchat-selected .group {
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.85), 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+  }
+
+  /* Chat Search Styles */
+  .search-highlight {
+    background: #fef08a;
+    color: #713f12;
+    padding: 0 2px;
+    border-radius: 2px;
+    font-weight: 600;
+  }
+  .dark .search-highlight {
+    background: #fde047;
+    color: #713f12;
+  }
+  .search-highlight-current {
+    background: #fef08a !important;
+    outline: 2px solid #f59e0b;
+    border-radius: 4px;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+  }
+  .dark .search-highlight-current {
+    background: #fde047 !important;
+    outline: 2px solid #fbbf24;
+    box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.3);
+  }
+
+  /* Search result item hover */
+  .chat-search-result:hover {
+    background:not(.chat-search-result[aria-selected="true"]) {
+      background-color: #f3f4f6;
+    }
+  }
+  .dark .chat-search-result:hover:not([aria-selected="true"]) {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  .chat-search-result[aria-selected="true"],
+  .chat-search-result.bg-blue-50 {
+    background-color: #eff6ff !important;
+  }
+  .dark .chat-search-result[aria-selected="true"],
+  .dark .chat-search-result.dark\:bg-blue-900\/20 {
+    background-color: rgba(30, 58, 138, 0.2) !important;
   }
 </style>
 <script>
@@ -4936,6 +5030,275 @@
         update();
       });
     update();
+  })();
+
+  // ---------- Chat Search Functionality ----------
+  (function () {
+    const searchBar = document.getElementById("chat_search_bar");
+    const searchInput = document.getElementById("chat_search_input");
+    const searchClear = document.getElementById("chat_search_clear");
+    const searchClose = document.getElementById("chat_search_close");
+    const searchResults = document.getElementById("chat_search_results");
+    const chatContainer = document.getElementById("chat_container");
+
+    // Get chatroom identifier from template variable, fallback to URL
+    let chatroomIdentifier = "{{ chatroom_identifier|escapejs }}";
+    if (!chatroomIdentifier) {
+      // Extract from URL: /chat/room/<identifier>/...
+      const match = window.location.pathname.match(/\/chat\/room\/([^\/]+)/);
+      if (match) chatroomIdentifier = match[1];
+    }
+    // Final fallback: check for data attribute on chat_root
+    if (!chatroomIdentifier) {
+      const chatRoot = document.getElementById("chat_root");
+      if (chatRoot) chatroomIdentifier = chatRoot.dataset.chatroomIdentifier || "";
+    }
+
+    if (!searchBar || !searchInput || !searchClear || !searchClose || !searchResults) return;
+
+    let searchDebounce = null;
+    let currentSearchQuery = "";
+    let currentResults = [];
+    let selectedResultIndex = -1;
+    let isSearchOpen = false;
+
+    function showSearchBar() {
+      searchBar.classList.remove("hidden");
+      isSearchOpen = true;
+      searchInput.focus();
+      document.body.classList.add("chat-search-open");
+    }
+
+    function hideSearchBar() {
+      searchBar.classList.add("hidden");
+      searchResults.classList.add("hidden");
+      searchInput.value = "";
+      searchClear.classList.add("hidden");
+      currentSearchQuery = "";
+      currentResults = [];
+      selectedResultIndex = -1;
+      isSearchOpen = false;
+      clearHighlights();
+      document.body.classList.remove("chat-search-open");
+    }
+
+    function clearHighlights() {
+      // Remove any existing highlights
+      document.querySelectorAll(".search-highlight-current").forEach((el) => {
+        el.classList.remove("search-highlight-current");
+      });
+      document.querySelectorAll(".search-highlight").forEach((el) => {
+        el.classList.remove("search-highlight");
+      });
+    }
+
+    function highlightMessage(messageEl, query) {
+      if (!query || !messageEl) return;
+      const textNodes = [];
+      const walker = document.createTreeWalker(
+        messageEl,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.textContent.trim() && node.parentElement.closest(".search-highlight") === null) {
+          textNodes.push(node);
+        }
+      }
+
+      const regex = new RegExp(`(${escapeRegExp(query)})`, "gi");
+      textNodes.forEach((textNode) => {
+        const content = textNode.textContent;
+        if (regex.test(content)) {
+          const span = document.createElement("span");
+          span.innerHTML = content.replace(regex, '<mark class="search-highlight">$1</mark>');
+          textNode.parentNode.replaceChild(span, textNode);
+        }
+      });
+    }
+
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function scrollToMessage(messageId) {
+      const messageEl = document.getElementById(`msg-${messageId}`);
+      if (messageEl) {
+        clearHighlights();
+        highlightMessage(messageEl, currentSearchQuery);
+        messageEl.classList.add("search-highlight-current");
+        messageEl.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Remove highlight after a few seconds
+        setTimeout(() => {
+          messageEl.classList.remove("search-highlight-current");
+        }, 3000);
+      }
+      hideSearchBar();
+    }
+
+    function performSearch(query) {
+      if (!query.trim()) {
+        searchResults.classList.add("hidden");
+        searchResults.innerHTML = "";
+        currentResults = [];
+        selectedResultIndex = -1;
+        return;
+      }
+
+      currentSearchQuery = query.trim();
+
+      // Show loading
+      searchResults.classList.remove("hidden");
+      searchResults.innerHTML = `
+        <div class="px-4 py-3 text-center text-sm text-gray-500 dark:text-slate-400">
+          در حال جستجو...
+        </div>
+      `;
+
+      const url = `/chat/room/${encodeURIComponent(chatroomIdentifier)}/search?q=${encodeURIComponent(currentSearchQuery)}`;
+
+      fetch(url, {
+        headers: {
+          "HX-Request": "true",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      })
+        .then((response) => response.text())
+        .then((html) => {
+          searchResults.innerHTML = html;
+          currentResults = Array.from(searchResults.querySelectorAll(".chat-search-result"));
+          selectedResultIndex = -1;
+
+          // Add click handlers to results
+          currentResults.forEach((result, index) => {
+            result.addEventListener("click", (e) => {
+              e.preventDefault();
+              const messageId = result.dataset.messageId;
+              if (messageId) scrollToMessage(messageId);
+            });
+          });
+        })
+        .catch((err) => {
+          searchResults.innerHTML = `
+            <div class="px-4 py-3 text-center text-sm text-red-500">
+              خطا در جستجو
+            </div>
+          `;
+        });
+    }
+
+    function handleInput() {
+      const value = searchInput.value;
+      searchClear.classList.toggle("hidden", !value);
+
+      if (searchDebounce) clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        performSearch(value);
+      }, 300);
+    }
+
+    function handleKeydown(e) {
+      if (e.key === "Escape") {
+        hideSearchBar();
+        return;
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (selectedResultIndex >= 0 && currentResults[selectedResultIndex]) {
+          const messageId = currentResults[selectedResultIndex].dataset.messageId;
+          if (messageId) scrollToMessage(messageId);
+        }
+        return;
+      }
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        if (currentResults.length > 0) {
+          selectedResultIndex = Math.min(selectedResultIndex + 1, currentResults.length - 1);
+          updateSelection();
+        }
+        return;
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        if (currentResults.length > 0) {
+          selectedResultIndex = Math.max(selectedResultIndex - 1, 0);
+          updateSelection();
+        }
+        return;
+      }
+    }
+
+    function updateSelection() {
+      currentResults.forEach((result, index) => {
+        result.classList.toggle("bg-blue-50", index === selectedResultIndex);
+        result.classList.toggle("dark:bg-blue-900/20", index === selectedResultIndex);
+        if (index === selectedResultIndex) {
+          result.scrollIntoView({ block: "nearest" });
+        }
+      });
+    }
+
+    // Event listeners
+    searchInput.addEventListener("input", handleInput);
+    searchInput.addEventListener("keydown", handleKeydown);
+
+    searchClear.addEventListener("click", () => {
+      searchInput.value = "";
+      searchClear.classList.add("hidden");
+      searchResults.classList.add("hidden");
+      searchResults.innerHTML = "";
+      currentResults = [];
+      selectedResultIndex = -1;
+      searchInput.focus();
+    });
+
+    searchClose.addEventListener("click", hideSearchBar);
+
+    // Search toggle button click handler
+    const searchToggle = document.getElementById("chat_search_toggle");
+    if (searchToggle) {
+      searchToggle.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (isSearchOpen) {
+          hideSearchBar();
+        } else {
+          showSearchBar();
+        }
+      });
+    }
+
+    // Click outside to close (but not on results)
+    document.addEventListener("click", (e) => {
+      if (!isSearchOpen) return;
+      if (searchBar.contains(e.target)) return;
+      hideSearchBar();
+    });
+
+    // Prevent closing when clicking on results
+    searchResults.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
+    // Keyboard shortcut: Cmd/Ctrl + F to open search
+    document.addEventListener("keydown", (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        if (!isSearchOpen && document.activeElement !== searchInput) {
+          e.preventDefault();
+          showSearchBar();
+        }
+      }
+    });
+
+    // Expose for external use
+    window.chatSearchOpen = showSearchBar;
+    window.chatSearchClose = hideSearchBar;
   })();
 
 </script>

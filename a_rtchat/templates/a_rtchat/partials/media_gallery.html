@@ -4,12 +4,15 @@
 {# Remove any existing media gallery modals before adding this one #}
 <script>
   (function () {
-    // Remove all other media gallery modals (keep only this chat's modal)
+    // Keep only the most recently inserted gallery modal. Since this script
+    // runs after the new modal has already been appended (hx-swap="beforeend"),
+    // the newest instance is always the LAST element matching the selector.
+    // Removing anything older (same chat id or not) prevents duplicate modals
+    // from piling up in the DOM with stacked/duplicate event listeners.
     var existingModals = document.querySelectorAll('[id^="media-gallery-modal-"]');
+    var last = existingModals[existingModals.length - 1];
     existingModals.forEach(function(modal) {
-      if (modal.id !== 'media-gallery-modal-{{ chatroom_identifier|escapejs }}') {
-        modal.remove();
-      }
+      if (modal !== last) modal.remove();
     });
   })();
 </script>
@@ -327,23 +330,34 @@
 
     closeMediaGallery();
 
-    // Use existing file viewer if available
     if (typeof window.openFileViewer === 'function') {
       window.openFileViewer({
         downloadUrl: url,
         previewUrl: url,
         filename: btn.getAttribute('data-filename') || '',
-        mime: type === 'image' ? 'image/jpeg' : 'video/mp4',
-        forceView: true
+        mime: type === 'image' ? 'تصویر' : 'ویدیو',
+        kind: type === 'image' ? 'image' : 'video',
+        forceView: true,
+        onClose: function () {
+          if (typeof window.openMediaGallery === 'function') window.openMediaGallery();
+        }
       });
     } else {
-      // Fallback: open in new tab
       window.open(url, '_blank', 'noopener,noreferrer');
     }
   }
 
   // Bind events
   function bindEvents() {
+    // This same script instance's 'htmx:afterSwap' listener (bound below,
+    // on document.body) fires on EVERY htmx swap anywhere in the app, not
+    // just gallery-related ones. Without this guard, bindEvents() would run
+    // again and again for the lifetime of the page, re-adding a fresh set
+    // of listeners (new anonymous function refs) each time -> a single
+    // click ends up firing the handler multiple times.
+    if (modal && modal.dataset.eventsBound === '1') return;
+    if (modal) modal.dataset.eventsBound = '1';
+
     if (backdrop) backdrop.addEventListener('click', closeMediaGallery);
     if (closeBtn) closeBtn.addEventListener('click', closeMediaGallery);
     if (tabMedia) tabMedia.addEventListener('click', function() { showPanel('media'); });

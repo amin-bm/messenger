@@ -2365,7 +2365,7 @@
       if (document.body) document.body.appendChild(modal);
     }
 
-    let current = { downloadUrl: "", previewUrl: "", filename: "", mime: "", forceView: false };
+    let current = { downloadUrl: "", previewUrl: "", filename: "", mime: "", forceView: false, kind: "", onClose: null };
     let aborter = null;
     let historyPushed = false;
 
@@ -2479,18 +2479,19 @@
 
     function closeUI() {
       if (aborter) {
-        try {
-          aborter.abort();
-        } catch (e) {
-        }
+        try { aborter.abort(); } catch (e) {}
         aborter = null;
       }
       clearBody();
       modal.classList.add("hidden");
       body.style.overflow = "";
-      current = { downloadUrl: "", previewUrl: "", filename: "", mime: "", forceView: false };
+      var onCloseCb = current && typeof current.onClose === "function" ? current.onClose : null;
+      current = { downloadUrl: "", previewUrl: "", filename: "", mime: "", forceView: false, kind: "", onClose: null };
       _fileViewerClosedAt = Date.now();
       window._rtchatFileViewerClosedAt = _fileViewerClosedAt;
+      if (onCloseCb) {
+        try { onCloseCb(); } catch (e) {}
+      }
     }
 
     function requestClose() {
@@ -2713,6 +2714,108 @@
 
     function renderUnsupported() {
       renderPreviewCard();
+    }
+
+    function renderImage(url) {
+      clearBody();
+      body.style.overflow = "hidden";
+
+      var wrap = document.createElement("div");
+      wrap.style.cssText = "position:relative;width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#000;touch-action:none;";
+
+      var img = document.createElement("img");
+      img.src = url;
+      img.draggable = false;
+      img.style.cssText = "max-width:100%;max-height:100%;user-select:none;transform-origin:center center;will-change:transform;";
+      wrap.appendChild(img);
+      body.appendChild(wrap);
+
+      var scale = 1, tx = 0, ty = 0;
+      var startDist = 0, startScale = 1, startMidX = 0, startMidY = 0, startTx = 0, startTy = 0;
+      var isPanning = false, panStartX = 0, panStartY = 0, panOrigX = 0, panOrigY = 0;
+      var lastTapTime = 0;
+
+      function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+      function dist(a, b) { var dx = (a.clientX||0)-(b.clientX||0), dy=(a.clientY||0)-(b.clientY||0); return Math.sqrt(dx*dx+dy*dy); }
+      function midpoint(a, b) { return { x: (a.clientX+b.clientX)/2, y: (a.clientY+b.clientY)/2 }; }
+      function applyTransform() {
+        img.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + scale + ")";
+      }
+      function resetZoom() { scale = 1; tx = 0; ty = 0; applyTransform(); }
+
+      wrap.addEventListener("touchstart", function (e) {
+        if (!e.touches) return;
+        if (e.touches.length === 2) {
+          startDist = dist(e.touches[0], e.touches[1]) || 1;
+          startScale = scale;
+          var mid = midpoint(e.touches[0], e.touches[1]);
+          startMidX = mid.x; startMidY = mid.y;
+          startTx = tx; startTy = ty;
+        } else if (e.touches.length === 1) {
+          if (scale > 1) {
+            isPanning = true;
+            panStartX = e.touches[0].clientX;
+            panStartY = e.touches[0].clientY;
+            panOrigX = tx; panOrigY = ty;
+          }
+          var now = Date.now();
+          if (now - lastTapTime < 300) {
+            if (scale > 1) resetZoom();
+            else { scale = 2; applyTransform(); }
+          }
+          lastTapTime = now;
+        }
+      }, { passive: true });
+
+      wrap.addEventListener("touchmove", function (e) {
+        if (!e.touches) return;
+        if (e.touches.length === 2) {
+          e.preventDefault();
+          var d = dist(e.touches[0], e.touches[1]) || 1;
+          var mid = midpoint(e.touches[0], e.touches[1]);
+          scale = clamp((startScale * d) / startDist, 1, 5);
+          tx = startTx + (mid.x - startMidX);
+          ty = startTy + (mid.y - startMidY);
+          applyTransform();
+        } else if (e.touches.length === 1 && isPanning) {
+          e.preventDefault();
+          tx = panOrigX + (e.touches[0].clientX - panStartX);
+          ty = panOrigY + (e.touches[0].clientY - panStartY);
+          applyTransform();
+        }
+      }, { passive: false });
+
+      wrap.addEventListener("touchend", function (e) {
+        if (!e.touches || e.touches.length < 2) startDist = 0;
+        if (!e.touches || e.touches.length === 0) isPanning = false;
+        if (scale <= 1) resetZoom();
+      });
+
+      wrap.addEventListener("wheel", function (e) {
+        e.preventDefault();
+        scale = clamp(scale * (e.deltaY < 0 ? 1.15 : 0.87), 1, 5);
+        if (scale === 1) { tx = 0; ty = 0; }
+        applyTransform();
+      }, { passive: false });
+
+      wrap.addEventListener("dblclick", function () {
+        if (scale > 1) resetZoom();
+        else { scale = 2; applyTransform(); }
+      });
+    }
+
+    function renderVideo(url) {
+      clearBody();
+      var wrap = document.createElement("div");
+      wrap.style.cssText = "width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;";
+      var video = document.createElement("video");
+      video.src = url;
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.style.cssText = "max-width:100%;max-height:100%;";
+      wrap.appendChild(video);
+      body.appendChild(wrap);
     }
 
     async function renderText(previewUrl) {
@@ -3294,34 +3397,44 @@
       }
     }
 
-    function openViewer({ downloadUrl, previewUrl, filename, mime, forceView }) {
+    function openViewer({ downloadUrl, previewUrl, filename, mime, forceView, kind, onClose }) {
       current = {
         downloadUrl: String(downloadUrl || ""),
         previewUrl: String(previewUrl || ""),
         filename: String(filename || ""),
         mime: String(mime || ""),
         forceView: Boolean(forceView),
+        kind: String(kind || ""),
+        onClose: typeof onClose === "function" ? onClose : null,
       };
 
       var ext = extOf(current.filename) || extOf(current.previewUrl) || extOf(current.downloadUrl);
       var m = (current.mime || "").toLowerCase();
 
-      var isPdf = m === "application/pdf" || ext === ".pdf";
-      var isText = m.startsWith("text/") || [".txt", ".log", ".csv", ".md", ".json"].includes(ext);
+      var IMAGE_EXTS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg", ".heic", ".heif"];
+      var VIDEO_EXTS = [".mp4", ".webm", ".ogv", ".mov", ".m4v"];
+
+      var isImage = current.kind === "image" || m.indexOf("image/") === 0 || IMAGE_EXTS.indexOf(ext) >= 0;
+      var isVideo = !isImage && (current.kind === "video" || m.indexOf("video/") === 0 || VIDEO_EXTS.indexOf(ext) >= 0);
+
+      var isPdf = !isImage && !isVideo && (m === "application/pdf" || ext === ".pdf");
+      var isText = !isImage && !isVideo && (m.startsWith("text/") || [".txt", ".log", ".csv", ".md", ".json"].includes(ext));
 
       var isWord =
-        m === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        !isImage && !isVideo &&
+        (m === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
         m === "application/msword" ||
         (m === "application/octet-stream" && ext === ".docx") ||
-        ext === ".docx";
+        ext === ".docx");
 
-      var isLegacyWord = !isWord && (m === "application/msword" || ext === ".doc");
+      var isLegacyWord = !isImage && !isVideo && !isWord && (m === "application/msword" || ext === ".doc");
 
       var isExcel =
-        m === "application/vnd.ms-excel" ||
+        !isImage && !isVideo &&
+        (m === "application/vnd.ms-excel" ||
         m === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         (m === "application/octet-stream" && (ext === ".xlsx" || ext === ".xls")) ||
-        [".xls", ".xlsx"].includes(ext);
+        [".xls", ".xlsx"].includes(ext));
 
       title.textContent = current.filename || "فایل";
       subtitle.textContent = current.mime || "";
@@ -3330,7 +3443,10 @@
       modal.classList.remove("hidden");
 
       var isIOSStandalone = isIOS() && (window.navigator.standalone === true);
-      if (isIOSStandalone) {
+      if (isImage || isVideo) {
+        openBtn.classList.add("hidden");
+        openBtn.classList.remove("flex");
+      } else if (isIOSStandalone) {
         openBtn.classList.add("hidden");
         openBtn.classList.remove("flex");
       } else {
@@ -3352,26 +3468,13 @@
       } catch (e) {
       }
 
-      if (isPdf && current.previewUrl) {
-        renderPdf(current.previewUrl);
-        return;
-      }
-      if (isText && current.previewUrl) {
-        renderText(current.previewUrl);
-        return;
-      }
-      if (isWord && current.previewUrl) {
-        renderWord(current.previewUrl);
-        return;
-      }
-      if (isExcel && current.previewUrl) {
-        renderExcel(current.previewUrl);
-        return;
-      }
-      if (isLegacyWord) {
-        renderPreviewCard("Word (.doc)");
-        return;
-      }
+      if (isImage && current.previewUrl) { renderImage(current.previewUrl); return; }
+      if (isVideo && current.previewUrl) { renderVideo(current.previewUrl); return; }
+      if (isPdf && current.previewUrl) { renderPdf(current.previewUrl); return; }
+      if (isText && current.previewUrl) { renderText(current.previewUrl); return; }
+      if (isWord && current.previewUrl) { renderWord(current.previewUrl); return; }
+      if (isExcel && current.previewUrl) { renderExcel(current.previewUrl); return; }
+      if (isLegacyWord) { renderPreviewCard("Word (.doc)"); return; }
       renderUnsupported();
     }
 
@@ -3547,6 +3650,8 @@
 
       doDownload(dlUrl, dlName, dlMime);
     });
+
+    window.openFileViewer = openViewer;
   })();
 
   (function () {

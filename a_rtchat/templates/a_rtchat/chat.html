@@ -509,10 +509,8 @@
   }
 
   /* Search result item hover */
-  .chat-search-result:hover {
-    background:not(.chat-search-result[aria-selected="true"]) {
-      background-color: #f3f4f6;
-    }
+  .chat-search-result:hover:not([aria-selected="true"]) {
+    background-color: #f3f4f6;
   }
   .dark .chat-search-result:hover:not([aria-selected="true"]) {
     background-color: rgba(255, 255, 255, 0.05);
@@ -524,6 +522,13 @@
   .dark .chat-search-result[aria-selected="true"],
   .dark .chat-search-result.dark\:bg-blue-900\/20 {
     background-color: rgba(30, 58, 138, 0.2) !important;
+  }
+
+  /* قابل اسکرول کردن نتایج جستجو روی موبایل */
+  #chat_search_results .max-h-\[55vh\] {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
   }
 </style>
 <script>

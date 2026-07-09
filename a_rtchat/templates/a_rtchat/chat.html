@@ -221,6 +221,14 @@
   </button>
 
   <div id="message_action_menu" class="fixed z-[60] hidden inline-flex flex-col overflow-hidden rounded-xl border border-slate-200/70 bg-white/95 shadow-xl ring-1 ring-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/95 dark:ring-white/10">
+    <div id="message_reaction_bar" class="flex items-center justify-between gap-1 border-b border-slate-200/70 px-2 py-1.5 dark:border-white/10">
+      <button type="button" data-reaction-emoji="👍" class="reaction-quick text-[22px] leading-none rounded-full p-1 transition hover:scale-125 hover:bg-black/5 dark:hover:bg-white/10">👍</button>
+      <button type="button" data-reaction-emoji="❤️" class="reaction-quick text-[22px] leading-none rounded-full p-1 transition hover:scale-125 hover:bg-black/5 dark:hover:bg-white/10">❤️</button>
+      <button type="button" data-reaction-emoji="😂" class="reaction-quick text-[22px] leading-none rounded-full p-1 transition hover:scale-125 hover:bg-black/5 dark:hover:bg-white/10">😂</button>
+      <button type="button" data-reaction-emoji="😮" class="reaction-quick text-[22px] leading-none rounded-full p-1 transition hover:scale-125 hover:bg-black/5 dark:hover:bg-white/10">😮</button>
+      <button type="button" data-reaction-emoji="😢" class="reaction-quick text-[22px] leading-none rounded-full p-1 transition hover:scale-125 hover:bg-black/5 dark:hover:bg-white/10">😢</button>
+      <button type="button" data-reaction-emoji="🙏" class="reaction-quick text-[22px] leading-none rounded-full p-1 transition hover:scale-125 hover:bg-black/5 dark:hover:bg-white/10">🙏</button>
+    </div>
     <div class="flex flex-col p-1">
       <button type="button" data-menu-action="reply" class="flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
@@ -1906,6 +1914,19 @@
 
     if (menu) {
       menu.addEventListener("click", (e) => {
+        const reactBtn = e.target.closest("button[data-reaction-emoji]");
+        if (reactBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (menuMessageEl) {
+            const rid = getMessageIdFromEl(menuMessageEl);
+            const remoji = reactBtn.getAttribute("data-reaction-emoji") || "";
+            if (rid && remoji) sendReaction(rid, remoji);
+          }
+          closeMessageMenu();
+          return;
+        }
+
         const btn = e.target.closest("button[data-menu-action]");
         if (!btn) return;
         e.preventDefault();
@@ -1945,6 +1966,162 @@
           return;
         }
       });
+    }
+
+    // ─── Reactions (Telegram-style) ──────────────────────
+    let rtchatWsWrapper = null;
+    if (!window.__rtchatReactionWsBound) {
+      window.__rtchatReactionWsBound = true;
+      document.body.addEventListener("htmx:wsOpen", function (e) {
+        const d = (e && e.detail) ? e.detail : {};
+        window.__rtchatWsWrapper = d.socketWrapper || d.socket || null;
+      });
+      document.body.addEventListener("htmx:wsClose", function (e) {
+        const d = (e && e.detail) ? e.detail : {};
+        const w = d.socketWrapper || d.socket || null;
+        if (w && w === window.__rtchatWsWrapper) window.__rtchatWsWrapper = null;
+      });
+    }
+
+    function sendReaction(messageId, emoji) {
+      const mid = String(messageId || "").trim();
+      const em = String(emoji || "").trim();
+      if (!mid || !em) return;
+      const payload = JSON.stringify({ type: "reaction", message_id: mid, emoji: em });
+      const wrapper = window.__rtchatWsWrapper || rtchatWsWrapper;
+      const srcEl = document.getElementById("chat_message_form");
+      try {
+        if (wrapper && typeof wrapper.send === "function") {
+          wrapper.send(payload, srcEl);
+          return;
+        }
+      } catch (err) {}
+      try {
+        const sock = wrapper && (wrapper.socket || wrapper._socket);
+        if (sock && sock.readyState === 1) sock.send(payload);
+      } catch (err) {}
+    }
+    window.rtchatSendReaction = sendReaction;
+
+    // ── پاپ‌آپ «چه کسانی ری‌اکت کردند» ──
+    function rtchatEscapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+    function rtchatEnsureReactorsPopup() {
+      let p = document.getElementById("rtchat_reactors_popup");
+      if (p) return p;
+      p = document.createElement("div");
+      p.id = "rtchat_reactors_popup";
+      p.dir = "rtl";
+      p.className = "fixed z-[80] hidden max-w-[240px] min-w-[120px] rounded-xl border border-slate-200/70 bg-white/95 px-3 py-2 shadow-xl ring-1 ring-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/95 dark:text-slate-100";
+      document.body.appendChild(p);
+      return p;
+    }
+    function rtchatHideReactors() {
+      const p = document.getElementById("rtchat_reactors_popup");
+      if (p) p.classList.add("hidden");
+    }
+    function rtchatShowReactors(chipEl, x, y) {
+      if (!chipEl) return;
+      const emoji = chipEl.getAttribute("data-emoji") || "";
+      const reactors = (chipEl.getAttribute("data-reactors") || "").trim();
+      const countEl = chipEl.querySelector("span:last-child");
+      const count = countEl ? (countEl.textContent || "").trim() : "";
+      const names = reactors ? reactors.split("، ") : [];
+      const p = rtchatEnsureReactorsPopup();
+      let html = '<div class="mb-1 flex items-center gap-2 border-b border-black/5 pb-1 dark:border-white/10">';
+      html += '<span class="text-base leading-none">' + rtchatEscapeHtml(emoji) + '</span>';
+      html += '<span class="text-xs text-gray-500 dark:text-slate-400">' + rtchatEscapeHtml(count) + ' نفر</span></div>';
+      if (names.length) {
+        html += '<ul class="flex flex-col gap-0.5 text-sm max-h-48 overflow-y-auto">';
+        names.forEach(function (n) {
+          html += '<li class="truncate">' + rtchatEscapeHtml(n) + '</li>';
+        });
+        html += '</ul>';
+      } else {
+        html += '<div class="text-xs text-gray-400">—</div>';
+      }
+      p.innerHTML = html;
+      p.classList.remove("hidden");
+      const margin = 8;
+      const rect = p.getBoundingClientRect();
+      const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+      const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+      let left = x - rect.width;
+      let top = y + 10;
+      if (left < margin) left = margin;
+      if (left + rect.width + margin > vw) left = Math.max(margin, vw - rect.width - margin);
+      if (top + rect.height + margin > vh) top = Math.max(margin, y - rect.height - 10);
+      if (top < margin) top = margin;
+      p.style.left = left + "px";
+      p.style.top = top + "px";
+    }
+    window.rtchatShowReactors = rtchatShowReactors;
+    window.rtchatHideReactors = rtchatHideReactors;
+
+    // toggle با کلیک روی چیپ ری‌اکشن زیر پیام + لمس طولانی/راست‌کلیک برای دیدن لیست
+    if (!window.__rtchatReactionChipBound) {
+      window.__rtchatReactionChipBound = true;
+      document.addEventListener("click", function (e) {
+        const chip = e.target && e.target.closest ? e.target.closest("button[data-reaction-chip]") : null;
+        if (!chip) return;
+        if (Date.now() < (window.__rtchatChipClickSuppressUntil || 0)) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        if (typeof selectionMode !== "undefined" && selectionMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const mid = chip.getAttribute("data-message-id") || "";
+        const emoji = chip.getAttribute("data-emoji") || "";
+        if (mid && emoji && window.rtchatSendReaction) window.rtchatSendReaction(mid, emoji);
+      }, true);
+
+      // لمس طولانی روی چیپ در موبایل
+      let lpTimer = null, lpChip = null, lpX = 0, lpY = 0;
+      function cancelLongPress() {
+        if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+        lpChip = null;
+      }
+      document.addEventListener("pointerdown", function (e) {
+        if (e.pointerType && e.pointerType !== "touch") return;
+        const chip = e.target && e.target.closest ? e.target.closest("button[data-reaction-chip]") : null;
+        if (!chip) return;
+        lpChip = chip;
+        lpX = (e && Number.isFinite(e.clientX)) ? e.clientX : 0;
+        lpY = (e && Number.isFinite(e.clientY)) ? e.clientY : 0;
+        if (lpTimer) clearTimeout(lpTimer);
+        lpTimer = setTimeout(function () {
+          if (!lpChip) return;
+          window.__rtchatChipClickSuppressUntil = Date.now() + 1000;
+          rtchatShowReactors(lpChip, lpX, lpY);
+          cancelLongPress();
+        }, 450);
+      }, true);
+      document.addEventListener("pointermove", function (e) {
+        if (!lpChip) return;
+        const dx = Math.abs(((e && e.clientX) || 0) - lpX);
+        const dy = Math.abs(((e && e.clientY) || 0) - lpY);
+        if (dx > 10 || dy > 10) cancelLongPress();
+      }, true);
+      document.addEventListener("pointerup", cancelLongPress, true);
+      document.addEventListener("pointercancel", cancelLongPress, true);
+
+      // بستن پاپ‌آپ
+      document.addEventListener("click", function (e) {
+        const p = document.getElementById("rtchat_reactors_popup");
+        if (!p || p.classList.contains("hidden")) return;
+        if (e.target && e.target.closest && (e.target.closest("#rtchat_reactors_popup") || e.target.closest("button[data-reaction-chip]"))) return;
+        rtchatHideReactors();
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") rtchatHideReactors();
+      });
+      window.addEventListener("scroll", rtchatHideReactors, true);
+      window.addEventListener("resize", rtchatHideReactors);
     }
 
     if (forwardModal) {
@@ -2087,6 +2264,16 @@
           const y = (e && Number.isFinite(e.clientY)) ? e.clientY : 0;
 
           const target = e && e.target ? e.target : null;
+
+          const reactionChipEl = target && target.closest ? target.closest("button[data-reaction-chip]") : null;
+          if (reactionChipEl) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+            if (window.rtchatShowReactors) window.rtchatShowReactors(reactionChipEl, x, y);
+            return;
+          }
+
           const directInChat = Boolean(target && target.closest && target.closest("#chat_container"));
 
           let stackInChat = false;

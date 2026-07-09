@@ -16,7 +16,7 @@ from datetime import timedelta
 
 from django.contrib.auth.models import User
 from a_users.models import Profile, PushSubscription
-from .models import ChatGroup, GroupMessage, ChatState
+from .models import ChatGroup, GroupMessage, ChatState, MessageReaction
 from .ws_logger import (
     log_connect, log_disconnect, log_receive,
     log_send, log_group_send, log_throttle,
@@ -319,6 +319,12 @@ class ChatroomConsumer(WebsocketConsumer):
         _touch_last_seen(self.user)
         data = json.loads(text_data)
         log_receive('ChatroomConsumer', self.user, data)
+
+        # ✅ تفکیک پیام ری‌اکشن از پیام متنی عادی
+        if (data.get('type') or '').strip() == 'reaction':
+            self.handle_reaction(data)
+            return
+
         body = data.get('body', '').strip()
         reply_to_id = str(data.get('reply_to') or '').strip()
 
@@ -461,6 +467,63 @@ class ChatroomConsumer(WebsocketConsumer):
         if not message_id:
             return
         self.send(text_data=f'<li id="msg-{message_id}" hx-swap-oob="delete"></li>')
+
+    # ✅ مجموعه ایموجی‌های مجاز برای ری‌اکشن (باید با chat.html هم‌خوان باشد)
+    ALLOWED_REACTIONS = frozenset({"👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "🎉"})
+
+    def handle_reaction(self, data):
+        message_id = str(data.get('message_id') or '').strip()
+        emoji = (data.get('emoji') or '').strip()
+
+        if not message_id.isdigit() or emoji not in self.ALLOWED_REACTIONS:
+            return
+
+        message = (
+            GroupMessage.objects
+            .filter(group=self.chatroom, id=int(message_id))
+            .first()
+        )
+        if not message:
+            return
+
+        # toggle: اگر قبلاً همین ایموجی رو زده حذف می‌شود، وگرنه اضافه می‌شود
+        existing = (
+            MessageReaction.objects
+            .filter(message=message, user=self.user, emoji=emoji)
+            .first()
+        )
+        if existing:
+            existing.delete()
+        else:
+            try:
+                MessageReaction.objects.create(message=message, user=self.user, emoji=emoji)
+            except Exception:
+                log_error('ChatroomConsumer', f'reaction create failed msg={message.id}')
+                return
+
+        log_group_send('ChatroomConsumer', self.chatroom_name, 'reaction_handler')
+        async_to_sync(self.channel_layer.group_send)(
+            self.chatroom_name,
+            {"type": "reaction_handler", "message_id": message.id}
+        )
+
+    def reaction_handler(self, event):
+        message = (
+            GroupMessage.objects
+            .filter(id=event['message_id'])
+            .prefetch_related('reactions__user__profile')
+            .first()
+        )
+        if not message:
+            return
+        context = {
+            'message': message,
+            'user': self.user,
+            'chat_group': self.chatroom,
+            'reactions_oob': True,
+        }
+        html = render_to_string("a_rtchat/partials/message_reactions.html", context=context)
+        self.send(text_data=html)
 
     def update_online_count(self):
         cutoff = _presence_cutoff()

@@ -156,7 +156,53 @@ class GroupMessage(models.Model):
          return True
       ext = os.path.splitext(self.file.name or "")[1].lower()
       return ext in self.VIDEO_EXTENSIONS
+
+   def reaction_summary(self, user=None):
+      """لیست ری‌اکشن‌ها به‌صورت گروه‌بندی‌شده بر اساس ایموجی.
+
+      خروجی: [{"emoji": "👍", "count": 3, "reacted": True}, ...]
+      اگر reactions از قبل prefetch شده باشد کوئری اضافه‌ای زده نمی‌شود.
+      """
+      summary = []
+      index = {}
+      uid = getattr(user, "id", None)
+      for r in self.reactions.all():
+         item = index.get(r.emoji)
+         if item is None:
+            item = {"emoji": r.emoji, "count": 0, "reacted": False, "users": []}
+            index[r.emoji] = item
+            summary.append(item)
+         item["count"] += 1
+         is_me = uid is not None and r.user_id == uid
+         if is_me:
+            item["reacted"] = True
+         prof = getattr(r.user, "profile", None)
+         display_name = getattr(prof, "name", None) or r.user.username
+         if is_me:
+            item["users"].insert(0, "شما")
+         else:
+            item["users"].append(display_name)
+      for item in summary:
+         item["users_label"] = "، ".join(item["users"])
+      return summary
       
 
    
     
+
+
+class MessageReaction(models.Model):
+   message = models.ForeignKey(GroupMessage, related_name='reactions', on_delete=models.CASCADE)
+   user = models.ForeignKey(User, related_name='message_reactions', on_delete=models.CASCADE)
+   emoji = models.CharField(max_length=8)
+   created = models.DateTimeField(auto_now_add=True)
+
+   class Meta:
+      unique_together = ('message', 'user', 'emoji')
+      ordering = ['created']
+      indexes = [
+         models.Index(fields=['message', 'emoji']),
+      ]
+
+   def __str__(self):
+      return f'{self.user.username} {self.emoji} -> msg#{self.message_id}'

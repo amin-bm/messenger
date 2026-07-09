@@ -236,12 +236,14 @@ def chat_view(request, chatroom_identifier='public_chat'):
             chat_group.chat_messages
             .filter(created__lt=focus_message.created)
             .select_related(*_MSG_RELATED)
+            .prefetch_related("reactions__user__profile")
             .order_by("-created")[:15]
         )
         newer = list(
             chat_group.chat_messages
             .filter(created__gte=focus_message.created)
             .select_related(*_MSG_RELATED)
+            .prefetch_related("reactions__user__profile")
             .order_by("created")[:15]
         )
         chat_messages = older[::-1] + newer
@@ -249,6 +251,7 @@ def chat_view(request, chatroom_identifier='public_chat'):
         chat_messages = list(
             chat_group.chat_messages
             .select_related(*_MSG_RELATED)
+            .prefetch_related("reactions__user__profile")
             .order_by("-created")[:30]
         )[::-1]
     form = ChatmessageCreateForm()
@@ -393,6 +396,7 @@ def chat_messages_older(request, chatroom_identifier):
         chat_group.chat_messages
         .filter(Q(created__lt=before_created) | Q(created=before_created, id__lt=before_id))
         .select_related(*_MSG_RELATED)
+            .prefetch_related("reactions__user__profile")
         .order_by("-created", "-id")[: page_size + 1]
     )
     raw = list(qs)

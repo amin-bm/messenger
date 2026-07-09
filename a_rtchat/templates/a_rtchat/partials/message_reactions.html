@@ -1,0 +1,18 @@
+{% load rtchat_reactions %}{% with summary=message|reactions_for:user %}
+<div id="reactions-{{ message.id }}"{% if reactions_oob %} hx-swap-oob="outerHTML"{% endif %}
+     data-reactions-for="{{ message.id }}"
+     class="rtchat-reactions mt-1 flex flex-wrap gap-1{% if not summary %} hidden{% endif %}">
+  {% for r in summary %}
+    <button type="button"
+            data-reaction-chip
+            data-message-id="{{ message.id }}"
+            data-emoji="{{ r.emoji }}"
+            data-reactors="{{ r.users_label }}"
+            title="{{ r.users_label }}"
+            class="reaction-chip inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs leading-none border transition select-none {% if r.reacted %}bg-blue-100 border-blue-300 text-blue-700 dark:bg-sky-500/25 dark:border-sky-400/40 dark:text-sky-100{% else %}bg-black/5 border-transparent text-gray-700 hover:bg-black/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15{% endif %}">
+      <span class="text-sm leading-none">{{ r.emoji }}</span>
+      <span class="tabular-nums font-medium">{{ r.count }}</span>
+    </button>
+  {% endfor %}
+</div>
+{% endwith %}

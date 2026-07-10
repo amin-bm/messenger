@@ -25,4 +25,5 @@ urlpatterns = [
     path('chat/fileload-chunk/<chatroom_name>', chat_file_upload_chunk, name='chat-file-upload-chunk'),
     path('chat/pin/<chatroom_name>', toggle_pin, name='chat-pin'),
     path('chat/mute/<chatroom_name>', toggle_mute, name='chat-mute'),
+    path("chat/message/<message_id>/audio", chat_message_audio, name="chat_message_audio"),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

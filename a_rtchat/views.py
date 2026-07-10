@@ -1,4 +1,5 @@
 import io
+import re
 import hashlib
 import os
 import shutil
@@ -12,7 +13,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.decorators import login_required
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse, StreamingHttpResponse
 from django.http import Http404
 from django.template import context
 from django.utils import timezone
@@ -1017,6 +1018,77 @@ def chat_message_transcode(request, message_id):
             "url": (message.file.url if getattr(message, "file", None) else ""),
         }
     )
+
+
+@messenger_required
+def chat_message_audio(request, message_id):
+    """Serve an audio message with HTTP Range support so the player can seek to
+    an arbitrary position instead of restarting from the beginning."""
+    message = get_object_or_404(GroupMessage.objects.select_related("group"), id=message_id)
+    chat_group = message.group
+
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
+
+    if getattr(chat_group, "is_private", False):
+        if not chat_group.members.filter(id=request.user.id).exists():
+            raise Http404
+    elif chat_group.groupchat_name and chat_group.group_name != "public_chat":
+        if _user_is_chat_group_admin(request.user, chat_group) and not chat_group.members.filter(id=request.user.id).exists():
+            chat_group.members.add(request.user)
+        if not chat_group.members.filter(id=request.user.id).exists():
+            raise Http404
+
+    if not getattr(message, "file", None) or not message.is_audio:
+        raise Http404
+
+    # Storage backends without a local filesystem path (e.g. S3) usually serve
+    # ranges themselves, so fall back to the storage URL.
+    try:
+        file_path = message.file.path
+    except (NotImplementedError, ValueError, AttributeError):
+        return redirect(message.file.url)
+
+    if not os.path.exists(file_path):
+        raise Http404
+
+    file_size = os.path.getsize(file_path)
+    content_type = message.mime_type or "application/octet-stream"
+    range_header = request.META.get("HTTP_RANGE", "").strip()
+    range_match = re.match(r"bytes=(\d+)-(\d*)$", range_header)
+
+    if range_match:
+        start = int(range_match.group(1))
+        end_raw = range_match.group(2)
+        end = int(end_raw) if end_raw else file_size - 1
+        end = min(end, file_size - 1)
+        if start > end or start >= file_size:
+            resp = HttpResponse(status=416)
+            resp["Content-Range"] = f"bytes */{file_size}"
+            resp["Accept-Ranges"] = "bytes"
+            return resp
+        length = end - start + 1
+
+        def _stream(path=file_path, offset=start, remaining=length, block=8192):
+            with open(path, "rb") as fh:
+                fh.seek(offset)
+                while remaining > 0:
+                    chunk = fh.read(min(block, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+
+        resp = StreamingHttpResponse(_stream(), status=206, content_type=content_type)
+        resp["Content-Length"] = str(length)
+        resp["Content-Range"] = f"bytes {start}-{end}/{file_size}"
+    else:
+        resp = FileResponse(open(file_path, "rb"), content_type=content_type)
+        resp["Content-Length"] = str(file_size)
+
+    resp["Accept-Ranges"] = "bytes"
+    resp["Cache-Control"] = "private, max-age=3600"
+    return resp
 
 
 @messenger_required

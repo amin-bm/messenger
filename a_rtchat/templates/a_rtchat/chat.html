@@ -4059,27 +4059,21 @@
 
         if (!audio || !toggle || !iconPlay || !iconPause || !seek || !progress || !durationEl) return;
 
+        // The per-message <audio> element is used ONLY to read metadata
+        // (duration) for the idle mini-player. Actual playback is delegated to
+        // the global persistent player (window.GAP) so that audio keeps playing
+        // across chat navigation and can be controlled from the top bar.
         const src = block.dataset.audioSrc || "";
+        audio.preload = "metadata";
         if (src && !audio.src) audio.src = src;
-        let transcodeAttempted = false;
 
-        const SPEEDS = [1, 1.2, 1.5, 2];
-        let speedIndex = 0;
-        function applyPlaybackRate() {
-          try { audio.playbackRate = SPEEDS[speedIndex]; } catch (e) {}
-        }
-        function speedLabel(r) {
-          return String(r) + "x";
-        }
-        if (speedBtn) {
-          speedBtn.textContent = speedLabel(SPEEDS[speedIndex]);
-          speedBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            speedIndex = (speedIndex + 1) % SPEEDS.length;
-            applyPlaybackRate();
-            speedBtn.textContent = speedLabel(SPEEDS[speedIndex]);
-          });
-        }
+        const messageId = block.dataset.messageId || "";
+        const authorEl = block.closest("[data-message-author]");
+        const author = authorEl && authorEl.dataset.messageAuthor ? authorEl.dataset.messageAuthor : "";
+        const title = author ? ("\u067e\u06cc\u0627\u0645 \u0635\u0648\u062a\u06cc \u00b7 " + author) : "\u067e\u06cc\u0627\u0645 \u0635\u0648\u062a\u06cc";
+
+        function G() { return window.GAP || null; }
+        function active() { const g = G(); return !!(g && g.isActive(messageId)); }
 
         function setPlayingUI(isPlaying) {
           if (isPlaying) {
@@ -4098,127 +4092,79 @@
           if (thumb) thumb.style.left = `${clamped}%`;
           if (seek.setAttribute) seek.setAttribute("aria-valuenow", String(Math.round(clamped)));
         }
-        function updateProgress() {
-          if (dragging) return;
-          const d = audio.duration;
-          const t = audio.currentTime;
-          if (!Number.isFinite(d) || d <= 0) {
-            setThumbAndFill(0);
-            if (currentEl) currentEl.textContent = formatDuration(t || 0);
-            return;
+        function renderIdle() {
+          setPlayingUI(false);
+          if (!dragging) setThumbAndFill(0);
+          if (currentEl) currentEl.textContent = "0:00";
+        }
+        function renderActive(playing, t, d) {
+          setPlayingUI(playing);
+          if (!dragging) {
+            if (Number.isFinite(d) && d > 0) setThumbAndFill((t / d) * 100);
+            else setThumbAndFill(0);
           }
-          setThumbAndFill((t / d) * 100);
-          if (currentEl) currentEl.textContent = formatDuration(t);
+          if (currentEl) currentEl.textContent = formatDuration(t || 0);
+          if (Number.isFinite(d) && d > 0) durationEl.textContent = formatDuration(d);
+        }
+        function syncFromGap() {
+          const g = G();
+          if (g && g.isActive(messageId)) renderActive(g.isPlaying(), g.currentTime(), g.duration());
+          else renderIdle();
+          if (speedBtn && g) speedBtn.textContent = String(g.rate()) + "x";
         }
 
-        function pauseAllOtherAudios() {
-          document.querySelectorAll(".js-audio-msg .js-audio").forEach((a) => {
-            if (a !== audio) a.pause();
+        // Duration display from local metadata (idle state only).
+        audio.addEventListener("loadedmetadata", () => {
+          if (!active()) durationEl.textContent = formatDuration(audio.duration);
+          if (speedBtn) speedBtn.classList.remove("hidden");
+          syncFromGap();
+        });
+        audio.addEventListener("durationchange", () => {
+          if (!active() && Number.isFinite(audio.duration) && audio.duration > 0)
+            durationEl.textContent = formatDuration(audio.duration);
+        });
+
+        // Speed control adjusts the GLOBAL playback rate.
+        if (speedBtn) {
+          speedBtn.classList.remove("hidden");
+          const g0 = G();
+          speedBtn.textContent = String(g0 ? g0.rate() : 1) + "x";
+          speedBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const g = G();
+            if (g) g.cycleRate();
           });
         }
 
-        async function tryTranscodeAndReload() {
-          if (transcodeAttempted) return false;
-          transcodeAttempted = true;
-          const id = block.dataset.messageId || "";
-          if (!id) return false;
-          try {
-            const res = await fetch(`/chat/message/${encodeURIComponent(id)}/transcode`, {
-              method: "GET",
-              credentials: "same-origin",
-              headers: { "HX-Request": "true" },
-            });
-            if (!res.ok) return false;
-            const data = await res.json().catch(() => null);
-            if (!data || !data.ok || !data.url) {
-              if (data && data.reason === "ffmpeg_missing") durationEl.textContent = "نیاز به تبدیل";
-              return false;
-            }
-            const mid = block.dataset.messageId || "";
-            const base = mid ? `/chat/message/${encodeURIComponent(mid)}/audio` : String(data.url || "");
-            if (!base) return false;
-            audio.src = `${base}${base.includes("?") ? "&" : "?"}v=${Date.now()}`;
-            audio.load();
-            updateProgress();
-            return true;
-          } catch (e) {
-            return false;
+        // Play / pause delegates to the global player.
+        toggle.addEventListener("click", () => {
+          const g = G();
+          if (!g) {
+            if (audio.paused) { const p = audio.play(); if (p && p.catch) p.catch(() => {}); }
+            else audio.pause();
+            return;
           }
-        }
-
-        audio.addEventListener("loadedmetadata", () => {
-          durationEl.textContent = formatDuration(audio.duration);
-          updateProgress();
-          if (speedBtn) speedBtn.classList.remove("hidden");
-          applyPlaybackRate();
+          if (g.isActive(messageId)) g.toggle();
+          else g.playMessage({ id: messageId, title: title });
         });
 
-        audio.addEventListener("durationchange", () => {
-          if (Number.isFinite(audio.duration) && audio.duration > 0) {
-            durationEl.textContent = formatDuration(audio.duration);
-            updateProgress();
-          }
-        });
-        audio.addEventListener("timeupdate", updateProgress);
-        audio.addEventListener("play", () => {
-          pauseAllOtherAudios();
-          setPlayingUI(true);
-        });
-        audio.addEventListener("pause", () => setPlayingUI(false));
-        audio.addEventListener("ended", () => {
-          setPlayingUI(false);
-          updateProgress();
-        });
-        audio.addEventListener("error", async () => {
-          const did = await tryTranscodeAndReload();
-          if (did) {
-            try {
-              const p = audio.play();
-              if (p && typeof p.then === "function") await p;
-            } catch (e) {}
-          }
-        });
-
-        toggle.addEventListener("click", async () => {
-          try {
-            if (audio.paused) {
-              pauseAllOtherAudios();
-              const p = audio.play();
-              if (p && typeof p.then === "function") await p;
-            } else {
-              audio.pause();
-            }
-          } catch (e) {
-            const did = await tryTranscodeAndReload();
-            if (did) {
-              try {
-                pauseAllOtherAudios();
-                const p = audio.play();
-                if (p && typeof p.then === "function") await p;
-                return;
-              } catch (e2) {}
-            }
-
-            audio.classList.remove("sr-only");
-            audio.classList.remove("hidden");
-            audio.controls = true;
-          }
-        });
-
+        // Seek bar.
         function ratioFromClientX(clientX) {
           const rect = seek.getBoundingClientRect();
           if (!rect.width) return null;
           return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
         }
-        function seekToRatio(ratio) {
-          const d = audio.duration;
-          if (!Number.isFinite(d) || d <= 0) return;
-          audio.currentTime = Math.max(0, Math.min(d, d * ratio));
-        }
         function previewRatio(r) {
           setThumbAndFill(r * 100);
-          const d = audio.duration;
+          const g = G();
+          const d = active() && g ? g.duration() : audio.duration;
           if (currentEl && Number.isFinite(d) && d > 0) currentEl.textContent = formatDuration(d * r);
+        }
+        function commitSeek(r) {
+          const g = G();
+          if (!g) return;
+          if (g.isActive(messageId)) g.seekToRatio(r);
+          else g.playMessage({ id: messageId, title: title, startRatio: r });
         }
         seek.addEventListener("pointerdown", (e) => {
           if (e.button != null && e.button !== 0) return;
@@ -4243,22 +4189,41 @@
           if (thumb) thumb.style.opacity = "";
           try { seek.releasePointerCapture(e.pointerId); } catch (_) {}
           const r = ratioFromClientX(e.clientX);
-          if (r !== null) seekToRatio(r);
-          updateProgress();
+          if (r !== null) commitSeek(r);
+          syncFromGap();
         }
         seek.addEventListener("pointerup", finishSeek);
         seek.addEventListener("pointercancel", finishSeek);
         seek.addEventListener("keydown", (e) => {
-          const d = audio.duration;
-          if (!Number.isFinite(d) || d <= 0) return;
+          const g = G();
           let handled = true;
-          if (e.key === "ArrowRight") audio.currentTime = Math.min(d, audio.currentTime + 5);
-          else if (e.key === "ArrowLeft") audio.currentTime = Math.max(0, audio.currentTime - 5);
-          else if (e.key === "Home") audio.currentTime = 0;
-          else if (e.key === "End") audio.currentTime = d;
+          if (e.key === "ArrowRight") { if (g && g.isActive(messageId)) g.nudge(5); }
+          else if (e.key === "ArrowLeft") { if (g && g.isActive(messageId)) g.nudge(-5); }
+          else if (e.key === "Enter" || e.key === " ") { toggle.click(); }
           else handled = false;
-          if (handled) { e.preventDefault(); updateProgress(); }
+          if (handled) e.preventDefault();
         });
+
+        // Keep the mini-player in sync with the global player.
+        let wasActive = false;
+        document.addEventListener("gap:update", (e) => {
+          if (!block.isConnected) return;
+          const d = e.detail || {};
+          if (String(d.id) === String(messageId) && !d.closed) {
+            wasActive = true;
+            renderActive(!!d.playing, d.currentTime, d.duration);
+          } else if (wasActive) {
+            wasActive = false;
+            renderIdle();
+          }
+        });
+        document.addEventListener("gap:rate", (e) => {
+          if (!block.isConnected) return;
+          if (speedBtn && e.detail) speedBtn.textContent = String(e.detail.rate) + "x";
+        });
+
+        // Initial sync (e.g. returning to a chat while audio is still playing).
+        syncFromGap();
       });
     }
 

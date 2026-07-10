@@ -162,6 +162,324 @@
     </div>
   </div>
  
+  <!-- Global persistent audio player (Telegram-style). Lives OUTSIDE
+       #tg-chat-content so playback continues across chat navigation. -->
+  <div id="global-audio-player" dir="rtl"
+       class="hidden fixed z-[300]"
+       style="top:8px;left:50%;width:min(92vw,520px);transform:translateX(-50%);">
+    <div class="flex items-center gap-3 rounded-2xl bg-white/90 px-3 py-2 shadow-2xl ring-1 ring-black/10 backdrop-blur-xl dark:bg-slate-900/90 dark:ring-white/10">
+      <button type="button" class="gap-toggle inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 active:bg-green-700 focus:outline-none" aria-label="Play / Pause">
+        <svg class="gap-icon-play h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        <svg class="gap-icon-pause hidden h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center justify-between gap-2">
+          <span class="gap-title truncate text-xs font-semibold text-slate-800 dark:text-slate-100">\u067e\u06cc\u0627\u0645 \u0635\u0648\u062a\u06cc</span>
+          <span class="shrink-0 text-[11px] tabular-nums text-slate-500 dark:text-slate-400" dir="ltr"><span class="gap-current">0:00</span> / <span class="gap-duration">0:00</span></span>
+        </div>
+        <div class="gap-seek group relative mt-1 h-4 cursor-pointer" dir="ltr" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="touch-action:none;">
+          <div class="absolute left-0 top-1/2 h-1 w-full -translate-y-1/2 rounded-full bg-slate-300 dark:bg-white/15"></div>
+          <div class="gap-progress absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-green-500" style="width:0%"></div>
+          <div class="gap-thumb absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-500 shadow ring-2 ring-white opacity-0 transition-opacity group-hover:opacity-100 dark:ring-slate-900" style="left:0%"></div>
+        </div>
+      </div>
+      <button type="button" class="gap-speed shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold tabular-nums text-slate-700 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15 focus:outline-none" aria-label="Playback speed">1x</button>
+      <button type="button" class="gap-close inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-black/5 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-200 focus:outline-none" aria-label="Close">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <audio class="gap-audio hidden" preload="metadata"></audio>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    if (window.GAP) return;
+    var bar = document.getElementById("global-audio-player");
+    if (!bar) return;
+    var originalParent = bar.parentNode;
+    var originalNext = bar.nextSibling;
+    var audio = bar.querySelector(".gap-audio");
+    var btnToggle = bar.querySelector(".gap-toggle");
+    var iconPlay = bar.querySelector(".gap-icon-play");
+    var iconPause = bar.querySelector(".gap-icon-pause");
+    var seek = bar.querySelector(".gap-seek");
+    var progress = bar.querySelector(".gap-progress");
+    var thumb = bar.querySelector(".gap-thumb");
+    var curEl = bar.querySelector(".gap-current");
+    var durEl = bar.querySelector(".gap-duration");
+    var titleEl = bar.querySelector(".gap-title");
+    var speedBtn = bar.querySelector(".gap-speed");
+    var closeBtn = bar.querySelector(".gap-close");
+
+    var SPEEDS = [1, 1.2, 1.5, 2];
+    var rate = 1;
+    var currentId = null;
+    var pendingRatio = null;
+    var transcodeAttempted = false;
+    var dragging = false;
+
+    function fmt(sec) {
+      if (!isFinite(sec) || sec <= 0) return "0:00";
+      var s = Math.floor(sec), m = Math.floor(s / 60), r = s % 60;
+      return m + ":" + String(r).padStart(2, "0");
+    }
+    function audioUrl(id) { return "/chat/message/" + encodeURIComponent(id) + "/audio"; }
+    function isPlaying() { return !!(audio && !audio.paused && !audio.ended); }
+    function elVisible(el) { return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length)); }
+    function reposition() {
+      if (bar.classList.contains("hidden")) return;
+      var main = document.getElementById("tg-main");
+      var searchInput = document.getElementById("sidebar-search");
+      var searchWrap = searchInput ? searchInput.parentElement : null;
+      var dockable = !elVisible(main) && searchWrap && elVisible(searchWrap);
+      if (dockable) {
+        // DOCKED: sit in normal flow right under the sidebar search so the
+        // chat list / contacts flow below the bar (mobile list view).
+        if (bar.previousElementSibling !== searchWrap || bar.parentNode !== searchWrap.parentNode) {
+          searchWrap.parentNode.insertBefore(bar, searchWrap.nextSibling);
+        }
+        bar.classList.remove("fixed");
+        bar.style.position = "";
+        bar.style.top = "";
+        bar.style.left = "";
+        bar.style.right = "";
+        bar.style.width = "";
+        bar.style.transform = "";
+        bar.style.padding = "0 0.75rem 0.5rem";
+      } else {
+        // FLOATING: fixed under the chat header (chat view / desktop), with a
+        // centered-pill fallback when neither header nor sidebar is available.
+        if (bar.parentNode !== originalParent) {
+          if (originalNext && originalNext.parentNode === originalParent) originalParent.insertBefore(bar, originalNext);
+          else originalParent.appendChild(bar);
+        }
+        bar.classList.add("fixed");
+        bar.style.position = "";
+        bar.style.padding = "";
+        if (elVisible(main)) {
+          var mr = main.getBoundingClientRect();
+          var headerRow = document.getElementById("chat_header_normal");
+          var headerBox = headerRow ? (headerRow.parentElement || headerRow) : null;
+          var topPx = mr.top + 8;
+          if (elVisible(headerBox)) topPx = headerBox.getBoundingClientRect().bottom + 4;
+          bar.style.transform = "none";
+          bar.style.left = (mr.left + 8) + "px";
+          bar.style.right = "";
+          bar.style.width = Math.max(0, mr.width - 16) + "px";
+          bar.style.top = topPx + "px";
+        } else {
+          bar.style.transform = "translateX(-50%)";
+          bar.style.left = "50%";
+          bar.style.right = "";
+          bar.style.width = "min(92vw,520px)";
+          bar.style.top = "8px";
+        }
+      }
+    }
+    function show() { bar.classList.remove("hidden"); reposition(); }
+    function hide() { bar.classList.add("hidden"); }
+
+    function setFill(pct) {
+      var c = Math.min(100, Math.max(0, pct));
+      progress.style.width = c + "%";
+      if (thumb) thumb.style.left = c + "%";
+      if (seek) seek.setAttribute("aria-valuenow", String(Math.round(c)));
+    }
+    function updateBar() {
+      if (iconPlay && iconPause) {
+        if (isPlaying()) { iconPlay.classList.add("hidden"); iconPause.classList.remove("hidden"); }
+        else { iconPlay.classList.remove("hidden"); iconPause.classList.add("hidden"); }
+      }
+      var d = audio.duration, t = audio.currentTime;
+      if (!dragging) { if (isFinite(d) && d > 0) setFill((t / d) * 100); else setFill(0); }
+      if (curEl) curEl.textContent = fmt(t || 0);
+      if (durEl) durEl.textContent = fmt(d);
+      if (speedBtn) speedBtn.textContent = String(rate) + "x";
+    }
+    function emit() {
+      try {
+        document.dispatchEvent(new CustomEvent("gap:update", { detail: {
+          id: currentId, playing: isPlaying(), currentTime: audio.currentTime,
+          duration: audio.duration, rate: rate, ended: audio.ended
+        } }));
+      } catch (e) {}
+    }
+    function emitRate() {
+      try { document.dispatchEvent(new CustomEvent("gap:rate", { detail: { rate: rate } })); } catch (e) {}
+    }
+    function tick() { updateBar(); emit(); }
+
+    audio.addEventListener("play", tick);
+    audio.addEventListener("pause", tick);
+    audio.addEventListener("timeupdate", tick);
+    audio.addEventListener("ended", tick);
+    audio.addEventListener("durationchange", tick);
+    audio.addEventListener("loadedmetadata", function () {
+      if (pendingRatio != null) {
+        var d = audio.duration;
+        if (isFinite(d) && d > 0) { try { audio.currentTime = Math.max(0, Math.min(d, d * pendingRatio)); } catch (e) {} }
+        pendingRatio = null;
+      }
+      try { audio.playbackRate = rate; } catch (e) {}
+      tick();
+    });
+    audio.addEventListener("error", function () { tryTranscode(); });
+
+    function tryTranscode() {
+      if (!currentId || transcodeAttempted) return;
+      transcodeAttempted = true;
+      var id = currentId;
+      fetch("/chat/message/" + encodeURIComponent(id) + "/transcode", {
+        method: "GET", credentials: "same-origin", headers: { "HX-Request": "true" }
+      }).then(function (res) {
+        if (!res.ok) return null;
+        return res.json().catch(function () { return null; });
+      }).then(function (data) {
+        if (!data || !data.ok) return;
+        if (currentId !== id) return;
+        var base = audioUrl(id);
+        audio.src = base + (base.indexOf("?") >= 0 ? "&" : "?") + "v=" + Date.now();
+        audio.load();
+        var pp = audio.play(); if (pp && pp.catch) pp.catch(function () {});
+      }).catch(function () {});
+    }
+
+    function playMessage(meta) {
+      meta = meta || {};
+      var id = String(meta.id || "");
+      if (!id) return;
+      if (currentId !== id) {
+        currentId = id;
+        transcodeAttempted = false;
+        if (titleEl) titleEl.textContent = meta.title || "\u067e\u06cc\u0627\u0645 \u0635\u0648\u062a\u06cc";
+        audio.src = audioUrl(id);
+        try { audio.playbackRate = rate; } catch (e) {}
+      }
+      pendingRatio = (typeof meta.startRatio === "number") ? meta.startRatio : null;
+      show();
+      var p = audio.play(); if (p && p.catch) p.catch(function () {});
+      updateBar();
+    }
+    function toggle() {
+      if (!currentId) return;
+      if (audio.paused) { var p = audio.play(); if (p && p.catch) p.catch(function () {}); }
+      else audio.pause();
+    }
+    function seekToRatio(r) {
+      var d = audio.duration;
+      if (!isFinite(d) || d <= 0) { pendingRatio = r; return; }
+      audio.currentTime = Math.max(0, Math.min(d, d * r));
+      tick();
+    }
+    function nudge(sec) {
+      var d = audio.duration;
+      if (!isFinite(d) || d <= 0) return;
+      audio.currentTime = Math.max(0, Math.min(d, audio.currentTime + sec));
+      tick();
+    }
+    function setRate(r) { rate = r; try { audio.playbackRate = r; } catch (e) {} updateBar(); emitRate(); }
+    function cycleRate() { var i = SPEEDS.indexOf(rate); if (i < 0) i = 0; setRate(SPEEDS[(i + 1) % SPEEDS.length]); }
+    function closePlayer() {
+      try { audio.pause(); } catch (e) {}
+      try { audio.removeAttribute("src"); audio.load(); } catch (e) {}
+      var prev = currentId;
+      currentId = null;
+      hide();
+      try {
+        document.dispatchEvent(new CustomEvent("gap:update", { detail: {
+          id: prev, playing: false, currentTime: 0, duration: 0, rate: rate, ended: true, closed: true
+        } }));
+      } catch (e) {}
+    }
+
+    if (btnToggle) btnToggle.addEventListener("click", function (e) { e.preventDefault(); toggle(); });
+    if (closeBtn) closeBtn.addEventListener("click", function (e) { e.preventDefault(); closePlayer(); });
+    if (speedBtn) speedBtn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); cycleRate(); });
+
+    function ratioFromClientX(clientX) {
+      var rect = seek.getBoundingClientRect();
+      if (!rect.width) return null;
+      return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    }
+    function preview(r) {
+      setFill(r * 100);
+      var d = audio.duration;
+      if (curEl && isFinite(d) && d > 0) curEl.textContent = fmt(d * r);
+    }
+    if (seek) {
+      seek.addEventListener("pointerdown", function (e) {
+        if (e.button != null && e.button !== 0) return;
+        var r = ratioFromClientX(e.clientX);
+        if (r === null) return;
+        e.preventDefault();
+        dragging = true;
+        if (thumb) thumb.style.opacity = "1";
+        try { seek.setPointerCapture(e.pointerId); } catch (_) {}
+        preview(r);
+      });
+      seek.addEventListener("pointermove", function (e) {
+        if (!dragging) return;
+        var r = ratioFromClientX(e.clientX);
+        if (r === null) return;
+        preview(r);
+      });
+      var finish = function (e) {
+        if (!dragging) return;
+        dragging = false;
+        if (thumb) thumb.style.opacity = "";
+        try { seek.releasePointerCapture(e.pointerId); } catch (_) {}
+        var r = ratioFromClientX(e.clientX);
+        if (r !== null) seekToRatio(r);
+        updateBar();
+      };
+      seek.addEventListener("pointerup", finish);
+      seek.addEventListener("pointercancel", finish);
+      seek.addEventListener("keydown", function (e) {
+        var d = audio.duration;
+        if (!isFinite(d) || d <= 0) return;
+        var h = true;
+        if (e.key === "ArrowRight") nudge(5);
+        else if (e.key === "ArrowLeft") nudge(-5);
+        else if (e.key === "Home") { audio.currentTime = 0; tick(); }
+        else if (e.key === "End") { audio.currentTime = d; tick(); }
+        else h = false;
+        if (h) e.preventDefault();
+      });
+    }
+
+    var _rafPending = false;
+    function scheduleReposition() {
+      if (_rafPending) return;
+      _rafPending = true;
+      (window.requestAnimationFrame || window.setTimeout)(function () { _rafPending = false; reposition(); }, 0);
+    }
+    window.addEventListener("resize", scheduleReposition);
+    window.addEventListener("orientationchange", scheduleReposition);
+    window.addEventListener("scroll", scheduleReposition, true);
+    if (document.body) {
+      document.body.addEventListener("htmx:afterSwap", scheduleReposition);
+      document.body.addEventListener("htmx:afterSettle", scheduleReposition);
+    }
+    document.addEventListener("click", function () { scheduleReposition(); setTimeout(scheduleReposition, 80); }, true);
+
+    window.GAP = {
+      playMessage: playMessage,
+      toggle: toggle,
+      seekToRatio: seekToRatio,
+      nudge: nudge,
+      setRate: setRate,
+      cycleRate: cycleRate,
+      close: closePlayer,
+      isActive: function (id) { return currentId !== null && currentId === String(id); },
+      isPlaying: isPlaying,
+      currentId: function () { return currentId; },
+      rate: function () { return rate; },
+      duration: function () { return audio.duration; },
+      currentTime: function () { return audio.currentTime; }
+    };
+  })();
+  </script>
+
   {% if user.is_authenticated %}
     <footer hx-ext="ws" ws-connect="/ws/online-status/">
       <form id="presence-ping-form" ws-send class="hidden">

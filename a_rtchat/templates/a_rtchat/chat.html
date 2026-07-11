@@ -196,7 +196,7 @@
   </div>
 
   <!-- Messages area -->
-  <div id="chat_container" class="flex-1 min-h-0 overflow-y-auto p-4 bg-blue-50 backdrop-blur-sm dark:bg-slate-950/15" style="overflow-anchor: none;">
+  <div id="chat_container" class="flex-1 min-h-0 overflow-y-auto p-4 bg-blue-50 backdrop-blur-sm dark:bg-slate-950/15" style="overflow-anchor: none; overscroll-behavior-y: contain; -webkit-overflow-scrolling: touch;">
     <ul id="chat_messages" class="flex flex-col gap-2">
       {% if chat_messages %}
         <li id="load_older"
@@ -715,10 +715,12 @@
 (function () {
     let observer = null;
     let lastLoadTime = 0;
-    const LOAD_COOLDOWN_MS = 800;
+    const LOAD_COOLDOWN_MS = 400;
 
     function triggerLoadOlder(el) {
         if (!el || el.dataset.loading === "1") return;
+        // تا زمانی که چرخهٔ لود + تثبیت اسکرول تمام نشده، دوباره تریگر نکن.
+        if (window._rtchatLoadOlderActive) return;
         if (!el.getAttribute("hx-get")) return;
 
         // ✅ cooldown — جلوگیری از لود آبشاری
@@ -770,7 +772,11 @@
                 () => {
                     const cur = document.getElementById("load_older");
                     if (!cur) return;
-                    if (container.scrollTop <= 120) triggerLoadOlder(cur);
+                    const st = container.scrollTop;
+                    // فقط وقتی کاربر دارد به بالا اسکرول می‌کند تریگر بزن (جلوگیری از لود تکراری).
+                    const goingUp = st < (container._rtLastScrollTop == null ? st : container._rtLastScrollTop);
+                    container._rtLastScrollTop = st;
+                    if (goingUp && st <= 500) triggerLoadOlder(cur);
                 },
                 { passive: true }
             );
@@ -784,7 +790,7 @@
                         triggerLoadOlder(entry.target);
                     });
                 },
-                { root: container, rootMargin: "200px 0px", threshold: 0.01 }
+                { root: container, rootMargin: "600px 0px 0px 0px", threshold: 0.01 }
             );
             observer.observe(el);
 
@@ -795,11 +801,11 @@
                 const r = cur.getBoundingClientRect();
                 const cr = container.getBoundingClientRect();
                 const visible = r.bottom > cr.top && r.top < cr.bottom;
-                if (visible && container.scrollTop <= 160) triggerLoadOlder(cur);
+                if (visible && container.scrollTop <= 500) triggerLoadOlder(cur);
             }, 400);
         } else {
             const onScroll = () => {
-                if (container.scrollTop <= 80) triggerLoadOlder(el);
+                if (container.scrollTop <= 500) triggerLoadOlder(el);
             };
             container.addEventListener("scroll", onScroll, { passive: true });
             onScroll();
@@ -850,13 +856,15 @@
     const container = document.getElementById("chat_container");
     if (!container) return;
 
+    // pending نگه‌دارندهٔ اطلاعات لنگر (anchor) در طول لود پیام‌های قدیمی است.
     let pending = null;
+    let activeTimer = null;
     window._rtchatLoadOlderActive = false;
 
+    // اولین ��یامی که همین الان داخل دید کاربر است را به‌عنوان لنگر انتخاب می‌کنیم.
     function pickAnchorMessageEl() {
       const list = document.getElementById("chat_messages");
       if (!list) return null;
-
       const containerRect = container.getBoundingClientRect();
       const msgs = Array.from(list.querySelectorAll('li[id^="msg-"]'));
       for (const el of msgs) {
@@ -866,59 +874,183 @@
       return msgs[0] || null;
     }
 
-    _on("htmx:beforeRequest", (e) => {
-      if (isStale()) return;
-      const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
-      if (!elt || elt.id !== "load_older") return;
-
-      window._rtchatLoadOlderActive = true;
-
+    function capture() {
       const anchor = pickAnchorMessageEl();
       pending = {
-        scrollTop: container.scrollTop,
-        scrollHeight: container.scrollHeight,
         anchorId: anchor ? anchor.id : "",
-        anchorTop: anchor ? anchor.getBoundingClientRect().top : null,
+        // offsetTop برخلاف getBoundingClientRect به اسکرول و اینرسی موبایل
+        // وابسته نیست، پس برای اندازه‌گیری جابه‌جایی محتوا پایدارتر است.
+        lastAnchorOffsetTop: anchor ? anchor.offsetTop : 0,
+        lastScrollHeight: container.scrollHeight,
+        hasAnchor: Boolean(anchor),
       };
+    }
+
+    // تنظیم افزایشی (incremental): فقط به اندازهٔ جابه‌جایی محتوای بالای لنگر،
+    // اسکرول را جابه‌جا می‌کنیم. چون به scrollTop فعلی اضافه می‌کنیم، اگر کاربر
+    // خودش در حال اسکرول باشد با او درگیر نمی‌شود (delta برابر صفر می‌ماند).
+    function adjust() {
+      if (!pending) return;
+      const anchor = pending.hasAnchor && pending.anchorId
+        ? document.getElementById(pending.anchorId)
+        : null;
+      if (anchor) {
+        const now = anchor.offsetTop;
+        const delta = now - pending.lastAnchorOffsetTop;
+        if (delta) {
+          container.scrollTop += delta;
+          pending.lastAnchorOffsetTop = now;
+        }
+      } else {
+        const now = container.scrollHeight;
+        const delta = now - pending.lastScrollHeight;
+        if (delta) {
+          container.scrollTop += delta;
+          pending.lastScrollHeight = now;
+        }
+      }
+    }
+
+    // چند فریم گسسته (نه حلقهٔ ممتد) تا از لگ و لرزش هنگام اسکرول جلوگیری شود.
+    // چون کانتینر عکس‌ها ابعاد ثابت دارد، بعد از تزریق دیگر ارتفاع محتوا
+    // تغییر نمی‌کند و نیازی به تثبیت مداوم نیست.
+    function adjustFrames(n) {
+      adjust();
+      if (n > 0) requestAnimationFrame(function () { if (pending) adjustFrames(n - 1); });
+    }
+
+    function endActive(delay) {
+      if (activeTimer) clearTimeout(activeTimer);
+      activeTimer = setTimeout(function () {
+        window._rtchatLoadOlderActive = false;
+        pending = null;
+      }, delay);
+    }
+
+    function isLoadOlder(e) {
+      const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
+      return Boolean(elt && elt.id === "load_older");
+    }
+
+    // درست قبل از تزریق DOM اندازه می‌گیریم تا تازه‌ترین مقدار اسکرول را داشته باشیم.
+    _on("htmx:beforeSwap", (e) => {
+      if (isStale()) return;
+      if (!isLoadOlder(e)) return;
+      if (activeTimer) { clearTimeout(activeTimer); activeTimer = null; }
+      window._rtchatLoadOlderActive = true;
+      capture();
+    });
+
+    // afterSwap بلافاصله بعد از تزریق و قبل از paint اجرا می‌شود؛ همین‌جا فوراً
+    // اسکرول را تثبیت می‌کنیم تا هیچ پرشی دیده نشود.
+    _on("htmx:afterSwap", (e) => {
+      if (isStale()) return;
+      if (!pending) return;
+      // فوراً قبل از paint + دو فریم بعدی برای جبران هر بازچینش جزئی.
+      adjustFrames(2);
     });
 
     _on("htmx:afterSettle", (e) => {
       if (isStale()) return;
-      const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
-      if (!elt || elt.id !== "load_older") return;
       if (!pending) return;
-
-      const { scrollTop, scrollHeight, anchorId, anchorTop } = pending;
-      pending = null;
-
-      if (anchorId && typeof anchorTop === "number") {
-        const anchor = document.getElementById(anchorId);
-        if (anchor) {
-          const newTop = anchor.getBoundingClientRect().top;
-          const delta = newTop - anchorTop;
-          if (delta) container.scrollTop += delta;
-          setTimeout(function () {
-            window._rtchatLoadOlderActive = false;
-          }, 150);
-          return;
-        }
-      }
-
-      const deltaH = container.scrollHeight - scrollHeight;
-      if (deltaH) container.scrollTop = scrollTop + deltaH;
-      setTimeout(function () {
-        window._rtchatLoadOlderActive = false;
-      }, 150);
+      adjust();
+      endActive(250);
     });
 
     _on("htmx:responseError", (e) => {
       if (isStale()) return;
-      const elt = (e && e.detail && e.detail.elt) ? e.detail.elt : null;
-      if (elt && elt.id === "load_older") {
-        pending = null;
-        window._rtchatLoadOlderActive = false;
-      }
+      if (!isLoadOlder(e)) return;
+      if (activeTimer) { clearTimeout(activeTimer); activeTimer = null; }
+      window._rtchatLoadOlderActive = false;
+      pending = null;
     });
+  })();
+
+  // ---------- بهینه‌سازی رندر پیام‌ها (content-visibility) ----------
+  // برای کاهش لگ اسکرول وقتی تعداد زیادی پیام در صفحه انباشته می‌شود،
+  // پیام‌های خارج از دید توسط مرورگر layout/paint نمی‌شوند. برای جلوگیری از
+  // هرگونه جابه‌جایی، ارتفاع واقعی هر پیام یک‌بار اندازه‌گیری و به‌عنوان
+  // contain-intrinsic-size دقیق ذخیره می‌شود (بدون اتکا به scroll-anchoring مرورگر).
+  (function () {
+    const list = document.getElementById("chat_messages");
+    if (!list) return;
+    if (!("MutationObserver" in window)) return;
+    if (!(window.CSS && CSS.supports && CSS.supports("content-visibility", "auto"))) return;
+
+    const pendingNodes = new Set();
+    let queued = false;
+
+    function enqueue(li) {
+      if (li && li.nodeType === 1 && li.id && li.id.indexOf("msg-") === 0 && li.dataset.cv !== "1") {
+        pendingNodes.add(li);
+      }
+    }
+
+    function schedule() {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(process);
+    }
+
+    function process() {
+      queued = false;
+      if (!pendingNodes.size) return;
+      const nodes = Array.from(pendingNodes).filter(function (li) {
+        return li.isConnected && li.dataset.cv !== "1";
+      });
+      pendingNodes.clear();
+      if (!nodes.length) return;
+      // مرحلهٔ خواندن (batch) تا از layout thrashing جلوگیری شود.
+      const heights = nodes.map(function (li) { return li.offsetHeight; });
+      // مرحلهٔ نوشتن (batch).
+      for (let i = 0; i < nodes.length; i++) {
+        const li = nodes[i];
+        const h = heights[i];
+        if (!h) continue; // هنوز رندر نشده؛ بعداً دوباره تلاش می‌شود.
+        li.style.containIntrinsicSize = h + "px";
+        li.style.contentVisibility = "auto";
+        li.dataset.cv = "1";
+      }
+      // پیام‌هایی که هنوز ارتفاع نداشتند را دوباره صف‌بندی کن.
+      for (let i = 0; i < nodes.length; i++) {
+        if (!heights[i] && nodes[i].isConnected) pendingNodes.add(nodes[i]);
+      }
+      if (pendingNodes.size) schedule();
+    }
+
+    // پیام‌های موجود در ابتدای بارگذاری.
+    Array.prototype.forEach.call(list.querySelectorAll('li[id^="msg-"]'), enqueue);
+    if (pendingNodes.size) schedule();
+
+    // پیام‌های جدید (لود قدیمی‌ها، وب‌سوکت، OOB).
+    const mo = new MutationObserver(function (muts) {
+      for (const m of muts) {
+        if (!m.addedNodes) continue;
+        m.addedNodes.forEach(function (n) {
+          if (n.nodeType !== 1) return;
+          if (n.matches && n.matches('li[id^="msg-"]')) enqueue(n);
+          else if (n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll('li[id^="msg-"]'), enqueue);
+        });
+      }
+      if (pendingNodes.size) schedule();
+    });
+    mo.observe(list, { childList: true, subtree: true });
+
+    // در تغییر اندازه/چرخش صفحه، ارتفاع‌ها دوباره اندازه‌گیری می‌شوند تا دقیق بمانند.
+    let rTimer = null;
+    window.addEventListener("resize", function () {
+      if (rTimer) clearTimeout(rTimer);
+      rTimer = setTimeout(function () {
+        rTimer = null;
+        Array.prototype.forEach.call(list.querySelectorAll('li[id^="msg-"][data-cv="1"]'), function (li) {
+          li.style.contentVisibility = "";
+          li.style.containIntrinsicSize = "";
+          li.dataset.cv = "";
+          enqueue(li);
+        });
+        if (pendingNodes.size) schedule();
+      }, 300);
+    }, { passive: true });
   })();
 
   (function () {
@@ -3268,7 +3400,7 @@
 
             // اطمینان از محاسبه صحیح عرض قابل اسکرول هنگام زوم
             // وقتی origin سمت راست است، محتوا به چپ بزرگ می‌شود؛
-            // بنابراین باید عرض container بیرونی را به عرض مقیاس‌شده افزایش دهیم
+            // بنابراین باید عرض container بیرونی را به عرض مقیاس‌شده ��فزایش دهیم
             var scaledW = Math.ceil(w * s);
             var scaledH = Math.ceil(h * s);
 
@@ -5287,7 +5419,7 @@
 
     function findTarget() {
       if (!targetMessageId) return null;
-      // getElementById به CSS.escape نیاز ندارد — رشته خام کافی است
+      // getElementById به CSS.escape نیاز ��دارد — رشته خام کافی است
       // CSS.escape اعداد رو تبدیل می‌کند (مثلاً "5686" → "\35 686") و ID را خراب می‌کند
       return document.getElementById("msg-" + targetMessageId);
     }

@@ -1,0 +1,5 @@
+00:04:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+00:04:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+00:05:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+00:05:36 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0
+00:06:06 [DEBUG] [RECEIVE] OnlineStatusConsumer | user=ali(id=2) type=ping body_len=0

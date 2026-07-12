@@ -154,6 +154,27 @@
     </div>
   </div>
 
+  <!-- Pinned messages bar -->
+  {% include 'a_rtchat/partials/pinned_bar.html' %}
+
+  <!-- Pin limit modal -->
+  <div id="pin_limit_modal" class="fixed inset-0 z-[80] hidden">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
+    <div class="relative flex h-full items-center justify-center p-4">
+      <div id="pin_limit_card" class="relative w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10 dark:bg-slate-900 dark:ring-white/10">
+        <div class="px-4 py-3 border-b border-slate-200/70 dark:border-white/10">
+          <div class="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-slate-100"><span>📌</span><span>حداکثر ۳ پیام پین می‌شود</span></div>
+          <div class="mt-1 text-xs text-gray-500 dark:text-slate-400">برای پین این پیام، یکی از پین‌های فعلی را آزاد کنید.</div>
+        </div>
+        <div id="pin_limit_list" class="max-h-56 overflow-y-auto p-2 space-y-1"></div>
+        <div class="flex flex-col gap-1 border-t border-slate-200/70 p-2 dark:border-white/10">
+          <button id="pin_limit_oldest" type="button" class="w-full rounded-xl px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:text-sky-300 dark:hover:bg-sky-500/10">حذف قدیمی‌ترین پین و پین این پیام</button>
+          <button id="pin_limit_cancel" type="button" class="w-full rounded-xl px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-white/10">انصراف</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Chat Search Bar -->
   <div id="chat_search_bar" class="hidden border-b border-slate-200/70 bg-white/50 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/30">
     <div class="flex items-center gap-2">
@@ -255,6 +276,13 @@
             <path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
           </svg>
           <span>Select</span>
+      </button>
+      <button type="button" data-menu-action="pin" class="hidden flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
+            <path d="M9 4h6l-1 5 3 3v2H7v-2l3-3-1-5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="M12 14v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+          </svg>
+          <span data-pin-label>Pin</span>
       </button>
       <button type="button" data-menu-action="edit" class="hidden flex items-center gap-2 rounded-xl px-3 pr-12 py-2 text-left text-sm text-gray-800 hover:bg-gray-100 whitespace-nowrap dark:text-slate-100 dark:hover:bg-white/10">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="shrink-0 text-gray-600 dark:text-slate-300">
@@ -1917,6 +1945,7 @@
       const btnForward = menu.querySelector('[data-menu-action="forward"]');
       const btnEdit = menu.querySelector('[data-menu-action="edit"]');
       const btnDelete = menu.querySelector('[data-menu-action="delete"]');
+      const btnPin = menu.querySelector('[data-menu-action="pin"]');
 
       const canEdit = Boolean(messageEl.getAttribute("data-edit-url"));
       const canDelete = Boolean(messageEl.getAttribute("data-delete-url"));
@@ -1924,6 +1953,17 @@
       if (btnEdit) btnEdit.classList.toggle("hidden", !canEdit);
       if (btnDelete) btnDelete.classList.toggle("hidden", !canDelete);
       if (btnForward) btnForward.classList.toggle("hidden", false);
+      if (btnPin) {
+        const canPin = messageEl.getAttribute("data-can-pin") === "1";
+        btnPin.classList.toggle("hidden", !canPin);
+        if (canPin) {
+          const pid = getMessageIdFromEl(messageEl);
+          let isPinned = false;
+          try { isPinned = !!(pid && document.querySelector('#pinned_bar [data-pin-id="' + pid + '"]')); } catch (e) {}
+          const lbl = btnPin.querySelector("[data-pin-label]");
+          if (lbl) lbl.textContent = isPinned ? "Unpin" : "Pin";
+        }
+      }
 
       menuMessageEl = messageEl;
       menu.classList.remove("hidden");
@@ -2089,6 +2129,12 @@
         if (action === "delete") {
           deleteMessageFromMessageEl(menuMessageEl);
           closeMessageMenu();
+          return;
+        }
+        if (action === "pin") {
+          const el = menuMessageEl;
+          closeMessageMenu();
+          if (window.rtchatTogglePin) window.rtchatTogglePin(el);
           return;
         }
         if (action === "select") {
@@ -5869,6 +5915,111 @@
     // Expose for external use
     window.chatSearchOpen = showSearchBar;
     window.chatSearchClose = hideSearchBar;
+  })();
+
+  // Pin message feature
+  (function () {
+    function getCsrf() {
+      var el = document.querySelector('#chat_message_form input[name="csrfmiddlewaretoken"]') || document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (el && el.value) return el.value;
+      var m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : "";
+    }
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+    function jumpToMessage(id) {
+      id = String(id || "").trim();
+      if (!id) return;
+      var el = document.getElementById("msg-" + id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-blue-400", "rounded-2xl");
+        setTimeout(function () { el.classList.remove("ring-2", "ring-blue-400", "rounded-2xl"); }, 1100);
+        return;
+      }
+      var root = document.getElementById("chat_root");
+      var identifier = root ? (root.getAttribute("data-chatroom-identifier") || "") : "";
+      if (identifier) window.location.href = "/chat/room/" + identifier + "?focus=" + encodeURIComponent(id);
+    }
+    function postPin(url, replaceId) {
+      var csrf = getCsrf();
+      if (!url || !csrf) return Promise.resolve({ ok: false, status: 0, data: null });
+      var body = new FormData();
+      body.append("csrfmiddlewaretoken", csrf);
+      if (replaceId) body.append("replace", String(replaceId));
+      return fetch(url, { method: "POST", credentials: "same-origin", headers: { "X-CSRFToken": csrf, "HX-Request": "true" }, body: body })
+        .then(function (res) {
+          return res.clone().json().catch(function () { return null; }).then(function (data) {
+            return { ok: res.ok, status: res.status, data: data };
+          });
+        })
+        .catch(function () { return { ok: false, status: 0, data: null }; });
+    }
+    function closeModal() {
+      window.__rtchatPinPendingUrl = "";
+      window.__rtchatPinPending = [];
+      var modal = document.getElementById("pin_limit_modal");
+      if (modal) modal.classList.add("hidden");
+    }
+    function openModal(url, pinned) {
+      window.__rtchatPinPendingUrl = url;
+      window.__rtchatPinPending = Array.isArray(pinned) ? pinned : [];
+      var modal = document.getElementById("pin_limit_modal");
+      var listEl = document.getElementById("pin_limit_list");
+      if (!modal || !listEl) return;
+      listEl.innerHTML = "";
+      window.__rtchatPinPending.forEach(function (p) {
+        var row = document.createElement("button");
+        row.type = "button";
+        row.className = "w-full flex items-center gap-2 rounded-xl px-3 py-2 text-right hover:bg-gray-100 dark:hover:bg-white/10";
+        row.setAttribute("data-replace-id", p.id);
+        row.innerHTML = '<span class="text-base shrink-0">📌</span>' +
+          '<span class="min-w-0 flex-1">' +
+          '<span class="block text-xs font-semibold text-gray-800 truncate dark:text-slate-100">' + esc(p.author) + '</span>' +
+          '<span class="block text-xs text-gray-500 truncate dark:text-slate-400" dir="auto">' + esc(p.preview) + '</span>' +
+          '</span>' +
+          '<span class="shrink-0 text-[11px] font-semibold text-red-600">آزاد کن</span>';
+        listEl.appendChild(row);
+      });
+      modal.classList.remove("hidden");
+    }
+    function togglePin(messageEl) {
+      if (!messageEl) return;
+      var url = messageEl.getAttribute("data-pin-url") || "";
+      if (!url) return;
+      postPin(url, null).then(function (r) {
+        if (r.status === 409 && r.data && r.data.error === "limit") { openModal(url, r.data.pinned || []); }
+        else if (!r.ok && r.status === 403) { window.alert("فقط ادمین‌ها می‌توانند پیام پین کنند."); }
+      });
+    }
+    window.rtchatTogglePin = togglePin;
+    if (!window.__rtchatPinBound) {
+      window.__rtchatPinBound = true;
+      document.addEventListener("click", function (e) {
+        if (!e.target || !e.target.closest) return;
+        if (e.target.closest("#pin_limit_oldest")) {
+          var url0 = window.__rtchatPinPendingUrl || ""; var pend = window.__rtchatPinPending || [];
+          if (url0 && pend.length) { var oid = pend[0].id; closeModal(); postPin(url0, oid); } else { closeModal(); }
+          return;
+        }
+        if (e.target.closest("#pin_limit_cancel")) { closeModal(); return; }
+        var repRow = e.target.closest("#pin_limit_list [data-replace-id]");
+        if (repRow) {
+          var url1 = window.__rtchatPinPendingUrl || ""; var rid = repRow.getAttribute("data-replace-id");
+          closeModal(); if (url1) postPin(url1, rid); return;
+        }
+        var modalEl = document.getElementById("pin_limit_modal");
+        if (modalEl && !modalEl.classList.contains("hidden") && !e.target.closest("#pin_limit_card")) { closeModal(); return; }
+        var unpinBtn = e.target.closest("[data-pin-unpin-id]");
+        if (unpinBtn) { e.preventDefault(); e.stopPropagation(); var uurl = unpinBtn.getAttribute("data-pin-url") || ""; if (uurl) postPin(uurl, null); return; }
+        var jumpBtn = e.target.closest("[data-pin-jump-id]");
+        if (jumpBtn) { jumpToMessage(jumpBtn.getAttribute("data-pin-jump-id")); return; }
+      });
+      document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeModal(); });
+    }
   })();
 
 </script>

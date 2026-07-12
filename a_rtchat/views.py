@@ -337,6 +337,13 @@ def chat_view(request, chatroom_identifier='public_chat'):
             set(chat_group.admins.values_list("id", flat=True))
             | ({int(chat_group.admin_id)} if chat_group.admin_id else set())
         ),
+        'pinned_messages': list(
+            chat_group.chat_messages
+            .filter(is_pinned=True)
+            .select_related("author", "author__profile")
+            .order_by("pinned_at", "id")
+        ),
+        'can_pin_messages': _user_can_pin_in_group(request.user, chat_group),
     }
 
     is_chat_nav = request.headers.get("X-Chat-Nav") == "1"
@@ -1492,6 +1499,94 @@ def chat_message_forward(request, message_id):
         refresh_event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [request.user.id])}
     async_to_sync(channel_layer.group_send)("online-status", refresh_event)
 
+    return HttpResponse(status=204)
+
+
+MAX_PINNED_MESSAGES = 3
+
+
+def _user_can_pin_in_group(user, chat_group):
+    if getattr(chat_group, "is_private", False):
+        return True
+    return _user_is_chat_group_admin(user, chat_group)
+
+
+def _pinned_messages_payload(chat_group):
+    pinned = (
+        chat_group.chat_messages
+        .filter(is_pinned=True)
+        .select_related("author", "author__profile")
+        .order_by("pinned_at", "id")
+    )
+    items = []
+    for m in pinned:
+        author_name = getattr(getattr(m.author, "profile", None), "name", None) or m.author.username
+        items.append({"id": m.id, "author": author_name, "preview": m.pin_preview})
+    return items
+
+
+def _broadcast_pinned_update(chat_group):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        chat_group.group_name,
+        {"type": "pinned_updated_handler"},
+    )
+
+
+@messenger_required
+def toggle_pin_message(request, message_id):
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    message = get_object_or_404(GroupMessage, id=message_id)
+    chat_group = message.group
+
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
+
+    if chat_group.is_private:
+        if request.user not in chat_group.members.all():
+            raise Http404
+    else:
+        if chat_group.groupchat_name and chat_group.group_name != 'public_chat':
+            if _user_is_chat_group_admin(request.user, chat_group) and request.user not in chat_group.members.all():
+                chat_group.members.add(request.user)
+            if request.user not in chat_group.members.all():
+                raise Http404
+
+    if not _user_can_pin_in_group(request.user, chat_group):
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    if message.is_pinned:
+        message.is_pinned = False
+        message.pinned_at = None
+        message.pinned_by = None
+        message.save(update_fields=["is_pinned", "pinned_at", "pinned_by"])
+        _broadcast_pinned_update(chat_group)
+        return HttpResponse(status=204)
+
+    pinned_qs = chat_group.chat_messages.filter(is_pinned=True)
+    replace_raw = (request.POST.get("replace") or "").strip()
+
+    if pinned_qs.count() >= MAX_PINNED_MESSAGES:
+        victim = None
+        if replace_raw.isdigit():
+            victim = pinned_qs.filter(id=int(replace_raw)).first()
+        if not victim:
+            return JsonResponse(
+                {"error": "limit", "max": MAX_PINNED_MESSAGES, "pinned": _pinned_messages_payload(chat_group)},
+                status=409,
+            )
+        victim.is_pinned = False
+        victim.pinned_at = None
+        victim.pinned_by = None
+        victim.save(update_fields=["is_pinned", "pinned_at", "pinned_by"])
+
+    message.is_pinned = True
+    message.pinned_at = timezone.now()
+    message.pinned_by = request.user
+    message.save(update_fields=["is_pinned", "pinned_at", "pinned_by"])
+    _broadcast_pinned_update(chat_group)
     return HttpResponse(status=204)
 
 

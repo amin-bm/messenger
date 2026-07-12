@@ -91,6 +91,9 @@ class GroupMessage(models.Model):
    file = models.FileField(null=True, blank=True, upload_to='files/')
    created = models.DateTimeField(auto_now_add=True)
    edited = models.DateTimeField(null=True, blank=True)
+   is_pinned = models.BooleanField(default=False)
+   pinned_at = models.DateTimeField(null=True, blank=True)
+   pinned_by = models.ForeignKey(User, null=True, blank=True, related_name='pinned_messages', on_delete=models.SET_NULL)
 
    IMAGE_EXTENSIONS = frozenset({
       ".jpg", ".jpeg", ".png", ".gif",
@@ -98,6 +101,20 @@ class GroupMessage(models.Model):
    })
 
    
+   @property
+   def pin_preview(self):
+      if self.body:
+         return self.body
+      if self.file:
+         if self.is_audio:
+            return "🎤 پیام صوتی"
+         if self.is_image:
+            return "🖼️ تصویر"
+         if self.is_video:
+            return "🎬 ویدیو"
+         return "📎 " + (self.filename or "")
+      return ""
+
    @property
    def filename(self):
       if self.file:

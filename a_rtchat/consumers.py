@@ -384,6 +384,7 @@ class ChatroomConsumer(WebsocketConsumer):
             'message': message,
             'user': self.user,
             'chat_group': self.chatroom,
+            'is_group_admin': self.chatroom.is_admin(self.user),
             'private_other_last_read': _private_other_last_read(self.chatroom, self.user),
         }
         html = render_to_string("a_rtchat/partials/chat_message_p.html", context=context)
@@ -417,6 +418,7 @@ class ChatroomConsumer(WebsocketConsumer):
             'user': self.user,
             'chat_group': self.chatroom,
             'oob': True,
+            'is_group_admin': self.chatroom.is_admin(self.user),
             'private_other_last_read': _private_other_last_read(self.chatroom, self.user),
         }
         html = render_to_string("a_rtchat/chat_message.html", context=context)
@@ -454,6 +456,7 @@ class ChatroomConsumer(WebsocketConsumer):
             "user": self.user,
             "chat_group": self.chatroom,
             "oob_swap": "outerHTML",
+            "is_group_admin": self.chatroom.is_admin(self.user),
             "private_other_last_read": last_read,
         }
         html = "".join(
@@ -467,6 +470,24 @@ class ChatroomConsumer(WebsocketConsumer):
         if not message_id:
             return
         self.send(text_data=f'<li id="msg-{message_id}" hx-swap-oob="delete"></li>')
+
+    def pinned_updated_handler(self, event):
+        pinned_messages = list(
+            self.chatroom.chat_messages
+            .filter(is_pinned=True)
+            .select_related("author", "author__profile")
+            .order_by("pinned_at", "id")
+        )
+        can_pin = bool(self.chatroom.is_private or self.chatroom.is_admin(self.user))
+        context = {
+            "pinned_messages": pinned_messages,
+            "can_pin_messages": can_pin,
+            "chat_group": self.chatroom,
+            "user": self.user,
+            "pinned_oob": True,
+        }
+        html = render_to_string("a_rtchat/partials/pinned_bar.html", context=context)
+        self.send(text_data=html)
 
     # ✅ مجموعه ایموجی‌های مجاز برای ری‌اکشن (باید با chat.html هم‌خوان باشد)
     ALLOWED_REACTIONS = frozenset({"👍", "❤️", "😂", "😮", "😢", "🙏", "🔥", "🎉"})

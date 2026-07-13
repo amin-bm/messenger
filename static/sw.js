@@ -9,6 +9,9 @@ const SW_VERSION = (() => {
 const CACHE_PREFIX = "pesk-messenger-";
 const CACHE_NAME = `${CACHE_PREFIX}${SW_VERSION}`;
 
+// حداکثر زمانی که منتظر شبکه می‌مانیم تا respondWith هیچ‌وقت برای همیشه معلق نماند.
+const NAV_TIMEOUT_MS = 8000;
+
 function versioned(url) {
   if (!SW_VERSION) return url;
   if (url.includes("?")) return `${url}&v=${encodeURIComponent(SW_VERSION)}`;
@@ -45,6 +48,52 @@ const APP_SHELL = [
   "/static/pwa-apple-touch-180.png",
 ].map(versioned);
 
+// یک صفحه‌ی fallback حداقلی که هیچ‌وقت سفید نیست و به‌محض برگشتن اتصال، خودش را رفرش می‌کند.
+function offlineFallbackResponse() {
+  const html = `<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>در حال اتصال…</title>
+<style>
+  html,body{height:100%;margin:0}
+  body{display:flex;align-items:center;justify-content:center;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Tahoma,sans-serif;
+    background:#0ea5e9;color:#fff;text-align:center;padding:24px}
+  .card{max-width:360px}
+  .spin{width:36px;height:36px;border:3px solid rgba(255,255,255,.35);
+    border-top-color:#fff;border-radius:50%;margin:0 auto 16px;
+    animation:s 1s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  button{margin-top:16px;border:none;background:#fff;color:#0ea5e9;
+    font-size:15px;font-weight:700;padding:10px 18px;border-radius:10px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="spin"></div>
+    <div style="font-size:16px;font-weight:700">در حال اتصال به پسک…</div>
+    <div style="font-size:13px;opacity:.85;margin-top:8px">اتصال شبکه هنوز آماده نشده است. خودکار دوباره تلاش می‌کنیم.</div>
+    <button onclick="location.reload()">تلاش دوباره</button>
+  </div>
+  <script>
+    // به‌محض برقراری اتصال یا هر چند ثانیه یک‌بار، صفحه را دوباره لود کن.
+    function retry(){ location.reload(); }
+    window.addEventListener('online', retry);
+    setTimeout(retry, 3000);
+  </script>
+</body>
+</html>`;
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 async function notifyClients(message) {
   const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   for (const client of clientList) {
@@ -77,7 +126,21 @@ async function cacheAppShell() {
 }
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(Promise.resolve());
+  // «/» را به‌عنوان fallback ناوبری از قبل کش کن تا اگر شبکه هنگام باز شدن اپ آماده نبود،
+  // چیزی برای نمایش وجود داشته باشد (به‌جای صفحه‌ی سفید). این کار best-effort است.
+  event.waitUntil(
+    (async () => {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        try {
+          const rootRes = await fetch(new Request("/", { cache: "reload" }));
+          if (rootRes && rootRes.ok) {
+            await cache.put("/", rootRes.clone());
+          }
+        } catch (e) {}
+      } catch (e) {}
+    })()
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -159,18 +222,68 @@ async function cacheFirst(req) {
   }
 }
 
+// fetch با محدودیت زمانی و قابلیت لغو، تا respondWith هیچ‌وقت برای همیشه معلق نماند.
+async function fetchWithTimeout(request, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(request, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function networkFirstNavigation(req) {
   try {
-    const res = await fetch(new Request(req, { cache: "no-store" }));
+    // مهم: درخواست را با redirect: "follow" بفرست. اگر درخواست ناوبری با
+    // redirect: "manual" (پیش‌فرض) fetch شود و سرور 302 بدهد (مثلاً ریدایرکت به لاگین)،
+    // پاسخ opaqueredirect در حالت standalone آی‌اواس به‌صورت صفحه‌ی سفید رندر می‌شود.
+    const res = await fetchWithTimeout(
+      new Request(req.url, {
+        method: "GET",
+        headers: req.headers,
+        credentials: "include",
+        redirect: "follow",
+        cache: "no-store",
+      }),
+      NAV_TIMEOUT_MS
+    );
+
+    // اگر سرور ریدایرکت داده بود (مثلاً به /accounts/login/)، به‌جای برگرداندن مستقیمِ
+    // پاسخِ ریدایرکت‌شده (که در iOS standalone سفید می‌شود)، یک ریدایرکتِ سمت‌کلاینت
+    // به آدرس نهایی بده تا اپ درست جابه‌جا شود.
+    if (res && res.redirected && res.url) {
+      const dest = res.url;
+      const html =
+        '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+        "<script>location.replace(" + JSON.stringify(dest) + ");</script>" +
+        "</head><body></body></html>";
+      return new Response(html, {
+        status: 200,
+        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+
     if (res && res.ok) {
       const cache = await caches.open(CACHE_NAME);
-      await cache.put(req, res.clone());
+      // کش کردن نباید پاسخ‌دهی به صفحه را بلاک یا fail کند.
+      cache.put(req, res.clone()).catch(() => {});
     }
     return res;
   } catch (e) {
+    // ۱) اگر همین آدرس قبلاً کش شده بود.
     const cached = await caches.match(req);
     if (cached) return cached;
-    return (await caches.match(versioned("/"))) || new Response("", { status: 503 });
+
+    // ۲) ریشه‌ی سایت را بدون توجه به query/version برگردان.
+    const root =
+      (await caches.match("/", { ignoreSearch: true })) ||
+      (await caches.match(versioned("/"))) ||
+      (await caches.match("/"));
+    if (root) return root;
+
+    // ۳) هرگز پاسخ خالی نده — صفحه‌ی fallback که خودش دوباره تلاش می‌کند.
+    return offlineFallbackResponse();
   }
 }
 

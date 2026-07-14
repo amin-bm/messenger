@@ -352,6 +352,19 @@
   <div class="border-t border-slate-200/70 bg-white/35 p-3 pb-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/25">
     <div class="flex flex-col gap-3">
 
+      <div id="pending_files_preview" class="hidden rounded-2xl bg-white/60 border border-slate-200/70 px-3 py-2 backdrop-blur dark:bg-white/10 dark:border-white/10">
+        <div class="flex items-center gap-2">
+          <span class="shrink-0 text-slate-500 dark:text-slate-300">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05 12 20.5a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.19 9.19a2 2 0 1 1-2.83-2.83l8.49-8.49" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <div class="flex-1 min-w-0">
+            <div id="pending_files_summary" class="text-xs font-medium text-slate-700 truncate dark:text-slate-100"></div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-300">می‌توانید قبل از ارسال کپشن بنویسید (اختیاری)</div>
+          </div>
+          <button id="pending_files_cancel" type="button" aria-label="remove files" class="shrink-0 rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white">✕</button>
+        </div>
+      </div>
+
       <form id="chat_message_form"
             class="w-full"
             hx-ext="ws"
@@ -1447,6 +1460,7 @@
           const isMobile = window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
           if (isMobile) return;
           e.preventDefault();
+          if (typeof window.rtchatSendPendingFiles === "function" && window.rtchatSendPendingFiles()) return;
           if ((bodyInput.value || "").trim() === "") return;
           if (typeof form.requestSubmit === "function") form.requestSubmit();
           else form.submit();
@@ -1498,7 +1512,10 @@
       const csrf = getCsrfToken();
       if (!editUrl || !csrf) return;
 
-      const initial = (container.innerText || container.textContent || messageEl.getAttribute("data-message-body") || "");
+      const hasFile = messageEl.getAttribute("data-has-file") === "1";
+      const initial = hasFile
+        ? (messageEl.getAttribute("data-message-body") || "")
+        : (container.innerText || container.textContent || messageEl.getAttribute("data-message-body") || "");
       messageEl.dataset.editing = "1";
       container.dataset.originalHtml = container.innerHTML;
 
@@ -1518,6 +1535,7 @@
       textarea.rows = 1;
       if (maxLen) textarea.maxLength = Number(maxLen);
       textarea.value = initial;
+      if (hasFile) textarea.setAttribute("placeholder", "کپشن بنویسید… (اختیاری)");
       textarea.setAttribute("dir", "auto");
       textarea.setAttribute("style", "unicode-bidi: plaintext; text-align: start;");
       textarea.className = "w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none resize-none leading-6 max-h-40 overflow-y-auto";
@@ -1542,8 +1560,12 @@
       editForm.appendChild(textarea);
       editForm.appendChild(actions);
 
-      container.innerHTML = "";
-      container.appendChild(editForm);
+      if (hasFile) {
+        container.appendChild(editForm);
+      } else {
+        container.innerHTML = "";
+        container.appendChild(editForm);
+      }
 
       function autosizeEdit() {
         textarea.style.height = "auto";
@@ -1570,7 +1592,7 @@
       editForm.addEventListener("submit", async (ev) => {
         ev.preventDefault();
         const value = (textarea.value || "").trim();
-        if (!value) {
+        if (!value && !hasFile) {
           return;
         }
 
@@ -4859,9 +4881,12 @@
         shakeSendButton();
         return;
       }
+      if (fileInput && fileInput.files && fileInput.files.length) {
+        if (e && typeof e.preventDefault === "function") e.preventDefault();
+        return;
+      }
       const v = (bodyInput.value || "").trim();
       if (!v) return;
-      if (fileInput && fileInput.files && fileInput.files.length) return;
       const replyInput = document.getElementById("reply_to_input");
       const replyTo = replyInput ? (replyInput.value || "").trim() : "";
       pendingQueue.push({ text: v, replyTo: replyTo, start: Date.now() });
@@ -5029,6 +5054,60 @@
       delete bodyInput.dataset.origValue;
     }
 
+    function showPendingFiles(summary) {
+      const bar = document.getElementById("pending_files_preview");
+      const sum = document.getElementById("pending_files_summary");
+      if (sum) sum.textContent = summary || "";
+      if (bar) bar.classList.remove("hidden");
+    }
+
+    function hidePendingFiles() {
+      const bar = document.getElementById("pending_files_preview");
+      if (bar) bar.classList.add("hidden");
+    }
+
+    function enterCaptionMode(summary) {
+      if (bodyInput) {
+        bodyInput.readOnly = false;
+        bodyInput.classList.remove("cursor-not-allowed", "select-none");
+        if (!bodyInput.dataset.origPlaceholder) bodyInput.dataset.origPlaceholder = originalPlaceholder;
+        bodyInput.setAttribute("placeholder", "یک کپشن بنویسید… (اختیاری)");
+      }
+      showPendingFiles(summary);
+    }
+
+    function exitCaptionMode() {
+      if (bodyInput) {
+        bodyInput.readOnly = false;
+        bodyInput.classList.remove("cursor-not-allowed", "select-none");
+        bodyInput.setAttribute("placeholder", bodyInput.dataset.origPlaceholder || originalPlaceholder || "");
+      }
+      hidePendingFiles();
+    }
+
+    function clearPendingSelection() {
+      try { fileInput.value = ""; } catch (e) {}
+      exitCaptionMode();
+      update();
+    }
+
+    (function bindPendingCancel() {
+      const btn = document.getElementById("pending_files_cancel");
+      if (btn) btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        clearPendingSelection();
+      });
+    })();
+
+    window.rtchatSendPendingFiles = function () {
+      if (hasInFlightUpload()) return true;
+      if (fileInput && fileInput.files && fileInput.files.length) {
+        uploadFileWithProgress();
+        return true;
+      }
+      return false;
+    };
+
     function showProgress(label) {
       if (!progressWrapper) return;
       if (uploadFileName) uploadFileName.textContent = label || "Uploading...";
@@ -5103,7 +5182,7 @@
       });
     }
 
-    async function uploadFileChunked(file, replyTo, csrfToken) {
+    async function uploadFileChunked(file, replyTo, csrfToken, caption) {
       const totalSize = Number(file.size || 0);
       const totalChunks = Math.max(1, Math.ceil(totalSize / CHUNK_SIZE));
       const uploadId = generateUploadId();
@@ -5121,6 +5200,7 @@
         formData.append("total_chunks", String(totalChunks));
         formData.append("file_name", file.name || "file");
         if (replyTo) formData.append("reply_to", replyTo);
+        if (caption) formData.append("body", caption);
         if (csrfToken) formData.append("csrfmiddlewaretoken", csrfToken);
 
         await sendChunk(CHUNK_UPLOAD_URL, formData, csrfToken);
@@ -5148,36 +5228,54 @@
       const csrfToken = csrfInput ? csrfInput.value : "";
       const replyInput = document.getElementById("reply_to_input");
       const replyTo = replyInput ? (replyInput.value || "").trim() : "";
+      const caption = (bodyInput && typeof bodyInput.value === "string") ? bodyInput.value.trim().slice(0, 2000) : "";
 
       const isOverride = Boolean(fileOverride);
       uploadAborted = false;
       const total = files.length;
       let index = 0;
 
-      if (isOverride) lockTypingForFile(filesSummary(files));
+      if (bodyInput) {
+        if (!bodyInput.dataset.origPlaceholder) bodyInput.dataset.origPlaceholder = originalPlaceholder;
+        bodyInput.value = "";
+        bodyInput.readOnly = true;
+        bodyInput.classList.add("cursor-not-allowed", "select-none");
+        bodyInput.setAttribute("placeholder", filesSummary(files));
+      }
+      hidePendingFiles();
       sendBtn.classList.add("hidden");
       if (typeof window.rtchatMarkOwnMessageScrollPending === "function") window.rtchatMarkOwnMessageScrollPending(120000);
 
       function finishAll(hadError) {
         hideProgress();
         fileInput.value = "";
+        if (bodyInput) {
+          bodyInput.readOnly = false;
+          bodyInput.classList.remove("cursor-not-allowed", "select-none");
+          bodyInput.setAttribute("placeholder", bodyInput.dataset.origPlaceholder || originalPlaceholder || "");
+          bodyInput.value = hadError ? caption : "";
+          bodyInput.dispatchEvent(new Event("input", { bubbles: true }));
+        }
         if (!hadError && typeof window.rtchatClearReply === "function") window.rtchatClearReply();
-        if (isOverride) unlockTypingAfterFile();
+        hidePendingFiles();
         update();
       }
 
       function uploadOne(file) {
+        const isLast = index === total - 1;
+        const fileCaption = isLast ? caption : "";
         const label = total > 1 ? `(${index + 1}/${total}) ${fileSummary(file)}` : fileSummary(file);
         showProgress(label);
 
         if (Number(file.size || 0) >= CHUNK_THRESHOLD) {
-          return uploadFileChunked(file, replyTo, csrfToken);
+          return uploadFileChunked(file, replyTo, csrfToken, fileCaption);
         }
 
         return new Promise((resolve, reject) => {
           const formData = new FormData();
           formData.append("file", file);
           if (replyTo) formData.append("reply_to", replyTo);
+          if (fileCaption) formData.append("body", fileCaption);
           if (csrfToken) formData.append("csrfmiddlewaretoken", csrfToken);
 
           const xhr = new XMLHttpRequest();
@@ -5235,8 +5333,13 @@
     function update() {
       const recording = isVisible(stopBtn);
       const voicePreviewVisible = isVisible(previewEl);
-      if (hasFile()) lockTypingForFile(filesSummary(fileInput.files));
-      else unlockTypingAfterFile();
+      if (hasInFlightUpload()) {
+        // during an active upload the composer stays locked
+      } else if (hasFile()) {
+        enterCaptionMode(filesSummary(fileInput.files));
+      } else {
+        exitCaptionMode();
+      }
 
       if (recording) {
         sendBtn.classList.add("hidden");
@@ -5308,13 +5411,16 @@
           alert("الان یک ارسال در حال انجام است. بعد از اتمام دوباره تلاش کنید.");
           return;
         }
-        if (hasFile()) {
-          alert("فعلا فقط یک فایل را همزمان ارسال کنید.");
+
+        const merged = Array.from(fileInput.files || []);
+        merged.push(img);
+        if (!setFileInputToFiles(merged)) {
+          uploadFileWithProgress(img);
+          update();
           return;
         }
-
-        uploadFileWithProgress(img);
         update();
+        try { bodyInput.focus({ preventScroll: true }); } catch (err) { bodyInput.focus(); }
       });
     }
 
@@ -5419,11 +5525,16 @@
             return;
           }
 
-          const setOk = setFileInputToFiles(files);
-          if (!setOk) uploadFileWithProgress(files);
-          else {
+          const existing = Array.from(fileInput.files || []);
+          const merged = existing.concat(files);
+          const setOk = setFileInputToFiles(merged);
+          if (!setOk) {
+            uploadFileWithProgress(files);
+          } else {
             update();
-            uploadFileWithProgress();
+            if (bodyInput && !bodyInput.readOnly) {
+              try { bodyInput.focus({ preventScroll: true }); } catch (err) { bodyInput.focus(); }
+            }
           }
         },
         { passive: false }

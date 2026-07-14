@@ -723,8 +723,10 @@ def chat_file_upload(request, chatroom_name):
                 .filter(group=chat_group, id=int(reply_to_id))
                 .first()
             )
+        body = (request.POST.get('body') or '').strip()[:2000] or None
         message = GroupMessage.objects.create(
             file = file,
+            body = body,
             group = chat_group,
             author = request.user,
             reply_to=reply_to,
@@ -793,6 +795,8 @@ def chat_file_upload_chunk(request, chatroom_name):
             .first()
         )
 
+    caption = (request.POST.get("body") or "").strip()[:2000]
+
     base_dir = os.path.join(settings.MEDIA_ROOT, "chunk_uploads")
     os.makedirs(base_dir, exist_ok=True)
     upload_dir = os.path.join(base_dir, str(upload_uuid))
@@ -820,6 +824,7 @@ def chat_file_upload_chunk(request, chatroom_name):
                         "group_name": chat_group.group_name,
                         "total_chunks": total_chunks,
                         "file_name": original_name,
+                        "body": caption,
                     },
                     f,
                 )
@@ -865,7 +870,17 @@ def chat_file_upload_chunk(request, chatroom_name):
                 with open(p, "rb") as inp:
                     shutil.copyfileobj(inp, out, length=1024 * 1024)
 
-        message = GroupMessage(group=chat_group, author=request.user, reply_to=reply_to)
+        caption_final = caption
+        try:
+            import json
+            with open(meta_path, "r", encoding="utf-8") as mf:
+                _meta_final = json.load(mf) or {}
+            _mb = (_meta_final.get("body") or "").strip()[:2000]
+            if _mb:
+                caption_final = _mb
+        except Exception:
+            pass
+        message = GroupMessage(group=chat_group, author=request.user, reply_to=reply_to, body=(caption_final or None))
         with open(assembled_path, "rb") as f:
             message.file.save(original_name, File(f), save=False)
         message.save()
@@ -1314,15 +1329,13 @@ def chat_message_edit(request, message_id):
     if request.method != "POST":
         return HttpResponse(status=405)
 
-    if message.file:
+    body = (request.POST.get("body") or "").strip()[:2000]
+    if not body and not message.file:
         return HttpResponse(status=400)
 
-    body = (request.POST.get("body") or "").strip()
-    if not body:
-        return HttpResponse(status=400)
-
-    if body != (message.body or ""):
-        message.body = body
+    new_body = body or None
+    if new_body != (message.body or None):
+        message.body = new_body
         message.edited = timezone.now()
         message.save(update_fields=["body", "edited"])
 

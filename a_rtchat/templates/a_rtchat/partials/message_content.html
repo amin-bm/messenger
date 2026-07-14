@@ -1,4 +1,4 @@
-{% if message.body %}
+{% if not message.file and message.body %}
   {{ message.body|linebreaksbr }}
 {% endif %}
 
@@ -128,6 +128,9 @@
         </button>
       </div>
     </div>
+  {% endif %}
+  {% if message.body %}
+    <div class="mt-2 text-sm leading-relaxed break-words [overflow-wrap:anywhere]" dir="auto" style="unicode-bidi: plaintext; text-align: start;">{{ message.body|linebreaksbr }}</div>
   {% endif %}
 {% endif %}
 

@@ -1,7 +1,11 @@
+// اگر این فایل در <head> (قبل از رندر chat.html) لود شود، window.RtChat و
+// window._rtchatGen قبل از اجرای اسکریپت داخلی چت آماده خواهند بود.
+window._rtchatGen = window._rtchatGen || 0;
+
 window.RtChat = (function () {
   'use strict';
 
-  var _generation = 0;
+  var _generation = window._rtchatGen || 0;
   var _initialized = false;
 
   var _docListeners = [];
@@ -43,9 +47,28 @@ window.RtChat = (function () {
     return id;
   }
 
+  // پاک‌سازیِ سبک که باید همیشه اجرا شود، حتی وقتی init() صدا زده نشده
+  // (مثل چتِ سرور-رندر شده که هنگام باز شدن اپ نمایش داده می‌شود).
+  function resetSharedState() {
+    var portalIds = ['message_action_menu', 'forward_modal', 'file_viewer_modal'];
+    for (var i = 0; i < portalIds.length; i++) {
+      var el = document.getElementById(portalIds[i]);
+      if (el && el.dataset.portaled === '1') {
+        try { el.remove(); } catch (e) {}
+      }
+    }
+    try {
+      if (document.body) delete document.body.dataset.rtchatMsgMenuBound;
+    } catch (e) {}
+  }
+
   function cleanup() {
     _generation++;
     window._rtchatGen = _generation;
+
+    // مهم: این بخش باید همیشه اجرا شود تا وضعیتِ چتِ سرور-رندر شده نشت نکند،
+    // چون برای آن چت init() صدا زده نشده و _initialized برابر false است.
+    resetSharedState();
 
     if (!_initialized) return;
     _initialized = false;
@@ -85,34 +108,34 @@ window.RtChat = (function () {
     }
     _timers = [];
 
-// ✅ بستن WebSocket در htmx 2.x - روش درست
-(function closeStaleWS() {
-  // روش اصلی: از htmx-internal-data
-  var wsForm = document.getElementById('chat_message_form');
-  if (wsForm) {
-    try {
-      var internalData = wsForm['htmx-internal-data'];
-      if (internalData && internalData.webSocket) {
-        internalData.webSocket.close(1000, 'navigated away');
-        internalData.webSocket = null;
+    // ✅ بستن WebSocket در htmx 2.x - روش درست
+    (function closeStaleWS() {
+      // روش اصلی: از htmx-internal-data
+      var wsForm = document.getElementById('chat_message_form');
+      if (wsForm) {
+        try {
+          var internalData = wsForm['htmx-internal-data'];
+          if (internalData && internalData.webSocket) {
+            internalData.webSocket.close(1000, 'navigated away');
+            internalData.webSocket = null;
+          }
+        } catch (e) {}
       }
-    } catch (e) {}
-  }
 
-  // روش پشتیبان: از _wsInstances
-  if (window._wsInstances && Array.isArray(window._wsInstances)) {
-    window._wsInstances.forEach(function(ws) {
-      if (!ws) return;
-      if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) return;
-      try {
-        var wsPath = new URL(ws.url).pathname;
-        if (wsPath.includes('/ws/chatroom/')) {
-          ws.close(1000, 'navigated away');
-        }
-      } catch(e) {}
-    });
-  }
-})();
+      // روش پشتیبان: از _wsInstances
+      if (window._wsInstances && Array.isArray(window._wsInstances)) {
+        window._wsInstances.forEach(function (ws) {
+          if (!ws) return;
+          if (ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) return;
+          try {
+            var wsPath = new URL(ws.url).pathname;
+            if (wsPath.includes('/ws/chatroom/')) {
+              ws.close(1000, 'navigated away');
+            }
+          } catch (e) {}
+        });
+      }
+    })();
 
     // audio cleanup
     var content = document.getElementById('tg-chat-content');
@@ -139,16 +162,6 @@ window.RtChat = (function () {
       delete window.rtchatCurrentUploadXhr;
     }
 
-    var portalIds = ['message_action_menu', 'forward_modal', 'file_viewer_modal'];
-    for (i = 0; i < portalIds.length; i++) {
-      var el = document.getElementById(portalIds[i]);
-      if (el && el.dataset.portaled === '1') {
-        try { el.remove(); } catch (e) {}
-      }
-    }
-
-    try { delete document.body.dataset.rtchatMsgMenuBound; } catch (e) {}
-
     delete window.rtchatClearReply;
     delete window.rtchatMarkOwnMessageScrollPending;
     delete window.rtchatEnsureDateSeparators;
@@ -159,7 +172,13 @@ window.RtChat = (function () {
     var chatContainer = document.getElementById('chat_container');
     if (!chatContainer) return;
 
+    // اگر قبلاً init شده بود (مثلاً هم روی load و هم روی afterSwap صدا خورد)،
+    // دوباره راه‌اندازی نکن تا لیسنرها تکراری نشوند.
+    if (_initialized) return;
+
     _initialized = true;
+    // نسل جاری را به عنوان نسلِ همین چت ثبت کن تا isStale() درست کار کند.
+    window._rtchatGen = _generation;
 
     var content = document.getElementById('tg-chat-content');
     if (content && window.htmx && typeof window.htmx.process === 'function') {
@@ -199,4 +218,4 @@ window.RtChat = (function () {
   };
 })();
 
-window._rtchatGen = 0;
+window._rtchatGen = window._rtchatGen || 0;

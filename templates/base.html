@@ -48,6 +48,8 @@
     })();
   </script>
 
+  <script>window._rtchatGen = window._rtchatGen || 0;</script>
+
   <script>
     (function () {
       const storageKey = 'theme';
@@ -111,6 +113,7 @@
     })();
   </script>
 
+  <script src="{% static 'js/chat_runtime.js' %}?v= APP_VERSION|urlencode "></script>
   <script src="{% static 'vendor/alpine.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
   <script src="{% static 'vendor/htmx.min.js' %}?v={{ APP_VERSION|urlencode }}"></script>
   <script src="{% static 'vendor/ws.min.js' %}?v={{ APP_VERSION|urlencode }}"></script>
@@ -596,6 +599,11 @@
     document.addEventListener('DOMContentLoaded', () => {
       refreshSidebarUI();
       setupPresencePing();
+      // چت اولِ سرور-رندر را هم مثل چت‌های ajax راه‌اندازی کن
+      if (document.getElementById('chat_root') &&
+          typeof window.RtChat !== 'undefined' && window.RtChat.init) {
+        window.RtChat.init();
+      }
     });
     document.body.addEventListener('htmx:afterSwap', refreshSidebarUI);
     document.body.addEventListener('htmx:afterSettle', refreshSidebarUI);
@@ -2678,7 +2686,6 @@
   <script src="{% static 'vendor/docx-preview.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
   <script src="{% static 'vendor/xlsx.full.min.js' %}?v={{ APP_VERSION|urlencode }}" defer></script>
 
-  <script src="{% static 'js/chat_runtime.js' %}?v={{ APP_VERSION|urlencode }}"></script>
 
   {% block javascript %}{% endblock %}
 

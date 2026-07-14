@@ -1230,6 +1230,13 @@
     });
     _on("htmx:wsAfterMessage", (e) => {
       if (isStale()) return;
+      try {
+        var _wsMsg = (e && e.detail && e.detail.message) || "";
+        if (_wsMsg.indexOf('id="reactions-') !== -1 && _wsMsg.indexOf('id="msg-') === -1) {
+          recheck();
+          return;
+        }
+      } catch (err) {}
       if (ownMessageScrollPending) {
         if (Date.now() > ownMessageScrollExpiresAt) clearOwnMessageScrollPending();
         else if (lastMessageIsMine()) {
@@ -2174,6 +2181,13 @@
       window.__rtchatReactionWsBound = true;
       document.body.addEventListener("htmx:wsOpen", function (e) {
         const d = (e && e.detail) ? e.detail : {};
+        var _sock = (d.socketWrapper && d.socketWrapper.socket) || d.socket || null;
+        var _wsUrl = "";
+        try { _wsUrl = (_sock && _sock.url) || ""; } catch (err) {}
+        var _isChatroomWs =
+          (d.elt && d.elt.id === "chat_message_form") ||
+          (_wsUrl && _wsUrl.indexOf("/ws/chatroom/") !== -1);
+        if (!_isChatroomWs) return;
         window.__rtchatWsWrapper = d.socketWrapper || d.socket || null;
       });
       document.body.addEventListener("htmx:wsClose", function (e) {
@@ -2188,8 +2202,16 @@
       const em = String(emoji || "").trim();
       if (!mid || !em) return;
       const payload = JSON.stringify({ type: "reaction", message_id: mid, emoji: em });
-      const wrapper = window.__rtchatWsWrapper || rtchatWsWrapper;
       const srcEl = document.getElementById("chat_message_form");
+      try {
+        const _internal = srcEl && srcEl["htmx-internal-data"];
+        const _liveSock = _internal && _internal.webSocket;
+        if (_liveSock && _liveSock.readyState === 1) {
+          _liveSock.send(payload);
+          return;
+        }
+      } catch (err) {}
+      const wrapper = window.__rtchatWsWrapper || rtchatWsWrapper;
       try {
         if (wrapper && typeof wrapper.send === "function") {
           wrapper.send(payload, srcEl);
@@ -2578,7 +2600,8 @@
           pressPoint = null;
         }
 
-        list.addEventListener("pointerdown", (e) => {
+        _docOn("pointerdown", (e) => {
+          if (isStale()) return;
           if (e && e.pointerType && e.pointerType !== "touch") return;
           const interactive = e.target.closest(
             "a,button,input,textarea,select,label,img[data-zoom-src],.js-audio-msg,.js-audio-seek"
@@ -2586,7 +2609,7 @@
           if (interactive) return;
 
           const messageEl = e.target.closest('li[data-message-id]');
-          if (!messageEl) return;
+          if (!messageEl || !messageEl.closest("#chat_container")) return;
 
           pressMessageEl = messageEl;
           pressStart = { x: e.clientX || 0, y: e.clientY || 0 };
@@ -2608,29 +2631,35 @@
             openMessageMenu(pressMessageEl, pressPoint ? pressPoint.x : 0, pressPoint ? pressPoint.y : 0);
             suppressClickUntil = Date.now() + 800;
           }, longPressDelay);
-        }, { passive: true });
+        }, { passive: true, capture: true });
 
-        list.addEventListener("pointermove", (e) => {
+        _docOn("pointermove", (e) => {
+          if (isStale()) return;
           if (!pressStart) return;
           const dx = Math.abs((e.clientX || 0) - pressStart.x);
           const dy = Math.abs((e.clientY || 0) - pressStart.y);
           if (dx > moveTolerance || dy > moveTolerance) clearPress();
-        }, { passive: true });
+        }, { passive: true, capture: true });
 
-        list.addEventListener("pointerup", clearPress, { passive: true });
-        list.addEventListener("pointercancel", clearPress, { passive: true });
+        _docOn("pointerup", clearPress, { passive: true, capture: true });
+        _docOn("pointercancel", clearPress, { passive: true, capture: true });
 
-        list.addEventListener("click", (e) => {
+        _docOn("click", (e) => {
+          if (isStale()) return;
           if (Date.now() < suppressClickUntil) {
             e.preventDefault();
             e.stopPropagation();
           }
-        });
+        }, { capture: true });
 
-        container.addEventListener("scroll", () => {
-          clearPress();
-          closeMessageMenu();
-        }, { passive: true });
+        _docOn("scroll", (e) => {
+          if (isStale()) return;
+          const t = e && e.target;
+          if (t && t !== document && t.closest && (t.id === "chat_container" || t.closest("#chat_container"))) {
+            clearPress();
+            closeMessageMenu();
+          }
+        }, { passive: true, capture: true });
       })();
 
       if (messagesList && messagesList.dataset.rtchatSelectBound !== "1") {

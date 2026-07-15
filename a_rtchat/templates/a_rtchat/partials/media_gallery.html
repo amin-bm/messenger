@@ -11,9 +11,17 @@
     // from piling up in the DOM with stacked/duplicate event listeners.
     var existingModals = document.querySelectorAll('[id^="media-gallery-modal-"]');
     var last = existingModals[existingModals.length - 1];
+    var _removed = 0;
     existingModals.forEach(function(modal) {
-      if (modal !== last) modal.remove();
+      if (modal !== last) { modal.remove(); _removed++; }
     });
+    // Defensive: if a stale gallery from a previous chat was left open (or was
+    // re-shown by an old trigger handler), removing it above can leave the page
+    // scroll lock stuck. Reset it so the freshly loaded gallery owns it cleanly.
+    if (existingModals.length > 1) { document.body.style.overflow = ''; }
+    if (window._galleryDebug && _removed > 0) {
+      try { console.log('[gallery cleanup] removed ' + _removed + ' stale modal(s); kept ' + (last ? last.id : 'none')); } catch (e) {}
+    }
   })();
 </script>
 
@@ -267,6 +275,13 @@
   var headerTrigger = document.getElementById('chat-header-profile-trigger') || document.getElementById('group-members-trigger');
 
   var _mediaGalleryClosedAt = 0;
+  var _openedAt = 0;
+  // Toggle verbose gallery logging from the console: window._galleryDebug = false
+  if (typeof window._galleryDebug === 'undefined') window._galleryDebug = false;
+  function _glog() {
+    if (!window._galleryDebug) return;
+    try { console.log.apply(console, ['[gallery ' + chatId + ']'].concat([].slice.call(arguments))); } catch (e) {}
+  }
 
   // All known panels and tabs
   var allPanels = [mediaPanel, filesPanel, membersPanel].filter(Boolean);
@@ -298,15 +313,29 @@
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     showPanel('media');
+    _openedAt = Date.now();
+    _glog('open');
     if (typeof window.rtchatForceRecalcSticky === 'function') window.rtchatForceRecalcSticky();
   }
 
-  function closeMediaGallery() {
+  function closeMediaGallery(reason) {
     if (!modal) return;
+    reason = reason || 'unknown';
+    // Guard against the "opens then instantly closes" race: a stray click that
+    // lands on the just-rendered backdrop (or a ghost/synthetic click right
+    // after opening) would otherwise close the gallery the instant it opens.
+    // Closes from such background sources within a short window after opening
+    // are ignored. Explicit user actions (the close button) always close.
+    var sinceOpen = Date.now() - _openedAt;
+    if ((reason === 'backdrop' || reason === 'escape') && sinceOpen < 400 && !modal.classList.contains('hidden')) {
+      _glog('IGNORED close reason=' + reason + ' only ' + sinceOpen + 'ms after open');
+      return;
+    }
     modal.classList.add('hidden');
     document.body.style.overflow = '';
     _mediaGalleryClosedAt = Date.now();
     window._rtchatMediaGalleryClosedAt = _mediaGalleryClosedAt;
+    _glog('close reason=' + reason + ' (' + sinceOpen + 'ms after open)');
   }
 
   function showPanel(which) {
@@ -358,8 +387,8 @@
     if (modal && modal.dataset.eventsBound === '1') return;
     if (modal) modal.dataset.eventsBound = '1';
 
-    if (backdrop) backdrop.addEventListener('click', closeMediaGallery);
-    if (closeBtn) closeBtn.addEventListener('click', closeMediaGallery);
+    if (backdrop) backdrop.addEventListener('click', function () { closeMediaGallery('backdrop'); });
+    if (closeBtn) closeBtn.addEventListener('click', function () { closeMediaGallery('closeBtn'); });
     if (tabMedia) tabMedia.addEventListener('click', function() { showPanel('media'); });
     if (tabFiles) tabFiles.addEventListener('click', function() { showPanel('files'); });
     if (tabMembers) tabMembers.addEventListener('click', function() { showPanel('members'); });
@@ -376,7 +405,7 @@
     document.addEventListener('keydown', function (e) {
       if (isStale()) return;
       if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
-        closeMediaGallery();
+        closeMediaGallery('escape');
       }
     });
 
@@ -391,8 +420,10 @@
           // For groups, the trigger already opens members modal
           // We'll add a way to switch to media tab
         } else {
-          // Private chat - open media gallery directly
-          openMediaGallery();
+          // Private chat: opening is handled by the trigger's hx-get + init().
+          // Do NOT sync-open here — it made the first click (async load) and
+          // second click (sync open) behave differently and raced with load.
+          _glog('headerTrigger click (no sync open)');
         }
       });
     }
@@ -402,7 +433,8 @@
     if (privateMediaTrigger) {
       privateMediaTrigger.addEventListener('click', function (e) {
         e.stopPropagation();
-        openMediaGallery();
+        // Opening is handled by hx-get + init(); no sync open here (see above).
+        _glog('privateMediaTrigger click (no sync open)');
       });
     }
   }

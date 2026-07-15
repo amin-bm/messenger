@@ -2771,14 +2771,15 @@
         trigger.addEventListener('click', function(e) {
           // Don't open if clicking on profile trigger (for profile modal)
           if (e.target.closest('.profile-trigger')) return;
-          if (typeof window.openMediaGallery === 'function') {
-            window.openMediaGallery();
-            // Switch to members tab
-            setTimeout(function() {
-              if (typeof window.showPanel === 'function') {
-                window.showPanel('members');
-              }
-            }, 0);
+          // Opening is handled by hx-get (?tab=members) + media_gallery init().
+          // Proactively remove any lingering gallery modal (from a previous
+          // chat/open) so the freshly loaded gallery is the only one and the
+          // global open/close helpers cannot act on a stale modal.
+          var _stale = document.querySelectorAll('[id^="media-gallery-modal-"]');
+          if (_stale.length) {
+            _stale.forEach(function(m) { m.remove(); });
+            document.body.style.overflow = '';
+            if (window._galleryDebug) { try { console.log('[chat trigger] cleared ' + _stale.length + ' lingering gallery modal(s) before load'); } catch (e) {} }
           }
         });
       }
@@ -2787,9 +2788,15 @@
       if (mediaTrigger) {
         mediaTrigger.addEventListener('click', function(e) {
           e.stopPropagation();
-          if (typeof window.openMediaGallery === 'function') {
-            window.openMediaGallery();
-            // Media tab is default, no need to switch
+          // Opening is handled by hx-get + media_gallery init().
+          // Proactively remove any lingering gallery modal (from a previous
+          // chat/open) so the freshly loaded gallery is the only one and the
+          // global open/close helpers cannot act on a stale modal.
+          var _stale = document.querySelectorAll('[id^="media-gallery-modal-"]');
+          if (_stale.length) {
+            _stale.forEach(function(m) { m.remove(); });
+            document.body.style.overflow = '';
+            if (window._galleryDebug) { try { console.log('[chat trigger] cleared ' + _stale.length + ' lingering gallery modal(s) before load'); } catch (e) {} }
           }
         });
       }
@@ -2819,8 +2826,15 @@
         privateMediaTrigger.dataset.bound = '1';
         privateMediaTrigger.addEventListener('click', function(e) {
           e.stopPropagation();
-          if (typeof window.openMediaGallery === 'function') {
-            window.openMediaGallery();
+          // Opening is handled by hx-get + media_gallery init().
+          // Proactively remove any lingering gallery modal (from a previous
+          // chat/open) so the freshly loaded gallery is the only one and the
+          // global open/close helpers cannot act on a stale modal.
+          var _stale = document.querySelectorAll('[id^="media-gallery-modal-"]');
+          if (_stale.length) {
+            _stale.forEach(function(m) { m.remove(); });
+            document.body.style.overflow = '';
+            if (window._galleryDebug) { try { console.log('[chat trigger] cleared ' + _stale.length + ' lingering gallery modal(s) before load'); } catch (e) {} }
           }
         });
       }

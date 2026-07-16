@@ -6,6 +6,8 @@ from django.db import models
 from django.contrib.auth.models import User
 import shortuuid
 import os
+import uuid
+from django.core.files.storage import FileSystemStorage
 from PIL import Image
 from django.utils import timezone
 import datetime
@@ -82,13 +84,31 @@ class ChatGroup(models.Model):
       except Exception:
          return False
 
+class KeepOriginalNameStorage(FileSystemStorage):
+   """نام فایل را همان‌طور که کاربر فرستاده نگه می‌دارد و فقط مسیر را امن می‌کند.
+   (بر خلاف رفتار پیش‌فرض که فاصله را به آندرلاین تبدیل می‌کند)."""
+   def get_valid_name(self, name):
+      return os.path.basename(name)
+
+
+chat_file_storage = KeepOriginalNameStorage()
+
+
+def chat_file_upload_to(instance, filename):
+   # هر فایل داخل یک پوشه‌ی یکتا ذخیره می‌شود تا هیچ‌وقت تداخل نام رخ ندهد
+   # و Django مجبور نشود پسوند تصادفی (مثل _EMIjPm3) به نام اضافه کند.
+   # شاردینگ بر اساس تاریخ + دو کاراکتر اول UUID تا هیچ پوشه‌ای بیش از حد شلوغ نشود.
+   u = uuid.uuid4().hex
+   return f"files/{timezone.now():%Y/%m/%d}/{u[:2]}/{u}/{filename}"
+
+
 class GroupMessage(models.Model):
    group = models.ForeignKey(ChatGroup, related_name='chat_messages', on_delete=models.CASCADE)
    author = models.ForeignKey(User, on_delete=models.CASCADE)
    reply_to = models.ForeignKey('self', null=True, blank=True, related_name='replies', on_delete=models.SET_NULL)
    forwarded_from = models.ForeignKey(User, null=True, blank=True, related_name='forwarded_messages', on_delete=models.SET_NULL)
    body = models.CharField(max_length=2000, null=True, blank=True)
-   file = models.FileField(null=True, blank=True, upload_to='files/')
+   file = models.FileField(null=True, blank=True, storage=chat_file_storage, upload_to=chat_file_upload_to)
    created = models.DateTimeField(auto_now_add=True)
    edited = models.DateTimeField(null=True, blank=True)
    is_pinned = models.BooleanField(default=False)

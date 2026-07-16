@@ -4906,6 +4906,87 @@
     const CHUNK_THRESHOLD = 1024 * 1024;
     const CHUNK_UPLOAD_URL = "{% url 'chat-file-upload-chunk' chat_group.group_name %}";
 
+    // ===== Background upload via Service Worker (survives leaving/switching chats) =====
+    // آپلود را به Service Worker می‌سپاریم تا با خروج از چت/جابه‌جایی قطع نشود.
+    const CHAT_KEY = CHUNK_UPLOAD_URL; // کلید یکتا برای هر چت‌روم
+    const swUploadCallbacks = new Map(); // uploadId -> { onDone, onError }
+    let currentSWUploadId = null;
+
+    function swController() {
+      return (typeof navigator !== "undefined" && navigator.serviceWorker && navigator.serviceWorker.controller) || null;
+    }
+    function postToSW(msg) {
+      const c = swController();
+      if (!c) return false;
+      try { c.postMessage(msg); return true; } catch (e) { return false; }
+    }
+    function ensureProgressVisible(label) {
+      if (!progressWrapper) return;
+      if (label && uploadFileName) uploadFileName.textContent = label;
+      progressWrapper.classList.remove("hidden");
+    }
+    function swUploadLabel(u) {
+      const name = (u && u.fileName) ? u.fileName : "Uploading...";
+      if (u && Number(u.batchTotal) > 1) return `(${(Number(u.batchIndex) || 0) + 1}/${u.batchTotal}) ${name}`;
+      return name;
+    }
+    function handleSWUpload(u, kind) {
+      if (!u) return;
+      const mine = u.chatKey === CHAT_KEY;
+      const cb = swUploadCallbacks.get(u.uploadId);
+
+      if (mine && kind === "progress" && u.status === "uploading") {
+        ensureProgressVisible(swUploadLabel(u));
+        updateProgress(Number(u.percent) || 0);
+        currentSWUploadId = u.uploadId;
+      }
+
+      if (kind === "done" || kind === "error" || kind === "canceled") {
+        if (cb) {
+          swUploadCallbacks.delete(u.uploadId);
+          if (kind === "done") { if (cb.onDone) cb.onDone(u); }
+          else { if (cb.onError) cb.onError(new Error(kind === "canceled" ? "ABORTED" : (u.error || "UPLOAD_FAILED"))); }
+        } else if (mine) {
+          // وضعیت نهایی برای آپلودی که قبل از لود این صفحه شروع شده بود.
+          if (currentSWUploadId === u.uploadId) currentSWUploadId = null;
+          hideProgress();
+          try { update(); } catch (e) {}
+          requestUploadRestore();
+        }
+      }
+    }
+    function restoreFromList(uploads) {
+      const active = (uploads || []).filter((u) => u && u.chatKey === CHAT_KEY && (u.status === "uploading" || u.status === "queued"));
+      if (!active.length) return;
+      const u = active.find((x) => x.status === "uploading") || active[0];
+      currentSWUploadId = u.uploadId;
+      ensureProgressVisible(swUploadLabel(u));
+      updateProgress(Number(u.percent) || 0);
+    }
+    function requestUploadRestore() {
+      const c = swController();
+      if (!c) return;
+      try {
+        const ch = new MessageChannel();
+        ch.port1.onmessage = (e) => {
+          const d = (e && e.data) || {};
+          if (d.type === "UPLOAD_LIST") restoreFromList(d.uploads || []);
+        };
+        c.postMessage({ type: "UPLOAD_QUERY", chatKey: CHAT_KEY }, [ch.port2]);
+      } catch (e) {}
+    }
+    if (typeof navigator !== "undefined" && navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener("message", (event) => {
+        const d = (event && event.data) || {};
+        if (d.type === "UPLOAD_PROGRESS") handleSWUpload(d.upload, "progress");
+        else if (d.type === "UPLOAD_DONE") handleSWUpload(d.upload, "done");
+        else if (d.type === "UPLOAD_ERROR") handleSWUpload(d.upload, "error");
+        else if (d.type === "UPLOAD_CANCELED") handleSWUpload(d.upload, "canceled");
+        else if (d.type === "UPLOAD_LIST") restoreFromList(d.uploads || []);
+      });
+      setTimeout(requestUploadRestore, 0);
+    }
+
     const sendingStatus = document.getElementById("sending_status");
     const sendingTextEl = document.getElementById("sending_status_text");
     const sendingRetryBtn = document.getElementById("sending_retry_btn");
@@ -4958,7 +5039,7 @@
     }
 
     function hasInFlightUpload() {
-      return Boolean(window.rtchatCurrentUploadXhr) || isVisible(progressWrapper);
+      return Boolean(window.rtchatCurrentUploadXhr) || Boolean(currentSWUploadId) || isVisible(progressWrapper);
     }
 
     function isConnected() {
@@ -5309,6 +5390,7 @@
 
     function cancelUpload() {
       uploadAborted = true;
+      if (currentSWUploadId) postToSW({ type: "UPLOAD_CANCEL", uploadId: currentSWUploadId });
       const xhr = window.rtchatCurrentUploadXhr || currentXhr;
       if (xhr) {
         try {
@@ -5405,6 +5487,7 @@
 
       const isOverride = Boolean(fileOverride);
       uploadAborted = false;
+      const batchId = generateUploadId();
       const total = files.length;
       let index = 0;
 
@@ -5439,6 +5522,38 @@
         const fileCaption = isLast ? caption : "";
         const label = total > 1 ? `(${index + 1}/${total}) ${fileSummary(file)}` : fileSummary(file);
         showProgress(label);
+
+        if (swController()) {
+          return new Promise((resolve, reject) => {
+            const swUploadId = generateUploadId();
+            currentSWUploadId = swUploadId;
+            swUploadCallbacks.set(swUploadId, {
+              onDone: () => { if (currentSWUploadId === swUploadId) currentSWUploadId = null; resolve(); },
+              onError: (e) => { if (currentSWUploadId === swUploadId) currentSWUploadId = null; reject(e instanceof Error ? e : new Error("UPLOAD_FAILED")); },
+            });
+            const ok = postToSW({
+              type: "UPLOAD_START",
+              uploadId: swUploadId,
+              chatKey: CHAT_KEY,
+              url: CHUNK_UPLOAD_URL,
+              file: file,
+              fileName: file.name || "file",
+              fileSize: Number(file.size || 0),
+              replyTo: replyTo || "",
+              caption: fileCaption || "",
+              csrfToken: csrfToken || "",
+              chunkSize: CHUNK_SIZE,
+              batchId: batchId,
+              batchIndex: index,
+              batchTotal: total,
+            });
+            if (!ok) {
+              swUploadCallbacks.delete(swUploadId);
+              if (currentSWUploadId === swUploadId) currentSWUploadId = null;
+              reject(new Error("SW_UNAVAILABLE"));
+            }
+          });
+        }
 
         if (Number(file.size || 0) >= CHUNK_THRESHOLD) {
           return uploadFileChunked(file, replyTo, csrfToken, fileCaption);

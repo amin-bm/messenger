@@ -165,8 +165,184 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+/* ===== Background upload manager (chunked, survives page navigation) ===== */
+const UPLOAD_QUEUE = [];
+const UPLOAD_STATE = new Map(); // uploadId -> state
+const UPLOAD_ABORTERS = new Map(); // uploadId -> AbortController
+let UPLOAD_RUNNING = false;
+
+function swGenerateUuid() {
+  try {
+    if (self.crypto && typeof self.crypto.randomUUID === "function") return self.crypto.randomUUID();
+  } catch (e) {}
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (ch) => {
+    const r = (Math.random() * 16) | 0;
+    const v = ch === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+function uploadSnapshot(s) {
+  const total = Number(s.totalBytes) || 0;
+  const sent = Number(s.sentBytes) || 0;
+  return {
+    uploadId: s.uploadId,
+    chatKey: s.chatKey,
+    fileName: s.fileName,
+    fileSize: s.fileSize,
+    sentBytes: sent,
+    totalBytes: total,
+    percent: total > 0 ? Math.min(100, (sent / total) * 100) : (s.status === "done" ? 100 : 0),
+    status: s.status,
+    batchId: s.batchId,
+    batchIndex: s.batchIndex,
+    batchTotal: s.batchTotal,
+    error: s.error || null,
+  };
+}
+
+function enqueueUpload(item) {
+  const total = Number((item.file && item.file.size) || item.fileSize || 0);
+  const state = {
+    uploadId: item.uploadId,
+    chatKey: item.chatKey,
+    fileName: item.fileName || "file",
+    fileSize: total,
+    sentBytes: 0,
+    totalBytes: total,
+    status: "queued",
+    batchId: item.batchId || null,
+    batchIndex: Number(item.batchIndex) || 0,
+    batchTotal: Number(item.batchTotal) || 1,
+    error: null,
+  };
+  UPLOAD_STATE.set(item.uploadId, state);
+  UPLOAD_QUEUE.push({ item: item, serverUploadId: swGenerateUuid() });
+  notifyClients({ type: "UPLOAD_PROGRESS", upload: uploadSnapshot(state) });
+  processUploadQueue();
+}
+
+async function processUploadQueue() {
+  if (UPLOAD_RUNNING) return;
+  UPLOAD_RUNNING = true;
+  try {
+    while (UPLOAD_QUEUE.length) {
+      const job = UPLOAD_QUEUE.shift();
+      await runUploadJob(job);
+    }
+  } finally {
+    UPLOAD_RUNNING = false;
+  }
+}
+
+async function runUploadJob(job) {
+  const item = job.item;
+  const state = UPLOAD_STATE.get(item.uploadId);
+  if (!state) return;
+  if (state.status === "canceled") { UPLOAD_STATE.delete(item.uploadId); return; }
+
+  const controller = new AbortController();
+  UPLOAD_ABORTERS.set(item.uploadId, controller);
+  state.status = "uploading";
+  notifyClients({ type: "UPLOAD_PROGRESS", upload: uploadSnapshot(state) });
+
+  const file = item.file;
+  const chunkSize = Number(item.chunkSize) || 512 * 1024;
+  const totalBytes = Number((file && file.size) || 0);
+  const totalChunks = Math.max(1, Math.ceil(totalBytes / chunkSize));
+
+  try {
+    for (let i = 0; i < totalChunks; i++) {
+      if (state.status === "canceled") throw new Error("CANCELED");
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, totalBytes);
+      const blob = file.slice(start, end);
+
+      const fd = new FormData();
+      fd.append("file", blob, item.fileName || "file");
+      fd.append("upload_id", job.serverUploadId);
+      fd.append("chunk_index", String(i));
+      fd.append("total_chunks", String(totalChunks));
+      fd.append("file_name", item.fileName || "file");
+      if (item.replyTo) fd.append("reply_to", item.replyTo);
+      if (item.caption) fd.append("body", item.caption);
+      if (item.csrfToken) fd.append("csrfmiddlewaretoken", item.csrfToken);
+
+      const res = await fetch(item.url, {
+        method: "POST",
+        credentials: "include",
+        headers: { "X-CSRFToken": item.csrfToken || "", "HX-Request": "true" },
+        body: fd,
+        signal: controller.signal,
+      });
+      if (!res || !res.ok) throw new Error("HTTP_" + (res ? res.status : "0"));
+
+      state.sentBytes = end;
+      notifyClients({ type: "UPLOAD_PROGRESS", upload: uploadSnapshot(state) });
+    }
+
+    state.status = "done";
+    state.sentBytes = totalBytes;
+    notifyClients({ type: "UPLOAD_DONE", upload: uploadSnapshot(state) });
+  } catch (err) {
+    const aborted = state.status === "canceled" || (err && (err.name === "AbortError" || String(err.message) === "CANCELED"));
+    if (aborted) {
+      state.status = "canceled";
+      notifyClients({ type: "UPLOAD_CANCELED", upload: uploadSnapshot(state) });
+    } else {
+      state.status = "error";
+      state.error = String((err && err.message) || "ERROR");
+      notifyClients({ type: "UPLOAD_ERROR", upload: uploadSnapshot(state) });
+    }
+  } finally {
+    UPLOAD_ABORTERS.delete(item.uploadId);
+    setTimeout(() => UPLOAD_STATE.delete(item.uploadId), 60000);
+  }
+}
+
+function cancelBackgroundUpload(uploadId) {
+  const state = UPLOAD_STATE.get(uploadId);
+  if (state) state.status = "canceled";
+  const ab = UPLOAD_ABORTERS.get(uploadId);
+  if (ab) { try { ab.abort(); } catch (e) {} }
+  const idx = UPLOAD_QUEUE.findIndex((j) => j.item.uploadId === uploadId);
+  if (idx >= 0) UPLOAD_QUEUE.splice(idx, 1);
+  if (state) notifyClients({ type: "UPLOAD_CANCELED", upload: uploadSnapshot(state) });
+}
+
+function listBackgroundUploads(chatKey) {
+  const out = [];
+  for (const s of UPLOAD_STATE.values()) {
+    if (!chatKey || s.chatKey === chatKey) out.push(uploadSnapshot(s));
+  }
+  return out;
+}
+
 self.addEventListener("message", (event) => {
   const data = event && event.data;
+
+  if (data && data.type === "UPLOAD_START") {
+    const list = Array.isArray(data.uploads) ? data.uploads : [data];
+    for (const item of list) {
+      if (item && item.uploadId && item.file) enqueueUpload(item);
+    }
+    return;
+  }
+
+  if (data && data.type === "UPLOAD_CANCEL") {
+    cancelBackgroundUpload(data.uploadId);
+    return;
+  }
+
+  if (data && data.type === "UPLOAD_QUERY") {
+    const uploads = listBackgroundUploads(data.chatKey);
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({ type: "UPLOAD_LIST", uploads: uploads });
+    } else {
+      notifyClients({ type: "UPLOAD_LIST", uploads: uploads });
+    }
+    return;
+  }
 
   if (data === "SKIP_WAITING") {
     self.skipWaiting();

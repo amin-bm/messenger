@@ -752,6 +752,136 @@
     });
   })();
 
+// ---------- IIFE: تشخیص و کلیک‌پذیر کردن لینک‌ها داخل پیام‌ها ----------
+(function () {
+    // الگوی تشخیص URL و ایمیل (اول ایمیل، بعد http/www، بعد دامنه‌ی خام)
+    var URL_RE = /([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})|((?:https?:\/\/|www\.)[^\s<>\u0600-\u06FF]+[^\s<>.,;:!?)\]}'"\u00AB\u00BB\u201C\u201D\u060C])|(\b[A-Za-z0-9][A-Za-z0-9\-]*(?:\.[A-Za-z0-9\-]+)+(?:\/[^\s<>\u0600-\u06FF]*)?)/g;
+
+    // پسوندهای معتبر برای «دامنه‌ی خام» تا از تبدیل اشتباه متن (مثل نسخه یا قیمت) جلوگیری شود
+    var BARE_TLDS = /\.(com|net|org|io|ir|co|dev|app|info|biz|me|ai|xyz|online|site|shop|store|gov|edu|news|tv|cc|link|page|blog|uk|us|de|fr|it|es|nl|ru|cn|jp|in|ca|au|se|ch|pl|tr|ae)(\/|$|\?|#|:)/i;
+
+    function makeLink(match, kind) {
+      var a = document.createElement("a");
+      var href;
+      if (kind === "email") {
+        href = "mailto:" + match;
+      } else if (/^https?:\/\//i.test(match)) {
+        href = match;
+      } else {
+        href = "https://" + match; // www. یا دامنه‌ی خام
+      }
+      a.href = href;
+      a.textContent = match;
+      if (kind !== "email") {
+        // باز شدن در تب جدید = مرورگر پیش‌فرض ویندوز/موبایل
+        a.target = "_blank";
+        a.rel = "noopener noreferrer nofollow";
+      }
+      a.setAttribute("dir", "ltr");
+      a.className = "rtchat-link";
+      a.style.cssText =
+        "color:#2563eb;text-decoration:underline;word-break:break-all;unicode-bidi:normal;";
+      return a;
+    }
+
+    function linkifyTextNode(node) {
+      var text = node.nodeValue;
+      if (!text) return;
+      // رد سریع اگر نشانه‌ی احتمالی لینک/ایمیل وجود ندارد
+      if (text.indexOf("@") === -1 && !/[a-zA-Z0-9]\.[a-zA-Z]/.test(text) && !/https?:\/\/|www\./i.test(text)) {
+        return;
+      }
+      URL_RE.lastIndex = 0;
+      if (!URL_RE.test(text)) return;
+      URL_RE.lastIndex = 0;
+
+      var frag = document.createDocumentFragment();
+      var last = 0, m;
+      while ((m = URL_RE.exec(text)) !== null) {
+        var matched = m[0];
+        var kind = m[1] ? "email" : "url";
+        var isBare = !!m[3]; // دامنه‌ی خام بدون http/www
+        // برای دامنه‌ی خام فقط اگر پسوند معتبر باشد لینک بساز
+        if (isBare && !BARE_TLDS.test(matched)) {
+          continue;
+        }
+        var start = m.index;
+        if (start > last) {
+          frag.appendChild(document.createTextNode(text.slice(last, start)));
+        }
+        frag.appendChild(makeLink(matched, kind));
+        last = start + matched.length;
+      }
+      if (last === 0) return; // چیزی جایگزین نشد
+      if (last < text.length) {
+        frag.appendChild(document.createTextNode(text.slice(last)));
+      }
+      if (node.parentNode) node.parentNode.replaceChild(frag, node);
+    }
+
+    function walk(el) {
+      if (!("createTreeWalker" in document)) return;
+      var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, {
+        acceptNode: function (n) {
+          if (!n.nodeValue || !n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          var p = n.parentNode;
+          while (p && p !== el.parentNode) {
+            var tag = p.nodeName;
+            if (tag === "A" || tag === "SCRIPT" || tag === "STYLE" || tag === "CODE" || tag === "PRE" || tag === "BUTTON") {
+              return NodeFilter.FILTER_REJECT;
+            }
+            p = p.parentNode;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      var nodes = [];
+      var cur;
+      while ((cur = walker.nextNode())) nodes.push(cur);
+      nodes.forEach(linkifyTextNode);
+    }
+
+    function linkifyMessages(root) {
+      var scope = root && root.querySelectorAll ? root : document;
+      var containers = [];
+      if (scope.matches && scope.matches("[data-message-body-container]") && scope.getAttribute("data-linkified") !== "1") {
+        containers.push(scope);
+      }
+      if (scope.querySelectorAll) {
+        scope.querySelectorAll("[data-message-body-container]:not([data-linkified])").forEach(function (c) {
+          containers.push(c);
+        });
+      }
+      containers.forEach(function (c) {
+        if (c.getAttribute("data-linkified") === "1") return;
+        c.setAttribute("data-linkified", "1");
+        try { walk(c); } catch (e) {}
+      });
+    }
+
+    window.rtchatLinkifyMessages = linkifyMessages;
+
+    if (document.readyState === "loading")
+      _docOn("DOMContentLoaded", function () {
+        if (isStale()) return;
+        linkifyMessages(document);
+      });
+    else linkifyMessages(document);
+
+    _on("htmx:oobAfterSwap", function (e) {
+      if (isStale()) return;
+      linkifyMessages(e && e.target ? e.target : document);
+    });
+    _on("htmx:wsAfterMessage", function () {
+      if (isStale()) return;
+      linkifyMessages(document);
+    });
+    _on("htmx:afterSwap", function (e) {
+      if (isStale()) return;
+      linkifyMessages(e && e.target ? e.target : document);
+    });
+})();
+
 // ---------- IIFE مربوط به load older ----------
 (function () {
     let observer = null;

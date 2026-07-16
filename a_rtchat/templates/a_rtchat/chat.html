@@ -6421,5 +6421,102 @@
     }
   })();
 
+
+  // ===== Draft messages: persist unsent text per chatroom =====
+  // پیام تایپ‌شده و ارسال‌نشده را برای هر چت ذخیره می‌کنیم تا با بازگشت به همان چت
+  // بتوان آن را ادامه داد، تغییر داد، ارسال کرد یا حذف کرد.
+  (function () {
+    const form = document.getElementById("chat_message_form");
+    const chatRoot = document.getElementById("chat_root");
+    if (!form || !chatRoot) return;
+
+    const bodyInput = form.querySelector('input[name="body"], textarea[name="body"]');
+    if (!bodyInput) return;
+
+    // شناسه‌ی یکتای این چت‌روم برای ساخت کلید درفت
+    function getChatId() {
+      const id = (chatRoot.getAttribute("data-chatroom-identifier") || "").trim();
+      if (id) return id;
+      const wsc = (form.getAttribute("ws-connect") || "").trim();
+      if (wsc) return wsc;
+      return (window.location && window.location.pathname) || "default";
+    }
+
+    const DRAFT_KEY = "rtchat:draft:" + getChatId();
+
+    function safeGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+    function safeSet(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} }
+    function safeRemove(k) { try { window.localStorage.removeItem(k); } catch (e) {} }
+
+    // در حالت انتخاب فایل/کپشن، متن ورودی موقتی است و نباید به‌عنوان درفت ذخیره/بازیابی شود.
+    function isFileMode() {
+      const fileInput = document.getElementById("id_file");
+      const hasFiles = !!(fileInput && fileInput.files && fileInput.files.length);
+      return hasFiles || bodyInput.readOnly === true;
+    }
+
+    function saveDraft() {
+      if (typeof isStale === "function" && isStale()) return;
+      if (isFileMode()) return;
+      const val = bodyInput.value || "";
+      if (val.trim() === "") safeRemove(DRAFT_KEY); // خالی شدن = حذف درفت
+      else safeSet(DRAFT_KEY, val);
+    }
+
+    function restoreDraft() {
+      if (typeof isStale === "function" && isStale()) return;
+      if (isFileMode()) return;
+      if ((bodyInput.value || "").length > 0) return; // چیزی از قبل تایپ شده؛ بازنویسی نکن
+      const saved = safeGet(DRAFT_KEY);
+      if (saved && saved.length) {
+        bodyInput.value = saved;
+        // برای تنظیم ارتفاع تکست‌اریا و نمایش دکمه‌ی ارسال
+        bodyInput.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+
+    function clearDraft() { safeRemove(DRAFT_KEY); }
+
+    let _saveTimer = null;
+    function scheduleSave() {
+      if (_saveTimer) clearTimeout(_saveTimer);
+      _saveTimer = setTimeout(function () { _saveTimer = null; saveDraft(); }, 250);
+    }
+    function flushSave() {
+      if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+      saveDraft();
+    }
+
+    // ذخیره‌ی زنده هنگام تایپ
+    bodyInput.addEventListener("input", scheduleSave);
+
+    // ذخیره‌ی فوری هنگام از دست رفتن فوکوس یا ترک/پنهان شدن صفحه
+    bodyInput.addEventListener("blur", flushSave);
+    _winOn("pagehide", flushSave);
+    _winOn("beforeunload", flushSave);
+    _docOn("visibilitychange", function () {
+      if (document.visibilityState === "hidden") flushSave();
+    });
+
+    // ذخیره‌ی فوری پیش از جابه‌جایی/سوآپ چت توسط htmx
+    _on("htmx:beforeSwap", flushSave);
+    _on("htmx:beforeCleanupElement", function (e) {
+      const t = (e && e.target) ? e.target : null;
+      if (t && (t === form || t === bodyInput || (typeof t.contains === "function" && t.contains(bodyInput)))) flushSave();
+    });
+
+    // پس از ارسال موفق، درفت پاک شود
+    form.addEventListener("htmx:wsAfterSend", clearDraft);
+
+    // بازیابی درفت هنگام باز شدن این چت
+    if (document.readyState === "loading") {
+      _docOn("DOMContentLoaded", restoreDraft);
+    } else {
+      restoreDraft();
+    }
+    // تلاش دوباره‌ی کوتاه برای مواقعی که ورودی با تاخیر آماده می‌شود
+    setTimeout(restoreDraft, 60);
+  })();
+
 </script>
 {% endblock %}

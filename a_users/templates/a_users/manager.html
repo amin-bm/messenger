@@ -117,7 +117,18 @@
 </form>
 
 {% else %}
-<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3" dir="rtl">پشتیبان‌گیری</h2>
+<div dir="rtl" x-data="managerTabs()">
+    <div class="mb-6 overflow-x-auto">
+        <div class="inline-flex min-w-full gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1 dark:bg-slate-950/35 dark:border-white/10">
+            <button type="button" @click="setTab('backup')" :class="tab === 'backup' ? 'bg-white text-gray-900 shadow-sm dark:bg-white/10 dark:text-slate-100' : 'text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200'" class="flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors">پشتیبان‌گیری</button>
+            <button type="button" @click="setTab('users')" :class="tab === 'users' ? 'bg-white text-gray-900 shadow-sm dark:bg-white/10 dark:text-slate-100' : 'text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200'" class="flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors">کاربران</button>
+            <button type="button" @click="setTab('contacts')" :class="tab === 'contacts' ? 'bg-white text-gray-900 shadow-sm dark:bg-white/10 dark:text-slate-100' : 'text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200'" class="flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors">مخاطبین</button>
+        </div>
+    </div>
+
+    <!-- tab: backup -->
+    <div x-show="tab === 'backup'" x-cloak>
+    <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3" dir="rtl">پشتیبان‌گیری</h2>
 
 <div dir="rtl" x-data="backupManager({
         urls: {
@@ -265,9 +276,10 @@
                 <div>
                     <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">ساعت (به وقت تهران)</label>
                     <div class="flex items-center gap-2">
-                        <input type="number" name="hour" min="0" max="23" value="{{ schedule.hour }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
-                        <span class="text-gray-500">:</span>
                         <input type="number" name="minute" min="0" max="59" value="{{ schedule.minute }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+                        <span class="text-gray-500">:</span>
+                        <input type="number" name="hour" min="0" max="23" value="{{ schedule.hour }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+
                     </div>
                     <div class="text-[11px] text-gray-400 mt-1">ساعت ۰ تا ۲۳ ، دقیقه ۰ تا ۵۹</div>
                 </div>
@@ -511,11 +523,34 @@
             },
         };
     };
-</script>
 
-<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">کاربران در انتظار تایید</h2>
+    window.managerTabs = function () {
+        return {
+            tab: 'backup',
+            valid: ['backup', 'users', 'contacts'],
+            init() {
+                try {
+                    const saved = localStorage.getItem('managerActiveTab');
+                    if (saved && this.valid.includes(saved)) this.tab = saved;
+                } catch (e) {}
+                const hs = (window.location.hash || '').replace('#', '');
+                if (this.valid.includes(hs)) this.tab = hs;
+            },
+            setTab(t) {
+                this.tab = t;
+                try { localStorage.setItem('managerActiveTab', t); } catch (e) {}
+            },
+        };
+    };
+</script>
+    </div>
+
+    <!-- tab: users -->
+    <div x-show="tab === 'users'" x-cloak>
+    <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">کاربران در انتظار تایید</h2>
 {% if pending_profiles %}
-<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400 mb-8">
+<div class="overflow-x-auto mb-8">
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
     <tbody>
         {% for p in pending_profiles %}
         <tr class="border-b dark:border-white/10">
@@ -537,6 +572,7 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% else %}
 <div class="text-sm text-gray-500 dark:text-slate-400 mb-8">کاربری برای تایید وجود ندارد.</div>
 {% endif %}
@@ -549,6 +585,7 @@
     <button type="submit" class="button block !bg-gray-800">جستجو</button>
 </form>
 
+<div class="overflow-x-auto">
 <table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
     <tbody>
         {% for p in manager_profiles %}
@@ -575,10 +612,13 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endif %}
+    </div>
 
-<br>
-<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mt-10 mb-3">محدودسازی نمایش مخاطبین</h2>
+    <!-- tab: contacts -->
+    <div x-show="tab === 'contacts'" x-cloak>
+    <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mt-10 mb-3">محدودسازی نمایش مخاطبین</h2>
 
 <form method="get" class="flex gap-2 mb-4">
     <input name="cq" value="{{ cq }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو مخاطب با نام کاربری" />
@@ -586,6 +626,7 @@
     <button type="submit" class="button block !bg-gray-800">جستجو</button>
 </form>
 
+<div class="overflow-x-auto">
 <table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
     <tbody>
         {% for p in contact_profiles %}
@@ -614,6 +655,7 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 
 <br>
 <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mt-10 mb-3">دسته‌بندی مخاطبین</h2>
@@ -632,6 +674,7 @@
     <button type="submit" class="button block !bg-gray-800">جستجو</button>
 </form>
 
+<div class="overflow-x-auto">
 <table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
     <tbody>
         {% for c in contact_categories %}
@@ -653,6 +696,9 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
+    </div>
+</div>
 
 {% endif %}
 {% endblock %}

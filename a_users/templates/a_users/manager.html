@@ -118,66 +118,364 @@
 
 {% else %}
 <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3" dir="rtl">پشتیبان‌گیری</h2>
-<div class="mb-10 grid grid-cols-1 md:grid-cols-2 gap-4" dir="rtl">
-    <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
-        <div class="flex items-center gap-3 mb-1">
-            <div class="h-9 w-9 rounded-lg bg-slate-100 text-slate-700 grid place-items-center dark:bg-white/10 dark:text-slate-200">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 3v12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M5 21h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
-                </svg>
+
+<div dir="rtl" x-data="backupManager({
+        urls: {
+            start: '{% url 'profile-manager-backup-start' %}',
+            progressBase: '{% url 'profile-manager-backup-progress' '__JOB__' %}',
+            restore: '{% url 'profile-manager-restore' %}',
+            deleteUrl: '{% url 'profile-manager-backup-delete' %}',
+            home: '{% url 'home' %}'
+        },
+        csrf: '{{ csrf_token }}'
+    })">
+
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- کارت ساخت بکاپ -->
+        <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
+            <div class="flex items-center gap-3 mb-1">
+                <div class="h-9 w-9 rounded-lg bg-slate-100 text-slate-700 grid place-items-center dark:bg-white/10 dark:text-slate-200">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3v12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M5 21h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">ساخت بکاپ</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">فایل بکاپ روی سرور ذخیره و به لیست پایین اضافه می‌شود</div>
+                </div>
             </div>
-            <div class="min-w-0">
-                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">گرفتن بکاپ</div>
-                <div class="text-xs text-gray-500 dark:text-slate-400">دانلود فایل بکاپ از اطلاعات فعلی سیستم</div>
+            <div class="mt-4 flex flex-col gap-3">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" x-model="includeMedia" :disabled="creating" class="h-5 w-5 rounded border border-gray-300 dark:border-white/20" />
+                    <span class="text-xs text-gray-700 dark:text-slate-300">شامل کردن فایل‌ها (عکس، ویدئو، فایل‌های متنی و ...)</span>
+                </label>
+                <button type="button" @click="startBackup()" :disabled="creating" class="button block !bg-gray-800 w-fit" :class="creating ? 'opacity-70 cursor-not-allowed' : ''">
+                    <span x-show="!creating">شروع بکاپ</span>
+                    <span x-show="creating" x-cloak>در حال ساخت…</span>
+                </button>
+
+                <!-- نوار پیشرفت ساخت -->
+                <div x-show="createStatus" x-cloak class="mt-1">
+                    <div class="flex items-center justify-between text-xs mb-1">
+                        <span class="text-gray-600 dark:text-slate-300" x-text="createStatus === 'done' ? 'بکاپ ساخته شد' : (createStatus === 'error' ? 'خطا' : 'در حال ساخت بکاپ…')"></span>
+                        <span class="text-gray-600 dark:text-slate-300" x-text="createPercent + '%'"></span>
+                    </div>
+                    <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden dark:bg-white/10">
+                        <div class="h-full rounded-full transition-all duration-300" :class="createStatus === 'error' ? 'bg-red-600' : 'bg-sky-500'" :style="'width:' + createPercent + '%'"></div>
+                    </div>
+                    <div x-show="createError" x-cloak class="text-xs text-red-600 mt-1" x-text="createError"></div>
+                </div>
             </div>
         </div>
-        <div class="mt-4">
-            <a href="{% url 'profile-manager-backup' %}" class="button block !bg-gray-800 w-fit">دانلود بکاپ</a>
-        </div>
-    </div>
 
-    <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10" x-data="{ fileName: '', confirm: false, tried: false }">
-        <div class="flex items-center gap-3 mb-1">
-            <div class="h-9 w-9 rounded-lg bg-amber-50 text-amber-700 grid place-items-center dark:bg-amber-500/10 dark:text-amber-300">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 21V9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M17 14l-5-5-5 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M5 3h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
-                </svg>
+        <!-- کارت بازگردانی از فایل -->
+        <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
+            <div class="flex items-center gap-3 mb-1">
+                <div class="h-9 w-9 rounded-lg bg-amber-50 text-amber-700 grid place-items-center dark:bg-amber-500/10 dark:text-amber-300">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 21V9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M17 14l-5-5-5 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M5 3h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">بازگردانی از فایل</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">با لود بکاپ، اطلاعات فعلی پاک می‌شود</div>
+                </div>
             </div>
-            <div class="min-w-0">
-                <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">بازگردانی بکاپ</div>
-                <div class="text-xs text-gray-500 dark:text-slate-400">با لود بکاپ، اطلاعات فعلی پاک می‌شود</div>
-            </div>
-        </div>
 
-        <form method="post" action="{% url 'profile-manager-restore' %}" enctype="multipart/form-data" class="mt-4 flex flex-col gap-3" @submit="if (!confirm) { tried = true; $event.preventDefault(); }">
-            {% csrf_token %}
-            <input id="backup_file_input" type="file" name="backup_file" accept=".json,application/json" class="hidden" @change="fileName = $event.target.files?.[0]?.name || ''" />
-
-            <div class="flex flex-col gap-2">
+            <div class="mt-4 flex flex-col gap-3">
+                <input id="backup_file_input" type="file" accept=".json,.zip,application/json,application/zip" class="hidden" @change="restoreFile = $event.target.files && $event.target.files[0] ? $event.target.files[0] : null; fileName = restoreFile ? restoreFile.name : ''" />
                 <div class="flex items-center gap-2">
                     <label for="backup_file_input" class="button block !bg-gray-800 w-fit cursor-pointer select-none">انتخاب فایل</label>
                     <div class="text-xs text-gray-500 dark:text-slate-400 truncate" x-text="fileName || 'فایلی انتخاب نشده'"></div>
                 </div>
+
+                <label class="flex items-start justify-between gap-3 text-sm text-gray-800 bg-amber-50 border border-amber-200 rounded-lg p-3 dark:text-slate-200 dark:bg-amber-500/10 dark:border-amber-400/20">
+                    <div class="flex flex-col gap-1">
+                        <span class="font-medium">تایید بازگردانی</span>
+                        <span class="text-xs text-amber-800 dark:text-amber-200">می‌دانم که با بازگردانی بکاپ، اطلاعات فعلی پاک می‌شود.</span>
+                    </div>
+                    <input type="checkbox" class="h-5 w-5 rounded border border-amber-300 mt-0.5" x-model="confirm" @change="if (confirm) tried = false" />
+                </label>
+                <div x-show="tried && !confirm" x-cloak class="text-xs text-red-600">برای ادامه باید تیک تایید را فعال کنید.</div>
+
+                <button type="button" @click="startRestore({type:'upload', file: restoreFile})" :disabled="restoring || !restoreFile" class="button block !bg-gray-800 w-fit" :class="(restoring || !restoreFile) ? 'opacity-70' : ''">لود بکاپ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نوار پیشرفت بازگردانی (سراسری) -->
+    <div x-show="restoring || restoreError" x-cloak class="mb-6 border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
+        <div class="flex items-center justify-between text-xs mb-1">
+            <span class="text-gray-700 dark:text-slate-200" x-text="restoreError ? 'خطا در بازگردانی' : (restorePhase === 'processing' ? 'در حال بازگردانی اطلاعات روی سرور…' : 'در حال آپلود فایل بکاپ…')"></span>
+            <span class="text-gray-700 dark:text-slate-200" x-show="restorePhase === 'upload'" x-text="restorePercent + '%'"></span>
+        </div>
+        <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden dark:bg-white/10">
+            <template x-if="restorePhase === 'upload'">
+                <div class="h-full rounded-full bg-emerald-500 transition-all duration-200" :style="'width:' + restorePercent + '%'"></div>
+            </template>
+            <template x-if="restorePhase !== 'upload'">
+                <div class="h-full rounded-full bg-emerald-500 animate-pulse" style="width:100%"></div>
+            </template>
+        </div>
+        <div x-show="restoreError" x-cloak class="text-xs text-red-600 mt-1" x-text="restoreError"></div>
+        <div x-show="!restoreError" class="text-xs text-gray-500 dark:text-slate-400 mt-1">لطفاً تا پایان عملیات صفحه را نبندید.</div>
+    </div>
+
+    <!-- لیست بکاپ‌های ذخیره‌شده روی سرور -->
+    <!-- کارت بکاپ خودکار زمان‌بندی‌شده -->
+<div class="mb-6 border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10"
+     x-data="{ enabled: {{ schedule.enabled|yesno:'true,false' }}, frequency: '{{ schedule.frequency }}' }">
+    <div class="flex items-center gap-3 mb-3">
+        <div class="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-700 grid place-items-center dark:bg-emerald-500/10 dark:text-emerald-300">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle>
+                <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">بکاپ خودکار زمان‌بندی‌شده</div>
+            <div class="text-xs text-gray-500 dark:text-slate-400">به صورت خودکار در زمان مشخص بکاپ گرفته و روی سرور ذخیره می‌شود</div>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'profile-manager-backup-schedule' %}" class="flex flex-col gap-4">
+        {% csrf_token %}
+
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" name="enabled" x-model="enabled" class="h-5 w-5 rounded border border-gray-300 dark:border-white/20" />
+            <span class="text-sm font-medium text-gray-800 dark:text-slate-200">فعال بودن بکاپ خودکار</span>
+        </label>
+
+        <div :class="enabled ? '' : 'opacity-50 pointer-events-none'" class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">تکرار</label>
+                    <select name="frequency" x-model="frequency" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-white/15 dark:text-slate-100">
+                        <option value="daily">روزانه</option>
+                        <option value="weekly">هفتگی</option>
+                        <option value="monthly">ماهانه</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">ساعت (به وقت تهران)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" name="minute" min="0" max="59" value="{{ schedule.minute }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+                        <span class="text-gray-500">:</span>
+                        <input type="number" name="hour" min="0" max="23" value="{{ schedule.hour }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+
+                    </div>
+                    <div class="text-[11px] text-gray-400 mt-1">ساعت ۰ تا ۲۳ ، دقیقه ۰ تا ۵۹</div>
+                </div>
             </div>
 
-            <label class="flex items-start justify-between gap-3 text-sm text-gray-800 bg-amber-50 border border-amber-200 rounded-lg p-3 dark:text-slate-200 dark:bg-amber-500/10 dark:border-amber-400/20" dir="rtl">
-                <div class="flex flex-col gap-1">
-                    <span class="font-medium">تایید بازگردانی</span>
-                    <span class="text-xs text-amber-800 dark:text-amber-200">می‌دانم که با بازگردانی بکاپ، اطلاعات فعلی پاک می‌شود.</span>
-                </div>
-                <input type="checkbox" name="confirm_restore" class="h-5 w-5 rounded border border-amber-300 mt-0.5" x-model="confirm" @change="if (confirm) tried = false" />
-            </label>
-            <div x-show="tried && !confirm" x-cloak class="text-xs text-red-600" dir="rtl">برای ادامه باید تیک تایید را فعال کنید.</div>
+            <div x-show="frequency === 'weekly'" x-cloak>
+                <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">روز هفته</label>
+                <select name="weekday" class="w-full sm:w-1/2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-white/15 dark:text-slate-100">
+                    <option value="5" {% if schedule.weekday == 5 %}selected{% endif %}>شنبه</option>
+                    <option value="6" {% if schedule.weekday == 6 %}selected{% endif %}>یکشنبه</option>
+                    <option value="0" {% if schedule.weekday == 0 %}selected{% endif %}>دوشنبه</option>
+                    <option value="1" {% if schedule.weekday == 1 %}selected{% endif %}>سه‌شنبه</option>
+                    <option value="2" {% if schedule.weekday == 2 %}selected{% endif %}>چهارشنبه</option>
+                    <option value="3" {% if schedule.weekday == 3 %}selected{% endif %}>پنج‌شنبه</option>
+                    <option value="4" {% if schedule.weekday == 4 %}selected{% endif %}>جمعه</option>
+                </select>
+            </div>
 
-            <button type="submit" class="button block !bg-gray-800 w-fit" :class="!confirm ? 'opacity-80' : ''">لود بکاپ</button>
-        </form>
-    </div>
+            <div x-show="frequency === 'monthly'" x-cloak>
+                <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">روز ماه (۱ تا ۲۸)</label>
+                <input type="number" name="day_of_month" min="1" max="28" value="{{ schedule.day_of_month }}" class="w-24 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+            </div>
+
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" name="include_media" {% if schedule.include_media %}checked{% endif %} class="h-5 w-5 rounded border border-gray-300 dark:border-white/20" />
+                <span class="text-xs text-gray-700 dark:text-slate-300">بکاپ خودکار شامل فایل‌ها (عکس، ویدئو، فایل‌های متنی و ...) باشد</span>
+            </label>
+
+            <div>
+                <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">تعداد بکاپ‌های خودکار که نگه داشته شود</label>
+                <input type="number" name="keep" min="1" max="100" value="{{ schedule.keep }}" class="w-24 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+                <div class="text-[11px] text-gray-400 mt-1">بکاپ‌های خودکار قدیمی‌تر از این تعداد حذف می‌شوند (بکاپ‌های دستی حذف نمی‌شوند)</div>
+            </div>
+        </div>
+
+        <div>
+            <button type="submit" class="button block !bg-gray-800 w-fit">ذخیره تنظیمات</button>
+        </div>
+    </form>
 </div>
-<br>
+
+<h3 class="text-sm font-bold text-gray-900 dark:text-slate-100 mb-2">بکاپ‌های ذخیره‌شده روی سرور</h3>
+    {% if backups %}
+    <div class="overflow-x-auto mb-10 border rounded-xl dark:border-white/10">
+        <table class="w-full text-sm text-right text-gray-600 dark:text-slate-300">
+            <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-slate-950/35 dark:text-slate-300">
+                <tr>
+                    <th class="px-4 py-3 font-medium">نام فایل</th>
+                    <th class="px-4 py-3 font-medium">نوع</th>
+                    <th class="px-4 py-3 font-medium">تاریخ و ساعت</th>
+                    <th class="px-4 py-3 font-medium">حجم</th>
+                    <th class="px-4 py-3 font-medium">عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in backups %}
+                <tr class="border-t dark:border-white/10">
+                    <td class="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium whitespace-nowrap"><span dir="ltr" class="font-mono text-xs">{{ b.name }}</span></td>
+                    <td class="px-4 py-3">
+                        {% if b.is_zip %}
+                        <span class="inline-block rounded-full bg-sky-100 text-sky-700 text-xs px-2 py-0.5 dark:bg-sky-500/15 dark:text-sky-300">با فایل‌ها</span>
+                        {% else %}
+                        <span class="inline-block rounded-full bg-gray-100 text-gray-700 text-xs px-2 py-0.5 dark:bg-white/10 dark:text-slate-300">فقط دیتابیس</span>
+                        {% endif %}
+                        {% if b.is_auto %}
+                        <span class="inline-block rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 mr-1 dark:bg-emerald-500/15 dark:text-emerald-300">خودکار</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">{{ b.created|date:"Y/m/d H:i" }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">{{ b.size }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
+                            <a href="{% url 'profile-manager-backup-download' b.name %}" class="button block !bg-gray-700 !px-3 !py-1.5 text-xs w-fit">دانلود</a>
+                            <button type="button" @click="if (window.confirm('با بازگردانی این بکاپ، تمام اطلاعات فعلی پاک می‌شود. مطمئن هستید؟')) startRestore({type:'server', name: '{{ b.name|escapejs }}'})" :disabled="restoring" class="button block !bg-amber-700 !px-3 !py-1.5 text-xs w-fit">بازگردانی</button>
+                            <form method="post" action="{% url 'profile-manager-backup-delete' %}" onsubmit="return confirm('این فایل بکاپ حذف شود؟')">
+                                {% csrf_token %}
+                                <input type="hidden" name="name" value="{{ b.name }}" />
+                                <button type="submit" class="button block !bg-red-700 !px-3 !py-1.5 text-xs w-fit">حذف</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="mb-10 text-sm text-gray-500 dark:text-slate-400 border rounded-xl p-4 dark:border-white/10">هنوز بکاپی روی سرور ذخیره نشده است.</div>
+    {% endif %}
+
+</div>
+
+<script>
+    window.backupManager = function (opts) {
+        return {
+            includeMedia: false,
+            creating: false,
+            createPercent: 0,
+            createStatus: '',
+            createError: '',
+
+            confirm: false,
+            tried: false,
+            fileName: '',
+            restoreFile: null,
+            restoring: false,
+            restorePercent: 0,
+            restorePhase: 'upload',
+            restoreError: '',
+
+            urls: opts.urls,
+            csrf: opts.csrf,
+
+            async startBackup() {
+                if (this.creating) return;
+                this.creating = true;
+                this.createStatus = 'running';
+                this.createPercent = 0;
+                this.createError = '';
+                try {
+                    const fd = new FormData();
+                    fd.append('include_media', this.includeMedia ? '1' : '0');
+                    fd.append('csrfmiddlewaretoken', this.csrf);
+                    const res = await fetch(this.urls.start, { method: 'POST', body: fd, credentials: 'same-origin' });
+                    const data = await res.json();
+                    if (!res.ok || !data.ok) throw new Error(data.error || 'error');
+                    this.pollBackup(data.job_id);
+                } catch (e) {
+                    this.creating = false;
+                    this.createStatus = 'error';
+                    this.createError = 'شروع بکاپ ناموفق بود.';
+                }
+            },
+
+            pollBackup(jobId) {
+                const url = this.urls.progressBase.replace('__JOB__', jobId);
+                const self = this;
+                const tick = async function () {
+                    try {
+                        const res = await fetch(url, { credentials: 'same-origin' });
+                        const data = await res.json();
+                        if (!data.ok) throw new Error('');
+                        self.createPercent = Math.round(data.percent || 0);
+                        if (data.status === 'done') {
+                            self.createPercent = 100;
+                            self.createStatus = 'done';
+                            self.creating = false;
+                            setTimeout(function () { window.location.reload(); }, 800);
+                            return;
+                        }
+                        if (data.status === 'error') {
+                            self.createStatus = 'error';
+                            self.createError = data.error || 'ساخت بکاپ ناموفق بود.';
+                            self.creating = false;
+                            return;
+                        }
+                        setTimeout(tick, 800);
+                    } catch (e) {
+                        self.createStatus = 'error';
+                        self.createError = 'دریافت وضعیت ناموفق بود.';
+                        self.creating = false;
+                    }
+                };
+                tick();
+            },
+
+            startRestore(source) {
+                if (source.type !== 'server' && !this.confirm) { this.tried = true; return; }
+                if (source.type === 'upload' && !source.file) { return; }
+                if (this.restoring) return;
+                this.restoring = true;
+                this.restoreError = '';
+                this.restorePercent = 0;
+                this.restorePhase = source.type === 'server' ? 'processing' : 'upload';
+
+                const fd = new FormData();
+                fd.append('csrfmiddlewaretoken', this.csrf);
+                fd.append('confirm_restore', 'on');
+                if (source.type === 'server') {
+                    fd.append('server_name', source.name);
+                } else {
+                    fd.append('backup_file', source.file);
+                }
+
+                const self = this;
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', this.urls.restore, true);
+                xhr.withCredentials = true;
+                xhr.upload.onprogress = function (ev) {
+                    if (ev.lengthComputable && source.type !== 'server') {
+                        self.restorePercent = Math.round(ev.loaded * 100 / ev.total);
+                        if (self.restorePercent >= 100) self.restorePhase = 'processing';
+                    }
+                };
+                xhr.onload = function () {
+                    self.restorePercent = 100;
+                    window.location.href = xhr.responseURL || self.urls.home;
+                };
+                xhr.onerror = function () {
+                    self.restoring = false;
+                    self.restoreError = 'بازگردانی ناموفق بود.';
+                };
+                xhr.send(fd);
+            },
+        };
+    };
+</script>
+
 <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">کاربران در انتظار تایید</h2>
 {% if pending_profiles %}
 <table class="w-full text-sm text-left text-gray-500 dark:text-slate-400 mb-8">

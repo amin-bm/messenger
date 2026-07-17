@@ -474,6 +474,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // بکاپ/بازگردانی نباید از سرویس‌ورکر عبور کند (فایل ممکن است حجیم/زمان‌بر باشد).
+  // بی دخالت سرویس‌ورکر، مرورگر خودش دانلود/آپلود را مدیریت می‌کند (بدون تایم‌اوت و کش).
+  if (url.pathname.startsWith("/profile/manager/backup") || url.pathname.startsWith("/profile/manager/restore")) {
+    return;
+  }
+
   const isNavigation = req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html");
   if (isNavigation) {
     event.respondWith(networkFirstNavigation(req));

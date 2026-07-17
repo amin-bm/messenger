@@ -4,8 +4,6 @@
 
 {% block content %}
 
-<div class="max-w-5xl mx-auto" dir="rtl">
-
 <h1 class="mb-6 dark:text-slate-100" dir="auto">پنل مدیریت</h1>
 
 {% if target_profile %}
@@ -119,458 +117,247 @@
 </form>
 
 {% else %}
-<div dir="rtl"
-     x-data="{ tab: ('{% if cq or gq %}contacts{% elif q %}users{% endif %}' || localStorage.getItem('mgrTab') || 'backup') }"
-     x-init="$watch('tab', v => localStorage.setItem('mgrTab', v))">
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3" dir="rtl">پشتیبان‌گیری</h2>
 
-    <!-- نوار تب‌ها (چسبان، اسکرول‌پذیر در موبایل) -->
-    <div class="sticky top-0 z-20 -mx-4 sm:mx-0 px-4 sm:px-0 mb-6 bg-white/85 dark:bg-slate-950/70 backdrop-blur border-b border-gray-200 dark:border-white/10">
-        <nav class="flex gap-1 sm:gap-2 -mb-px overflow-x-auto">
-            <button type="button" @click="tab='backup'"
-                class="flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-2 whitespace-nowrap px-3 sm:px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-                :class="tab==='backup' ? 'border-sky-500 text-sky-600 dark:text-sky-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200'">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 3v12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M5 21h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"></path>
-                </svg>
-                <span>پشتیبان‌گیری</span>
-            </button>
+<div dir="rtl" x-data="backupManager({
+        urls: {
+            start: '{% url 'profile-manager-backup-start' %}',
+            progressBase: '{% url 'profile-manager-backup-progress' '__JOB__' %}',
+            restore: '{% url 'profile-manager-restore' %}',
+            deleteUrl: '{% url 'profile-manager-backup-delete' %}',
+            linkBase: '{% url 'profile-manager-backup-link' '__NAME__' %}',
+            home: '{% url 'home' %}'
+        },
+        csrf: '{{ csrf_token }}'
+    })">
 
-            <button type="button" @click="tab='users'"
-                class="flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-2 whitespace-nowrap px-3 sm:px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-                :class="tab==='users' ? 'border-sky-500 text-sky-600 dark:text-sky-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200'">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M16 19v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <circle cx="9" cy="7" r="3" stroke="currentColor" stroke-width="2"></circle>
-                    <path d="M22 19v-1a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                    <path d="M16 4.13a3 3 0 0 1 0 5.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-                <span>کاربران</span>
-            </button>
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- کارت ساخت بکاپ -->
+        <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
+            <div class="flex items-center gap-3 mb-1">
+                <div class="h-9 w-9 rounded-lg bg-slate-100 text-slate-700 grid place-items-center dark:bg-white/10 dark:text-slate-200">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 3v12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M5 21h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">ساخت بکاپ</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">فایل بکاپ روی سرور ذخیره و به لیست پایین اضافه می‌شود</div>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-col gap-3">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" x-model="includeMedia" :disabled="creating" class="h-5 w-5 rounded border border-gray-300 dark:border-white/20" />
+                    <span class="text-xs text-gray-700 dark:text-slate-300">شامل کردن فایل‌ها (عکس، ویدئو، فایل‌های متنی و ...)</span>
+                </label>
+                <button type="button" @click="startBackup()" :disabled="creating" class="button block !bg-gray-800 w-fit" :class="creating ? 'opacity-70 cursor-not-allowed' : ''">
+                    <span x-show="!creating">شروع بکاپ</span>
+                    <span x-show="creating" x-cloak>در حال ساخت…</span>
+                </button>
 
-            <button type="button" @click="tab='contacts'"
-                class="flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-2 whitespace-nowrap px-3 sm:px-4 py-3 text-sm font-medium border-b-2 transition-colors"
-                :class="tab==='contacts' ? 'border-sky-500 text-sky-600 dark:text-sky-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-slate-400 dark:hover:text-slate-200'">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <rect x="4" y="3" width="15" height="18" rx="2" stroke="currentColor" stroke-width="2"></rect>
-                    <path d="M4 8H2M4 12H2M4 16H2" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
-                    <circle cx="11" cy="10" r="2.2" stroke="currentColor" stroke-width="2"></circle>
-                    <path d="M8 16c0-1.7 1.3-3 3-3s3 1.3 3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
-                </svg>
-                <span>مخاطبین</span>
-            </button>
-        </nav>
+                <!-- نوار پیشرفت ساخت -->
+                <div x-show="createStatus" x-cloak class="mt-1">
+                    <div class="flex items-center justify-between text-xs mb-1">
+                        <span class="text-gray-600 dark:text-slate-300" x-text="createStatus === 'done' ? 'بکاپ ساخته شد' : (createStatus === 'error' ? 'خطا' : 'در حال ساخت بکاپ…')"></span>
+                        <span class="text-gray-600 dark:text-slate-300" x-text="createPercent + '%'"></span>
+                    </div>
+                    <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden dark:bg-white/10">
+                        <div class="h-full rounded-full transition-all duration-300" :class="createStatus === 'error' ? 'bg-red-600' : 'bg-sky-500'" :style="'width:' + createPercent + '%'"></div>
+                    </div>
+                    <div x-show="createError" x-cloak class="text-xs text-red-600 mt-1" x-text="createError"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- کارت بازگردانی از فایل -->
+        <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
+            <div class="flex items-center gap-3 mb-1">
+                <div class="h-9 w-9 rounded-lg bg-amber-50 text-amber-700 grid place-items-center dark:bg-amber-500/10 dark:text-amber-300">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 21V9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M17 14l-5-5-5 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                        <path d="M5 3h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">بازگردانی از فایل</div>
+                    <div class="text-xs text-gray-500 dark:text-slate-400">با لود بکاپ، اطلاعات فعلی پاک می‌شود</div>
+                </div>
+            </div>
+
+            <div class="mt-4 flex flex-col gap-3">
+                <input id="backup_file_input" type="file" accept=".json,.zip,application/json,application/zip" class="hidden" @change="restoreFile = $event.target.files && $event.target.files[0] ? $event.target.files[0] : null; fileName = restoreFile ? restoreFile.name : ''" />
+                <div class="flex items-center gap-2">
+                    <label for="backup_file_input" class="button block !bg-gray-800 w-fit cursor-pointer select-none">انتخاب فایل</label>
+                    <div class="text-xs text-gray-500 dark:text-slate-400 truncate" x-text="fileName || 'فایلی انتخاب نشده'"></div>
+                </div>
+
+                <label class="flex items-start justify-between gap-3 text-sm text-gray-800 bg-amber-50 border border-amber-200 rounded-lg p-3 dark:text-slate-200 dark:bg-amber-500/10 dark:border-amber-400/20">
+                    <div class="flex flex-col gap-1">
+                        <span class="font-medium">تایید بازگردانی</span>
+                        <span class="text-xs text-amber-800 dark:text-amber-200">می‌دانم که با بازگردانی بکاپ، اطلاعات فعلی پاک می‌شود.</span>
+                    </div>
+                    <input type="checkbox" class="h-5 w-5 rounded border border-amber-300 mt-0.5" x-model="confirm" @change="if (confirm) tried = false" />
+                </label>
+                <div x-show="tried && !confirm" x-cloak class="text-xs text-red-600">برای ادامه باید تیک تایید را فعال کنید.</div>
+
+                <button type="button" @click="startRestore({type:'upload', file: restoreFile})" :disabled="restoring || !restoreFile" class="button block !bg-gray-800 w-fit" :class="(restoring || !restoreFile) ? 'opacity-70' : ''">لود بکاپ</button>
+            </div>
+        </div>
     </div>
 
-    <!-- ============ تب: پشتیبان‌گیری ============ -->
-    <section x-show="tab==='backup'" x-cloak>
-        <div x-data="backupManager({
-                urls: {
-                    start: '{% url 'profile-manager-backup-start' %}',
-                    progressBase: '{% url 'profile-manager-backup-progress' '__JOB__' %}',
-                    restore: '{% url 'profile-manager-restore' %}',
-                    deleteUrl: '{% url 'profile-manager-backup-delete' %}',
-                    home: '{% url 'home' %}'
-                },
-                csrf: '{{ csrf_token }}'
-            })">
-
-            <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- کارت ساخت بکاپ -->
-                <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
-                    <div class="flex items-center gap-3 mb-1">
-                        <div class="h-9 w-9 rounded-lg bg-slate-100 text-slate-700 grid place-items-center dark:bg-white/10 dark:text-slate-200">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M12 3v12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                <path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                <path d="M5 21h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
-                            </svg>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">ساخت بکاپ</div>
-                            <div class="text-xs text-gray-500 dark:text-slate-400">فایل بکاپ روی سرور ذخیره و به لیست پایین اضافه می‌شود</div>
-                        </div>
-                    </div>
-                    <div class="mt-4 flex flex-col gap-3">
-                        <label class="flex items-center gap-2 cursor-pointer select-none">
-                            <input type="checkbox" x-model="includeMedia" :disabled="creating" class="h-5 w-5 rounded border border-gray-300 dark:border-white/20" />
-                            <span class="text-xs text-gray-700 dark:text-slate-300">شامل کردن فایل‌ها (عکس، ویدئو، فایل‌های متنی و ...)</span>
-                        </label>
-                        <button type="button" @click="startBackup()" :disabled="creating" class="button block !bg-gray-800 w-fit" :class="creating ? 'opacity-70 cursor-not-allowed' : ''">
-                            <span x-show="!creating">شروع بکاپ</span>
-                            <span x-show="creating" x-cloak>در حال ساخت…</span>
-                        </button>
-
-                        <!-- نوار پیشرفت ساخت -->
-                        <div x-show="createStatus" x-cloak class="mt-1">
-                            <div class="flex items-center justify-between text-xs mb-1">
-                                <span class="text-gray-600 dark:text-slate-300" x-text="createStatus === 'done' ? 'بکاپ ساخته شد' : (createStatus === 'error' ? 'خطا' : 'در حال ساخت بکاپ…')"></span>
-                                <span class="text-gray-600 dark:text-slate-300" x-text="createPercent + '%'"></span>
-                            </div>
-                            <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden dark:bg-white/10">
-                                <div class="h-full rounded-full transition-all duration-300" :class="createStatus === 'error' ? 'bg-red-600' : 'bg-sky-500'" :style="'width:' + createPercent + '%'"></div>
-                            </div>
-                            <div x-show="createError" x-cloak class="text-xs text-red-600 mt-1" x-text="createError"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- کارت بازگردانی از فایل -->
-                <div class="border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
-                    <div class="flex items-center gap-3 mb-1">
-                        <div class="h-9 w-9 rounded-lg bg-amber-50 text-amber-700 grid place-items-center dark:bg-amber-500/10 dark:text-amber-300">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                                <path d="M12 21V9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                <path d="M17 14l-5-5-5 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
-                                <path d="M5 3h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
-                            </svg>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">بازگردانی از فایل</div>
-                            <div class="text-xs text-gray-500 dark:text-slate-400">با لود بکاپ، اطلاعات فعلی پاک می‌شود</div>
-                        </div>
-                    </div>
-
-                    <div class="mt-4 flex flex-col gap-3">
-                        <input id="backup_file_input" type="file" accept=".json,.zip,application/json,application/zip" class="hidden" @change="restoreFile = $event.target.files && $event.target.files[0] ? $event.target.files[0] : null; fileName = restoreFile ? restoreFile.name : ''" />
-                        <div class="flex items-center gap-2">
-                            <label for="backup_file_input" class="button block !bg-gray-800 w-fit cursor-pointer select-none">انتخاب فایل</label>
-                            <div class="text-xs text-gray-500 dark:text-slate-400 truncate" x-text="fileName || 'فایلی انتخاب نشده'"></div>
-                        </div>
-
-                        <label class="flex items-start justify-between gap-3 text-sm text-gray-800 bg-amber-50 border border-amber-200 rounded-lg p-3 dark:text-slate-200 dark:bg-amber-500/10 dark:border-amber-400/20">
-                            <div class="flex flex-col gap-1">
-                                <span class="font-medium">تایید بازگردانی</span>
-                                <span class="text-xs text-amber-800 dark:text-amber-200">می‌دانم که با بازگردانی بکاپ، اطلاعات فعلی پاک می‌شود.</span>
-                            </div>
-                            <input type="checkbox" class="h-5 w-5 rounded border border-amber-300 mt-0.5" x-model="confirm" @change="if (confirm) tried = false" />
-                        </label>
-                        <div x-show="tried && !confirm" x-cloak class="text-xs text-red-600">برای ادامه باید تیک تایید را فعال کنید.</div>
-
-                        <button type="button" @click="startRestore({type:'upload', file: restoreFile})" :disabled="restoring || !restoreFile" class="button block !bg-gray-800 w-fit" :class="(restoring || !restoreFile) ? 'opacity-70' : ''">لود بکاپ</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- نوار پیشرفت بازگردانی (سراسری) -->
-            <div x-show="restoring || restoreError" x-cloak class="mb-6 border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
-                <div class="flex items-center justify-between text-xs mb-1">
-                    <span class="text-gray-700 dark:text-slate-200" x-text="restoreError ? 'خطا در بازگردانی' : (restorePhase === 'processing' ? 'در حال بازگردانی اطلاعات روی سرور…' : 'در حال آپلود فایل بکاپ…')"></span>
-                    <span class="text-gray-700 dark:text-slate-200" x-show="restorePhase === 'upload'" x-text="restorePercent + '%'"></span>
-                </div>
-                <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden dark:bg-white/10">
-                    <template x-if="restorePhase === 'upload'">
-                        <div class="h-full rounded-full bg-emerald-500 transition-all duration-200" :style="'width:' + restorePercent + '%'"></div>
-                    </template>
-                    <template x-if="restorePhase !== 'upload'">
-                        <div class="h-full rounded-full bg-emerald-500 animate-pulse" style="width:100%"></div>
-                    </template>
-                </div>
-                <div x-show="restoreError" x-cloak class="text-xs text-red-600 mt-1" x-text="restoreError"></div>
-                <div x-show="!restoreError" class="text-xs text-gray-500 dark:text-slate-400 mt-1">لطفاً تا پایان عملیات صفحه را نبندید.</div>
-            </div>
-
-            <!-- کارت بکاپ خودکار زمان‌بندی‌شده -->
-            <div class="mb-6 border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10"
-                 x-data="{ enabled: {{ schedule.enabled|yesno:'true,false' }}, frequency: '{{ schedule.frequency }}' }">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-700 grid place-items-center dark:bg-emerald-500/10 dark:text-emerald-300">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle>
-                            <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                        </svg>
-                    </div>
-                    <div class="min-w-0">
-                        <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">بکاپ خودکار زمان‌بندی‌شده</div>
-                        <div class="text-xs text-gray-500 dark:text-slate-400">به صورت خودکار در زمان مشخص بکاپ گرفته و روی سرور ذخیره می‌شود</div>
-                    </div>
-                </div>
-
-                <form method="post" action="{% url 'profile-manager-backup-schedule' %}" class="flex flex-col gap-4">
-                    {% csrf_token %}
-
-                    <label class="flex items-center gap-2 cursor-pointer select-none">
-                        <input type="checkbox" name="enabled" x-model="enabled" class="h-5 w-5 rounded border border-gray-300 dark:border-white/20" />
-                        <span class="text-sm font-medium text-gray-800 dark:text-slate-200">فعال بودن بکاپ خودکار</span>
-                    </label>
-
-                    <div :class="enabled ? '' : 'opacity-50 pointer-events-none'" class="flex flex-col gap-4">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">تکرار</label>
-                                <select name="frequency" x-model="frequency" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-white/15 dark:text-slate-100">
-                                    <option value="daily">روزانه</option>
-                                    <option value="weekly">هفتگی</option>
-                                    <option value="monthly">ماهانه</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">ساعت (به وقت تهران)</label>
-                                <div class="flex items-center gap-2">
-                                    <input type="number" name="minute" min="0" max="59" value="{{ schedule.minute }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
-                                    <span class="text-gray-500">:</span>
-                                    <input type="number" name="hour" min="0" max="23" value="{{ schedule.hour }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
-                                </div>
-                                <div class="text-[11px] text-gray-400 mt-1">ساعت ۰ تا ۲۳ ، دقیقه ۰ تا ۵۹</div>
-                            </div>
-                        </div>
-
-                        <div x-show="frequency === 'weekly'" x-cloak>
-                            <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">روز هفته</label>
-                            <select name="weekday" class="w-full sm:w-1/2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-white/15 dark:text-slate-100">
-                                <option value="5" {% if schedule.weekday == 5 %}selected{% endif %}>شنبه</option>
-                                <option value="6" {% if schedule.weekday == 6 %}selected{% endif %}>یکشنبه</option>
-                                <option value="0" {% if schedule.weekday == 0 %}selected{% endif %}>دوشنبه</option>
-                                <option value="1" {% if schedule.weekday == 1 %}selected{% endif %}>سه‌شنبه</option>
-                                <option value="2" {% if schedule.weekday == 2 %}selected{% endif %}>چهارشنبه</option>
-                                <option value="3" {% if schedule.weekday == 3 %}selected{% endif %}>پنج‌شنبه</option>
-                                <option value="4" {% if schedule.weekday == 4 %}selected{% endif %}>جمعه</option>
-                            </select>
-                        </div>
-
-                        <div x-show="frequency === 'monthly'" x-cloak>
-                            <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">روز ماه (۱ تا ۲۸)</label>
-                            <input type="number" name="day_of_month" min="1" max="28" value="{{ schedule.day_of_month }}" class="w-24 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
-                        </div>
-
-                        <label class="flex items-center gap-2 cursor-pointer select-none">
-                            <input type="checkbox" name="include_media" {% if schedule.include_media %}checked{% endif %} class="h-5 w-5 rounded border border-gray-300 dark:border-white/20" />
-                            <span class="text-xs text-gray-700 dark:text-slate-300">بکاپ خودکار شامل فایل‌ها (عکس، ویدئو، فایل‌های متنی و ...) باشد</span>
-                        </label>
-
-                        <div>
-                            <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">تعداد بکاپ‌های خودکار که نگه داشته شود</label>
-                            <input type="number" name="keep" min="1" max="100" value="{{ schedule.keep }}" class="w-24 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
-                            <div class="text-[11px] text-gray-400 mt-1">بکاپ‌های خودکار قدیمی‌تر از این تعداد حذف می‌شوند (بکاپ‌های دستی حذف نمی‌شوند)</div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <button type="submit" class="button block !bg-gray-800 w-fit">ذخیره تنظیمات</button>
-                    </div>
-                </form>
-            </div>
-
-            <h3 class="text-sm font-bold text-gray-900 dark:text-slate-100 mb-2">بکاپ‌های ذخیره‌شده روی سرور</h3>
-            {% if backups %}
-            <div class="overflow-x-auto mb-2 border rounded-xl dark:border-white/10">
-                <table class="w-full text-sm text-right text-gray-600 dark:text-slate-300">
-                    <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-slate-950/35 dark:text-slate-300">
-                        <tr>
-                            <th class="px-4 py-3 font-medium">نام فایل</th>
-                            <th class="px-4 py-3 font-medium">نوع</th>
-                            <th class="px-4 py-3 font-medium">تاریخ و ساعت</th>
-                            <th class="px-4 py-3 font-medium">حجم</th>
-                            <th class="px-4 py-3 font-medium">عملیات</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for b in backups %}
-                        <tr class="border-t dark:border-white/10">
-                            <td class="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium whitespace-nowrap"><span dir="ltr" class="font-mono text-xs">{{ b.name }}</span></td>
-                            <td class="px-4 py-3">
-                                {% if b.is_zip %}
-                                <span class="inline-block rounded-full bg-sky-100 text-sky-700 text-xs px-2 py-0.5 dark:bg-sky-500/15 dark:text-sky-300">با فایل‌ها</span>
-                                {% else %}
-                                <span class="inline-block rounded-full bg-gray-100 text-gray-700 text-xs px-2 py-0.5 dark:bg-white/10 dark:text-slate-300">فقط دیتابیس</span>
-                                {% endif %}
-                                {% if b.is_auto %}
-                                <span class="inline-block rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 mr-1 dark:bg-emerald-500/15 dark:text-emerald-300">خودکار</span>
-                                {% endif %}
-                            </td>
-                            <td class="px-4 py-3 whitespace-nowrap">{{ b.created|date:"Y/m/d H:i" }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap">{{ b.size }}</td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <a href="{% url 'profile-manager-backup-download' b.name %}" class="button block !bg-gray-700 !px-3 !py-1.5 text-xs w-fit">دانلود</a>
-                                    <button type="button" @click="if (window.confirm('با بازگردانی این بکاپ، تمام اطلاعات فعلی پاک می‌شود. مطمئن هستید؟')) startRestore({type:'server', name: '{{ b.name|escapejs }}'})" :disabled="restoring" class="button block !bg-amber-700 !px-3 !py-1.5 text-xs w-fit">بازگردانی</button>
-                                    <form method="post" action="{% url 'profile-manager-backup-delete' %}" onsubmit="return confirm('این فایل بکاپ حذف شود؟')">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="name" value="{{ b.name }}" />
-                                        <button type="submit" class="button block !bg-red-700 !px-3 !py-1.5 text-xs w-fit">حذف</button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-sm text-gray-500 dark:text-slate-400 border rounded-xl p-4 dark:border-white/10">هنوز بکاپی روی سرور ذخیره نشده است.</div>
-            {% endif %}
-
+    <!-- نوار پیشرفت بازگردانی (سراسری) -->
+    <div x-show="restoring || restoreError" x-cloak class="mb-6 border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10">
+        <div class="flex items-center justify-between text-xs mb-1">
+            <span class="text-gray-700 dark:text-slate-200" x-text="restoreError ? 'خطا در بازگردانی' : (restorePhase === 'processing' ? 'در حال بازگردانی اطلاعات روی سرور…' : 'در حال آپلود فایل بکاپ…')"></span>
+            <span class="text-gray-700 dark:text-slate-200" x-show="restorePhase === 'upload'" x-text="restorePercent + '%'"></span>
         </div>
-    </section>
+        <div class="h-2 w-full rounded-full bg-gray-200 overflow-hidden dark:bg-white/10">
+            <template x-if="restorePhase === 'upload'">
+                <div class="h-full rounded-full bg-emerald-500 transition-all duration-200" :style="'width:' + restorePercent + '%'"></div>
+            </template>
+            <template x-if="restorePhase !== 'upload'">
+                <div class="h-full rounded-full bg-emerald-500 animate-pulse" style="width:100%"></div>
+            </template>
+        </div>
+        <div x-show="restoreError" x-cloak class="text-xs text-red-600 mt-1" x-text="restoreError"></div>
+        <div x-show="!restoreError" class="text-xs text-gray-500 dark:text-slate-400 mt-1">لطفاً تا پایان عملیات صفحه را نبندید.</div>
+    </div>
 
-    <!-- ============ تب: کاربران ============ -->
-    <section x-show="tab==='users'" x-cloak>
-        <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">کاربران در انتظار تایید</h2>
-        {% if pending_profiles %}
-        <div class="overflow-x-auto mb-8 border rounded-xl dark:border-white/10">
-            <table class="w-full text-sm text-right text-gray-600 dark:text-slate-300">
-                <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-slate-950/35 dark:text-slate-300">
-                    <tr>
-                        <th class="px-4 py-3 font-medium">کاربر</th>
-                        <th class="px-4 py-3 font-medium">نام</th>
-                        <th class="px-4 py-3 font-medium">عملیات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in pending_profiles %}
-                    <tr class="border-t dark:border-white/10">
-                        <th scope="row" class="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium whitespace-nowrap">@{{ p.user.username }}</th>
-                        <td class="px-4 py-3">{{ p.name }}</td>
-                        <td class="px-4 py-3">
-                            <form method="post" action="{% url 'profile-manager' %}">
+    <!-- لیست بکاپ‌های ذخیره‌شده روی سرور -->
+    <!-- کارت بکاپ خودکار زمان‌بندی‌شده -->
+<div class="mb-6 border rounded-xl p-4 bg-white/70 backdrop-blur dark:bg-slate-950/35 dark:border-white/10"
+     x-data="{ enabled: {{ schedule.enabled|yesno:'true,false' }}, frequency: '{{ schedule.frequency }}' }">
+    <div class="flex items-center gap-3 mb-3">
+        <div class="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-700 grid place-items-center dark:bg-emerald-500/10 dark:text-emerald-300">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"></circle>
+                <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
+        </div>
+        <div class="min-w-0">
+            <div class="text-sm font-semibold text-gray-900 dark:text-slate-100">بکاپ خودکار زمان‌بندی‌شده</div>
+            <div class="text-xs text-gray-500 dark:text-slate-400">به صورت خودکار در زمان مشخص بکاپ گرفته و روی سرور ذخیره می‌شود</div>
+        </div>
+    </div>
+
+    <form method="post" action="{% url 'profile-manager-backup-schedule' %}" class="flex flex-col gap-4">
+        {% csrf_token %}
+
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" name="enabled" x-model="enabled" class="h-5 w-5 rounded border border-gray-300 dark:border-white/20" />
+            <span class="text-sm font-medium text-gray-800 dark:text-slate-200">فعال بودن بکاپ خودکار</span>
+        </label>
+
+        <div :class="enabled ? '' : 'opacity-50 pointer-events-none'" class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">تکرار</label>
+                    <select name="frequency" x-model="frequency" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-white/15 dark:text-slate-100">
+                        <option value="daily">روزانه</option>
+                        <option value="weekly">هفتگی</option>
+                        <option value="monthly">ماهانه</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">ساعت (به وقت تهران)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" name="hour" min="0" max="23" value="{{ schedule.hour }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+                        <span class="text-gray-500">:</span>
+                        <input type="number" name="minute" min="0" max="59" value="{{ schedule.minute }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+                    </div>
+                    <div class="text-[11px] text-gray-400 mt-1">ساعت ۰ تا ۲۳ ، دقیقه ۰ تا ۵۹</div>
+                </div>
+            </div>
+
+            <div x-show="frequency === 'weekly'" x-cloak>
+                <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">روز هفته</label>
+                <select name="weekday" class="w-full sm:w-1/2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-white/15 dark:text-slate-100">
+                    <option value="5" {% if schedule.weekday == 5 %}selected{% endif %}>شنبه</option>
+                    <option value="6" {% if schedule.weekday == 6 %}selected{% endif %}>یکشنبه</option>
+                    <option value="0" {% if schedule.weekday == 0 %}selected{% endif %}>دوشنبه</option>
+                    <option value="1" {% if schedule.weekday == 1 %}selected{% endif %}>سه‌شنبه</option>
+                    <option value="2" {% if schedule.weekday == 2 %}selected{% endif %}>چهارشنبه</option>
+                    <option value="3" {% if schedule.weekday == 3 %}selected{% endif %}>پنج‌شنبه</option>
+                    <option value="4" {% if schedule.weekday == 4 %}selected{% endif %}>جمعه</option>
+                </select>
+            </div>
+
+            <div x-show="frequency === 'monthly'" x-cloak>
+                <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">روز ماه (۱ تا ۲۸)</label>
+                <input type="number" name="day_of_month" min="1" max="28" value="{{ schedule.day_of_month }}" class="w-24 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+            </div>
+
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+                <input type="checkbox" name="include_media" {% if schedule.include_media %}checked{% endif %} class="h-5 w-5 rounded border border-gray-300 dark:border-white/20" />
+                <span class="text-xs text-gray-700 dark:text-slate-300">بکاپ خودکار شامل فایل‌ها (عکس، ویدئو، فایل‌های متنی و ...) باشد</span>
+            </label>
+
+            <div>
+                <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">تعداد بکاپ‌های خودکار که نگه داشته شود</label>
+                <input type="number" name="keep" min="1" max="100" value="{{ schedule.keep }}" class="w-24 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
+                <div class="text-[11px] text-gray-400 mt-1">بکاپ‌های خودکار قدیمی‌تر از این تعداد حذف می‌شوند (بکاپ‌های دستی حذف نمی‌شوند)</div>
+            </div>
+        </div>
+
+        <div>
+            <button type="submit" class="button block !bg-gray-800 w-fit">ذخیره تنظیمات</button>
+        </div>
+    </form>
+</div>
+
+<h3 class="text-sm font-bold text-gray-900 dark:text-slate-100 mb-2">بکاپ‌های ذخیره‌شده روی سرور</h3>
+    {% if backups %}
+    <div class="overflow-x-auto mb-10 border rounded-xl dark:border-white/10">
+        <table class="w-full text-sm text-right text-gray-600 dark:text-slate-300">
+            <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-slate-950/35 dark:text-slate-300">
+                <tr>
+                    <th class="px-4 py-3 font-medium">نام فایل</th>
+                    <th class="px-4 py-3 font-medium">نوع</th>
+                    <th class="px-4 py-3 font-medium">تاریخ و ساعت</th>
+                    <th class="px-4 py-3 font-medium">حجم</th>
+                    <th class="px-4 py-3 font-medium">عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in backups %}
+                <tr class="border-t dark:border-white/10">
+                    <td class="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium whitespace-nowrap"><span dir="ltr" class="font-mono text-xs">{{ b.name }}</span></td>
+                    <td class="px-4 py-3">
+                        {% if b.is_zip %}
+                        <span class="inline-block rounded-full bg-sky-100 text-sky-700 text-xs px-2 py-0.5 whitespace-nowrap dark:bg-sky-500/15 dark:text-sky-300">با فایل‌ها</span>
+                        {% else %}
+                        <span class="inline-block rounded-full bg-gray-100 text-gray-700 text-xs px-2 py-0.5 whitespace-nowrap dark:bg-white/10 dark:text-slate-300">فقط دیتابیس</span>
+                        {% endif %}
+                        {% if b.is_auto %}
+                        <span class="inline-block rounded-full bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 mr-1 whitespace-nowrap dark:bg-emerald-500/15 dark:text-emerald-300">خودکار</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">{{ b.created|date:"Y/m/d H:i" }}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">{{ b.size }}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <a href="{% url 'profile-manager-backup-download' b.name %}" class="button block !bg-gray-700 !px-3 !py-1.5 text-xs w-fit whitespace-nowrap">دانلود</a>
+                            <button type="button" @click="copyDownloadLink('{{ b.name|escapejs }}', $event)" class="button block !bg-indigo-700 !px-3 !py-1.5 text-xs w-fit whitespace-nowrap">کپی لینک</button>
+                            <button type="button" @click="if (window.confirm('با بازگردانی این بکاپ، تمام اطلاعات فعلی پاک می‌شود. مطمئن هستید؟')) startRestore({type:'server', name: '{{ b.name|escapejs }}'})" :disabled="restoring" class="button block !bg-amber-700 !px-3 !py-1.5 text-xs w-fit whitespace-nowrap">بازگردانی</button>
+                            <form method="post" action="{% url 'profile-manager-backup-delete' %}" onsubmit="return confirm('این فایل بکاپ حذف شود؟')">
                                 {% csrf_token %}
-                                <input type="hidden" name="action" value="approve">
-                                <input type="hidden" name="user_id" value="{{ p.user.id }}">
-                                <button type="submit" class="button block !bg-gray-800 !px-3 !py-1.5 text-xs w-fit">تایید</button>
+                                <input type="hidden" name="name" value="{{ b.name }}" />
+                                <button type="submit" class="button block !bg-red-700 !px-3 !py-1.5 text-xs w-fit whitespace-nowrap">حذف</button>
                             </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-sm text-gray-500 dark:text-slate-400 border rounded-xl p-4 mb-8 dark:border-white/10">کاربری برای تایید وجود ندارد.</div>
-        {% endif %}
-
-        {% if can_manage_managers %}
-        <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">کاربرها</h2>
-
-        <form method="get" class="flex gap-2 mb-4">
-            <input name="q" value="{{ q }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو با نام کاربری" />
-            <button type="submit" class="button block !bg-gray-800">جستجو</button>
-        </form>
-
-        <div class="overflow-x-auto border rounded-xl dark:border-white/10">
-            <table class="w-full text-sm text-right text-gray-600 dark:text-slate-300">
-                <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-slate-950/35 dark:text-slate-300">
-                    <tr>
-                        <th class="px-4 py-3 font-medium">کاربر</th>
-                        <th class="px-4 py-3 font-medium">وضعیت</th>
-                        <th class="px-4 py-3 font-medium">عملیات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in manager_profiles %}
-                    <tr class="border-t dark:border-white/10">
-                        <th scope="row" class="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium whitespace-nowrap">@{{ p.user.username }}</th>
-                        <td class="px-4 py-3">
-                            {% if p.is_manager %}<span class="text-green-600">مدیر</span>{% else %}<span class="text-gray-400 dark:text-slate-400">کاربر</span>{% endif %}
-                            {% if p.user.is_staff and not p.user.is_superuser %}<span class="text-indigo-600 ml-2">استف</span>{% endif %}
-                        </td>
-                        <td class="px-4 py-3">
-                            <form method="post" action="{% url 'profile-manager' %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="toggle_manager">
-                                <input type="hidden" name="user_id" value="{{ p.user.id }}">
-                                <button type="submit" class="button block !bg-gray-800 !px-3 !py-1.5 text-xs w-fit">
-                                    {% if p.is_manager %}حذف مدیر{% else %}تبدیل به مدیر{% endif %}
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% endif %}
-    </section>
-
-    <!-- ============ تب: مخاطبین ============ -->
-    <section x-show="tab==='contacts'" x-cloak>
-        <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">محدودسازی نمایش مخاطبین</h2>
-
-        <form method="get" class="flex gap-2 mb-4">
-            <input name="cq" value="{{ cq }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو مخاطب با نام کاربری" />
-            {% if q %}<input type="hidden" name="q" value="{{ q }}" />{% endif %}
-            <button type="submit" class="button block !bg-gray-800">جستجو</button>
-        </form>
-
-        <div class="overflow-x-auto mb-10 border rounded-xl dark:border-white/10">
-            <table class="w-full text-sm text-right text-gray-600 dark:text-slate-300">
-                <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-slate-950/35 dark:text-slate-300">
-                    <tr>
-                        <th class="px-4 py-3 font-medium">کاربر</th>
-                        <th class="px-4 py-3 font-medium">نام</th>
-                        <th class="px-4 py-3 font-medium">وضعیت</th>
-                        <th class="px-4 py-3 font-medium">عملیات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in contact_profiles %}
-                    <tr class="border-t dark:border-white/10">
-                        <th scope="row" class="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium whitespace-nowrap">@{{ p.user.username }}</th>
-                        <td class="px-4 py-3">{{ p.name }}</td>
-                        <td class="px-4 py-3">
-                            {% if p.contact_visibility_mode == "selected" %}
-                                <span class="text-amber-700 dark:text-amber-300">انتخاب‌شده</span>
-                            {% else %}
-                                <span class="text-gray-600 dark:text-slate-300">همه</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-3">
-                            <a href="{% url 'profile-manager-contact-visibility' p.user.id %}" class="button block !bg-gray-800 !px-3 !py-1.5 text-xs w-fit">تنظیم</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-slate-400" colspan="4">مخاطبی پیدا نشد.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">دسته‌بندی مخاطبین</h2>
-
-        <form method="post" action="{% url 'profile-manager' %}" class="flex flex-col sm:flex-row gap-2 mb-4">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="create_contact_category">
-            <input name="category_name" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="نام دسته‌بندی جدید (مثلا کارمندان)" />
-            <button type="submit" class="button block !bg-gray-800 w-fit">ایجاد</button>
-        </form>
-
-        <form method="get" class="flex gap-2 mb-4">
-            <input name="gq" value="{{ gq }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو دسته‌بندی" />
-            {% if q %}<input type="hidden" name="q" value="{{ q }}" />{% endif %}
-            {% if cq %}<input type="hidden" name="cq" value="{{ cq }}" />{% endif %}
-            <button type="submit" class="button block !bg-gray-800">جستجو</button>
-        </form>
-
-        <div class="overflow-x-auto border rounded-xl dark:border-white/10">
-            <table class="w-full text-sm text-right text-gray-600 dark:text-slate-300">
-                <thead class="text-xs text-gray-700 bg-gray-50 dark:bg-slate-950/35 dark:text-slate-300">
-                    <tr>
-                        <th class="px-4 py-3 font-medium">نام</th>
-                        <th class="px-4 py-3 font-medium">اعضا</th>
-                        <th class="px-4 py-3 font-medium">عملیات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for c in contact_categories %}
-                    <tr class="border-t dark:border-white/10">
-                        <th scope="row" class="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium">{{ c.name }}</th>
-                        <td class="px-4 py-3 whitespace-nowrap">{{ c.member_count }} عضو</td>
-                        <td class="px-4 py-3">
-                            <a href="{% url 'profile-manager-contact-category' c.id %}" class="button block !bg-gray-800 !px-3 !py-1.5 text-xs w-fit">تنظیم اعضا</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-slate-400" colspan="3">دسته‌بندی‌ای وجود ندارد.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </section>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="mb-10 text-sm text-gray-500 dark:text-slate-400 border rounded-xl p-4 dark:border-white/10">هنوز بکاپی روی سرور ذخیره نشده است.</div>
+    {% endif %}
 
 </div>
 
@@ -594,6 +381,42 @@
 
             urls: opts.urls,
             csrf: opts.csrf,
+
+            async copyDownloadLink(name, ev) {
+                const btn = ev && ev.currentTarget;
+                const original = btn ? btn.textContent : '';
+                try {
+                    const url = this.urls.linkBase.replace('__NAME__', encodeURIComponent(name));
+                    const res = await fetch(url, { credentials: 'same-origin' });
+                    const data = await res.json();
+                    if (!res.ok || !data.ok) throw new Error('error');
+                    const full = window.location.origin + data.path;
+                    let copied = false;
+                    try {
+                        await navigator.clipboard.writeText(full);
+                        copied = true;
+                    } catch (e) {
+                        const ta = document.createElement('textarea');
+                        ta.value = full;
+                        ta.style.position = 'fixed';
+                        ta.style.opacity = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        try { copied = document.execCommand('copy'); } catch (e2) { copied = false; }
+                        document.body.removeChild(ta);
+                    }
+                    if (btn) {
+                        btn.textContent = copied ? 'کپی شد ✓' : 'کپی نشد';
+                        setTimeout(function () { btn.textContent = original; }, 1800);
+                    }
+                    if (!copied) window.prompt('این لینک را کپی کنید:', full);
+                } catch (e) {
+                    if (btn) {
+                        btn.textContent = 'خطا';
+                        setTimeout(function () { btn.textContent = original; }, 1800);
+                    }
+                }
+            },
 
             async startBackup() {
                 if (this.creating) return;
@@ -690,7 +513,146 @@
     };
 </script>
 
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">کاربران در انتظار تایید</h2>
+{% if pending_profiles %}
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400 mb-8">
+    <tbody>
+        {% for p in pending_profiles %}
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-gray-900 dark:text-slate-100 font-medium">
+                @{{ p.user.username }}
+            </th>
+            <td class="py-4 pl-4">
+                {{ p.name }}
+            </td>
+            <td class="py-4 pl-4">
+                <form method="post" action="{% url 'profile-manager' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <input type="hidden" name="user_id" value="{{ p.user.id }}">
+                    <button type="submit" class="button block !bg-gray-800">تایید</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="text-sm text-gray-500 dark:text-slate-400 mb-8">کاربری برای تایید وجود ندارد.</div>
 {% endif %}
 
-</div>
+{% if can_manage_managers %}
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mb-3">کاربرها</h2>
+
+<form method="get" class="flex gap-2 mb-4">
+    <input name="q" value="{{ q }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو با نام کاربری" />
+    <button type="submit" class="button block !bg-gray-800">جستجو</button>
+</form>
+
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
+    <tbody>
+        {% for p in manager_profiles %}
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-gray-900 dark:text-slate-100 font-medium">
+                @{{ p.user.username }}
+            </th>
+            <td class="py-4 pl-4">
+                {% if p.is_manager %}<span class="text-green-600">مدیر</span>{% else %}<span class="text-gray-400 dark:text-slate-400">کاربر</span>{% endif %}
+                <!-- {% if p.user.is_superuser %}<span class="text-indigo-600 ml-2">سوپر یوزر</span>{% endif %} -->
+                {% if p.user.is_staff and not p.user.is_superuser %}<span class="text-indigo-600 ml-2">استف</span>{% endif %}
+            </td>
+            <td class="py-4 pl-4">
+                <form method="post" action="{% url 'profile-manager' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle_manager">
+                    <input type="hidden" name="user_id" value="{{ p.user.id }}">
+                    <button type="submit" class="button block !bg-gray-800">
+                        {% if p.is_manager %}حذف مدیر{% else %}تبدیل به مدیر{% endif %}
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<br>
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mt-10 mb-3">محدودسازی نمایش مخاطبین</h2>
+
+<form method="get" class="flex gap-2 mb-4">
+    <input name="cq" value="{{ cq }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو مخاطب با نام کاربری" />
+    {% if q %}<input type="hidden" name="q" value="{{ q }}" />{% endif %}
+    <button type="submit" class="button block !bg-gray-800">جستجو</button>
+</form>
+
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
+    <tbody>
+        {% for p in contact_profiles %}
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-gray-900 dark:text-slate-100 font-medium">
+                @{{ p.user.username }}
+            </th>
+            <td class="py-4 pl-4">
+                {{ p.name }}
+            </td>
+            <td class="py-4 pl-4">
+                {% if p.contact_visibility_mode == "selected" %}
+                    <span class="text-amber-700 dark:text-amber-300">انتخاب‌شده</span>
+                {% else %}
+                    <span class="text-gray-600 dark:text-slate-300">همه</span>
+                {% endif %}
+            </td>
+            <td class="py-4 pl-4">
+                <a href="{% url 'profile-manager-contact-visibility' p.user.id %}" class="button block !bg-gray-800 w-fit">تنظیم</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td class="py-4 text-sm text-gray-500 dark:text-slate-400" colspan="4">مخاطبی پیدا نشد.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<br>
+<h2 class="text-base font-bold text-gray-900 dark:text-slate-100 mt-10 mb-3">دسته‌بندی مخاطبین</h2>
+
+<form method="post" action="{% url 'profile-manager' %}" class="flex flex-col md:flex-row gap-2 mb-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create_contact_category">
+    <input name="category_name" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="نام دسته‌بندی جدید (مثلا کارمندان)" />
+    <button type="submit" class="button block !bg-gray-800 w-fit">ایجاد</button>
+</form>
+
+<form method="get" class="flex gap-2 mb-4">
+    <input name="gq" value="{{ gq }}" class="w-full rounded-lg border px-3 py-2 dark:bg-slate-950/35 dark:border-white/10 dark:text-slate-100 dark:placeholder:text-slate-400" placeholder="جستجو دسته‌بندی" />
+    {% if q %}<input type="hidden" name="q" value="{{ q }}" />{% endif %}
+    {% if cq %}<input type="hidden" name="cq" value="{{ cq }}" />{% endif %}
+    <button type="submit" class="button block !bg-gray-800">جستجو</button>
+</form>
+
+<table class="w-full text-sm text-left text-gray-500 dark:text-slate-400">
+    <tbody>
+        {% for c in contact_categories %}
+        <tr class="border-b dark:border-white/10">
+            <th scope="row" class="py-4 text-gray-900 dark:text-slate-100 font-medium">
+                {{ c.name }}
+            </th>
+            <td class="py-4 pl-4">
+                {{ c.member_count }} عضو
+            </td>
+            <td class="py-4 pl-4">
+                <a href="{% url 'profile-manager-contact-category' c.id %}" class="button block !bg-gray-800 w-fit">تنظیم اعضا</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td class="py-4 text-sm text-gray-500 dark:text-slate-400" colspan="3">دسته‌بندی‌ای وجود ندارد.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endif %}
 {% endblock %}

@@ -7,8 +7,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import redirect_to_login
 from django.contrib import messages
 from django.core.management import call_command
+from django.core import signing
 from django.conf import settings
-from django.db import connection
+from django.db import connection, transaction
 from django.http import HttpResponse, JsonResponse, FileResponse, Http404
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -714,20 +715,64 @@ def manager_backup_progress_view(request, job_id):
     return JsonResponse(payload)
 
 
+def _make_backup_token(name):
+    return signing.dumps({"n": name}, salt="messenger-backup-dl")
+
+
+def _check_backup_token(token, name):
+    try:
+        data = signing.loads(token, salt="messenger-backup-dl", max_age=7 * 24 * 3600)
+    except Exception:
+        return False
+    return isinstance(data, dict) and data.get("n") == name
+
+
 @login_required
 @require_http_methods(["GET"])
-def manager_backup_download_view(request, name):
+def manager_backup_link_view(request, name):
     if not _user_can_open_manager_panel(request.user):
-        messages.warning(request, "شما به این بخش دسترسی ندارید.")
-        return redirect("profile")
+        return JsonResponse({"ok": False, "error": "no-access"}, status=403)
+    path = _safe_backup_path(name)
+    if not path:
+        return JsonResponse({"ok": False, "error": "not-found"}, status=404)
+    token = _make_backup_token(path.name)
+    rel = reverse("profile-manager-backup-download", args=[path.name]) + "?token=" + token
+    return JsonResponse({"ok": True, "path": rel})
 
+
+@require_http_methods(["GET"])
+def manager_backup_download_view(request, name):
     path = _safe_backup_path(name)
     if not path:
         raise Http404("فایل بکاپ یافت نشد.")
 
+    allowed = request.user.is_authenticated and _user_can_open_manager_panel(request.user)
+    if not allowed:
+        token = request.GET.get("token", "")
+        if token and _check_backup_token(token, path.name):
+            allowed = True
+    if not allowed:
+        raise Http404("فایل بکاپ یافت نشد.")
+
     ctype = "application/zip" if path.name.endswith(".zip") else "application/json; charset=utf-8"
+    disposition = f'attachment; filename="{path.name}"'
+
+    # اگر پشت nginx هستیم، انتقال فایل حجیم را به nginx بسپار تا رم/CPU پایتون درگیر نشود.
+    xaccel_prefix = os.getenv("BACKUP_XACCEL_PREFIX", "").strip()
+    if xaccel_prefix:
+        # بدنه خالی است و nginx فایل را می‌فرستد؛ Content-Length را خود nginx تعیین می‌کند.
+        response = HttpResponse()
+        response["Content-Type"] = ctype
+        response["Content-Disposition"] = disposition
+        response["X-Accel-Redirect"] = xaccel_prefix.rstrip("/") + "/" + path.name
+        if "Content-Length" in response:
+            del response["Content-Length"]
+        return response
+
+    # حالت پیش‌فرض: استریم فایل با قطعات ۱ مگابایتی تا مصرف CPU پایین بماند و کل فایل در رم بارگذاری نشود.
     response = FileResponse(open(path, "rb"), content_type=ctype)
-    response["Content-Disposition"] = f'attachment; filename="{path.name}"'
+    response.block_size = 1024 * 1024
+    response["Content-Disposition"] = disposition
     return response
 
 
@@ -823,8 +868,9 @@ def _restore_from_path(work_path, temp_json_path):
             with open(temp_json_path, "wb") as jf:
                 jf.write(zf.read("data.json"))
 
-            call_command("flush", interactive=False, verbosity=0)
-            call_command("loaddata", temp_json_path, verbosity=0)
+            with transaction.atomic():
+                call_command("flush", interactive=False, verbosity=0)
+                call_command("loaddata", temp_json_path, verbosity=0)
 
             media_root = getattr(settings, "MEDIA_ROOT", "")
             if media_root:
@@ -843,8 +889,9 @@ def _restore_from_path(work_path, temp_json_path):
                         shutil.copyfileobj(src_f, dst_f)
     else:
         shutil.copyfile(work_path, temp_json_path)
-        call_command("flush", interactive=False, verbosity=0)
-        call_command("loaddata", temp_json_path, verbosity=0)
+        with transaction.atomic():
+            call_command("flush", interactive=False, verbosity=0)
+            call_command("loaddata", temp_json_path, verbosity=0)
 
 
 @login_required
@@ -890,9 +937,18 @@ def manager_restore_view(request):
         temp_json_path = os.path.join(temp_dir, f"{base}.json")
         cleanup_paths.append(temp_json_path)
 
+        # قبل از هر عملیات مخرب، یک بکاپ ایمنی از وضعیت فعلی دیتابیس بگیر (تا اگر بازگردانی خراب شد، قابل برگشت باشد)
+        try:
+            safety_name, _safety_size = _build_backup(include_media=False, prefix="messenger-prerestore")
+        except Exception:
+            safety_name = None
+
         _restore_from_path(work_path, temp_json_path)
 
-        messages.success(request, "بکاپ با موفقیت لود شد. ممکن است نیاز باشد دوباره وارد شوید.")
+        if safety_name:
+            messages.success(request, "بکاپ با موفقیت لود شد. یک بکاپ ایمنی از وضعیت قبلی با نام «%s» روی سرور ذخیره شد. ممکن است نیاز باشد دوباره وارد شوید." % safety_name)
+        else:
+            messages.success(request, "بکاپ با موفقیت لود شد. ممکن است نیاز باشد دوباره وارد شوید.")
         return redirect("home")
     except _RestoreError as exc:
         messages.error(request, str(exc))

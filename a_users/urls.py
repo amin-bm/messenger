@@ -14,6 +14,7 @@ urlpatterns = [
     path('manager/backup/start/', manager_backup_start_view, name="profile-manager-backup-start"),
     path('manager/backup/progress/<str:job_id>/', manager_backup_progress_view, name="profile-manager-backup-progress"),
     path('manager/backup/download/<str:name>/', manager_backup_download_view, name="profile-manager-backup-download"),
+    path('manager/backup/link/<str:name>/', manager_backup_link_view, name="profile-manager-backup-link"),
     path('manager/backup/delete/', manager_backup_delete_view, name="profile-manager-backup-delete"),
     path('manager/backup/schedule/', manager_backup_schedule_view, name="profile-manager-backup-schedule"),
     path('emailchange/', profile_emailchange, name="profile-emailchange"),

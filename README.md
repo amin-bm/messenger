@@ -384,19 +384,19 @@ sudo journalctl -u pesk-messenger -f
 
 ```nginx
 server {
-    listen 80;
     server_name example.com www.example.com;
 
-    client_max_body_size 25m;
+    
+    client_max_body_size 20g;
 
-    location /static/ {
-        alias /opt/pesk-messenger/staticfiles/;
-        expires 30d;
-        add_header Cache-Control "public";
-    }
+    location /static/ { alias /opt/messenger/staticfiles/; }
+    location /media/  { alias /opt/messenger/media/; }
 
-    location /media/ {
-        alias /opt/pesk-messenger/media/;
+    # Internal-only location: reachable ONLY via X-Accel-Redirect.
+    # nginx serves backup files directly (no python/daphne involvement).
+    location /protected-backups/ {
+        internal;
+        alias /opt/messenger/backups/;
     }
 
     location /ws/ {
@@ -414,7 +414,31 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Longer timeouts for slow/large operations (backup upload/restore).
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+        # Stream uploads straight to the backend instead of buffering the whole body.
+        proxy_request_buffering off;
     }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/example.com-0001/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/example.com-0001/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+server {
+    if ($host = example.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    server_name example.com;
+    return 404; # managed by Certbot
+
 }
 ```
 

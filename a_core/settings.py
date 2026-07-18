@@ -222,6 +222,7 @@ if _use_postgres:
             "PASSWORD": (os.getenv("DATABASE_PASSWORD") or os.getenv("POSTGRES_PASSWORD") or "").strip(),
             "HOST": (os.getenv("DATABASE_HOST") or os.getenv("POSTGRES_HOST") or "localhost").strip() or "localhost",
             "PORT": (os.getenv("DATABASE_PORT") or os.getenv("POSTGRES_PORT") or "5432").strip() or "5432",
+            "CONN_MAX_AGE": 60,
         }
     }
 else:
@@ -231,6 +232,18 @@ else:
             "NAME": os.getenv("SQLITE_PATH", str(BASE_DIR / "db.sqlite3")),
         }
     }
+
+
+# Cache (Redis DB 1) — برای throttle/debounce در consumers
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://{host}:{port}/1".format(
+            host=(os.getenv("REDIS_HOST", "localhost").strip() or "localhost"),
+            port=int(os.getenv("REDIS_PORT", "6379")),
+        ),
+    }
+}
 
 
 

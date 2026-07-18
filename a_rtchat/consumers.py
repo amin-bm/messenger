@@ -11,6 +11,7 @@ from django.db.models import OuterRef, Subquery, Count, Value, Q
 from django.db.models.functions import Coalesce
 from django.db import transaction
 from django.conf import settings
+from django.core.cache import cache
 from django.utils import timezone
 from datetime import timedelta
 
@@ -161,6 +162,9 @@ def _send_push_notifications_for_message(message_id: int) -> None:
 
 def _touch_last_seen(user) -> None:
     if not getattr(user, "is_authenticated", False):
+        return
+    # throttle: حداکثر هر ۳۰ ثانیه یک‌بار برای هر کاربر در دیتابیس بنویس
+    if not cache.add(f"last_seen_touch:{user.id}", 1, timeout=30):
         return
     Profile.objects.filter(user=user).update(last_seen=timezone.now())
 
@@ -346,7 +350,8 @@ class ChatroomConsumer(WebsocketConsumer):
             reply_to=reply_to,
         )
 
-        transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
+        if not bool(getattr(settings, "OFFLINE_MODE", False)):
+            transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
 
         log_group_send('ChatroomConsumer', self.chatroom_name, 'message_handler')
         async_to_sync(self.channel_layer.group_send)(
@@ -519,7 +524,7 @@ class ChatroomConsumer(WebsocketConsumer):
             try:
                 MessageReaction.objects.create(message=message, user=self.user, emoji=emoji)
             except Exception:
-                log_error('ChatroomConsumer', f'reaction create failed msg={message.id}')
+                log_error('ChatroomConsumer', self.user, f'reaction create failed msg={message.id}')
                 return
 
         log_group_send('ChatroomConsumer', self.chatroom_name, 'reaction_handler')
@@ -628,6 +633,9 @@ class OnlineStatusConsumer(WebsocketConsumer):
                 
 
     def online_status(self):
+        # debounce: اگر در ۲ ثانیه‌ی اخیر broadcast شده، رد شو تا طوفانِ N² رخ ندهد
+        if not cache.add("online_status_broadcast_lock", 1, timeout=2):
+            return
         log_group_send('OnlineStatusConsumer', 'online-status', 'online_status_handler', 'broadcast')
         event = {'type': 'online_status_handler'}
         async_to_sync(self.channel_layer.group_send)(self.group_name, event)

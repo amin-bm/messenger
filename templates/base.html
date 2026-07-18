@@ -1790,7 +1790,7 @@
         if (resetRequired) {
           subtitle.textContent = resetMessage ? `این بروزرسانی نیاز به پاکسازی داده‌ها دارد: ${resetMessage}` : "این بروزرسانی نیاز به پاکسازی داده‌ها دارد.";
         } else {
-          subtitle.textContent = `نسخه فعلی: ${APP_VERSION}`;
+          subtitle.textContent = `نسخه فعل��: ${APP_VERSION}`;
         }
 
         if (note) note.style.display = resetRequired ? "block" : "none";
@@ -2523,21 +2523,31 @@
         if (window.htmx && typeof window.htmx.trigger === "function") window.htmx.trigger(messageForm, "htmx:wsReconnect");
       }
 
+      var reconnectAttempts = 0;
+
       function startReconnectTimer() {
         if (reconnectTimer) return;
-        reconnectTimer = setInterval(() => {
-          const online = typeof window.rtchatIsOnline === "function" ? window.rtchatIsOnline() : (typeof navigator === "undefined" ? true : navigator.onLine !== false);
-          if (!online) return;
-          if (wsConnected) return;
+        const online = typeof window.rtchatIsOnline === "function" ? window.rtchatIsOnline() : (typeof navigator === "undefined" ? true : navigator.onLine !== false);
+        if (!online || wsConnected) return;
+        // backoff نمایی + jitter: ~3s, 6s, 12s, 24s ... تا سقف 30s
+        const base = Math.min(30000, 3000 * Math.pow(2, reconnectAttempts));
+        const delay = base * (0.6 + Math.random() * 0.8);
+        reconnectAttempts += 1;
+        reconnectTimer = setTimeout(() => {
+          reconnectTimer = 0;
+          const stillOnline = typeof window.rtchatIsOnline === "function" ? window.rtchatIsOnline() : (typeof navigator === "undefined" ? true : navigator.onLine !== false);
+          if (!stillOnline || wsConnected) return;
           attemptReconnect();
-        }, 5000);
+          startReconnectTimer();
+        }, delay);
       }
 
       function stopReconnectTimer() {
         if (reconnectTimer) {
-          clearInterval(reconnectTimer);
+          clearTimeout(reconnectTimer);
           reconnectTimer = 0;
         }
+        reconnectAttempts = 0;
       }
 
       function updateConnectivity() {

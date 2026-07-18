@@ -1,4 +1,4 @@
-# وابستگی سیستمی (pip نیست): LibreOffice/soffice برای پیش‌نمایش فایل‌های Office→PDF
+# وابستگی‌های سیستمی (pip نیست): LibreOffice/soffice برای پیش‌نمایش فایل‌های Office→PDF
 asgiref==3.11.0
 attrs==25.4.0
 autobahn==25.12.2
@@ -38,3 +38,9 @@ typing_extensions==4.15.0
 tzdata==2025.3
 ujson==5.11.0
 zope.interface==8.2
+
+# --- سرورِ ASGIِ پروداکشن (جایگزینِ daphne؛ اپ با این‌ها اجرا می‌شود) ---
+# uvicorn[standard] پکیج‌های websockets, uvloop, httptools, watchfiles, python-dotenv را می‌آورد.
+# بدونِ اکسترای standard، WebSocket کار نمی‌کند.
+gunicorn==26.0.0
+uvicorn[standard]==0.51.0

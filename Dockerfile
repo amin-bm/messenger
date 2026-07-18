@@ -37,4 +37,9 @@ COPY --from=frontend-build /src/static/css/tailwind.css /app/static/css/tailwind
 RUN mkdir -p /app/staticfiles /app/media
 
 EXPOSE 8000
-CMD ["bash","-lc","python manage.py migrate --noinput && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 a_core.asgi:application"]
+
+# Production ASGI server: Gunicorn + Uvicorn worker (same as the bare-metal server).
+# NOTE: requirements.txt must include gunicorn and uvicorn[standard] (brings the
+# `websockets` lib) or WebSocket connections will fail.
+# Worker count is configurable via WEB_CONCURRENCY (defaults to 2).
+CMD ["bash","-lc","python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn a_core.asgi:application -k uvicorn.workers.UvicornWorker -w ${WEB_CONCURRENCY:-2} -b 0.0.0.0:8000 --timeout 120 --graceful-timeout 30 --max-requests 2000 --max-requests-jitter 200"]

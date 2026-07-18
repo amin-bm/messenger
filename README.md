@@ -1,399 +1,310 @@
-# Pesk Messenger (Django + Channels)
+# Pesk Messenger (Django 5 + Channels)
+
+مسنجرِ real-time مبتنی بر **Django 5 + Django Channels** با WebSocket و حضورِ آنلاین.
+این README وضعیتِ **واقعیِ پروداکشن** روی سرور را مستند می‌کند (نه نمونه/مثال).
+
+> استکِ واقعیِ در حال اجرا:
+> **Gunicorn + Uvicorn worker (ASGI)** → **Django 5** → **PostgreSQL 14** + **Redis** پشتِ **Nginx**.
+
+داخل کدها، هرجا your-domain.ir بود با دامنه ی خودتون جایگزین کنید
+
+---
+
+## فهرست سرویس‌ها و فایل‌های تنظیمیِ واقعی
+
+| مورد | مقدار / مسیرِ واقعی |
+|---|---|
+| مسیر پروژه | `/opt/messenger` |
+| کاربرِ اجرا | `pesk` |
+| venv (Python 3.11) | `/opt/messenger/venv` |
+| ماژول ASGI | `a_core.asgi:application` |
+| ماژول settings | `a_core.settings` |
+| فایل ENV | `/etc/messenger/messenger.env` |
+| سرویس اپ | `/etc/systemd/system/messenger.service` |
+| Drop-in سرویس | `/etc/systemd/system/messenger.service.d/override.conf` |
+| اجرا روی | `127.0.0.1:8001` |
+| دامنه | `chat.your-domain.ir` |
+| Nginx (site) | `/etc/nginx/...` (محتوای واقعی در بخش Nginx) |
+| PostgreSQL | کلاستر `14 main`، پورت `5432` |
+| DB / User | `messenger_db` / `messenger_user` |
+| کانفیگ PostgreSQL | `/etc/postgresql/14/main/postgresql.conf` |
+| سرویس PostgreSQL | `postgresql@14-main.service` |
+| Watchdog دیتابیس | `/etc/systemd/system/pg-watchdog.service` + `pg-watchdog.timer` |
+| Redis | `127.0.0.1:6379` (Channels layer + Django cache روی DB `1`) |
+
+---
 
 ## پیش‌نیازها
 
-- Ubuntu 22.04/24.04 (یا معادل)
+- Ubuntu / Debian (این سرور: cPanel روی Ubuntu)
 - Python 3.11+ و venv
-- Redis (برای Channels)
-- Nginx (Reverse Proxy + سرو Static/Media)
-- (اختیاری ولی پیشنهادی) PostgreSQL برای محیط Production
+- PostgreSQL 14
+- Redis (برای Channels و Cache)
+- Nginx (Reverse Proxy + سرو Static/Media + WebSocket)
 - (اختیاری) LibreOffice/soffice برای پیش‌نمایش فایل‌های Office به PDF
 
-## اجرای پروژه با Docker (پیشنهادی برای سرور بدون اینترنت)
-
-اگر می‌خواهید پروژه را روی یک سرور «بدون اینترنت» و «بدون نصب Python/Django/Node/Redis/PostgreSQL/Nginx روی خود سرور» اجرا کنید، از این روش استفاده کنید.
-
-نکته‌ی مهم: تنها چیزی که روی سرور باید وجود داشته باشد Docker Engine و پلاگین/کامند Docker Compose است. (بدون Docker اصولاً اجرای کانتینر ممکن نیست.)
-
-فایل‌های مربوط به Docker در این ریپو:
-
-- [Dockerfile](./Dockerfile)
-- [docker-compose.yml](./docker-compose.yml)
-- [docker/nginx.conf](./docker/nginx.conf)
-
-### اجرای محلی (برای تست)
-
-```bash
-docker compose up -d --build
-docker compose logs -f web
-```
-
-بعد از بالا آمدن سرویس‌ها:
-
-- آدرس برنامه: `http://localhost/`
-- دیتابیس و فایل‌ها داخل Volumeهای Docker نگهداری می‌شوند (با `docker compose down` پاک نمی‌شوند مگر با `-v`)
-
-### دیپلوی روی سرور بدون اینترنت (انتقال آفلاین)
-
-ایده‌ی کلی این است که ایمیج‌ها را روی یک سیستم دارای اینترنت Build/Pull کنید، سپس به صورت فایل `.tar` منتقل کنید و روی سرور `docker load` بزنید.
-
-1) روی سیستم Build (دارای اینترنت) داخل ریشه پروژه:
-
-```bash
-docker compose build
-docker pull nginx:1.27-alpine postgres:16-alpine redis:7-alpine
-docker save -o pesk-messenger-images.tar pesk-messenger-web:latest nginx:1.27-alpine postgres:16-alpine redis:7-alpine
-```
-
-2) فایل‌های زیر را به سرور منتقل کنید:
-
-- `pesk-messenger-images.tar`
-- `docker-compose.yml`
-- پوشه `docker/` (برای `nginx.conf`)
-- یک فایل `.env` یا `messenger.env` شامل تنظیمات (Secretها، Hostها، پسورد دیتابیس و ...)
-
-3) روی سرور (بدون اینترنت):
-
-```bash
-docker load -i pesk-messenger-images.tar
-docker compose up -d --no-build
-docker compose ps
-```
-
-### آپدیت بعد از تغییر پروژه (بدون اینترنت)
-
-هر بار که پروژه آپدیت شد، کافی است روی سیستم دارای اینترنت ایمیج `web` را دوباره Build کنید و دوباره فایل `.tar` بسازید و به سرور منتقل کنید:
-
-روی سیستم Build:
-
-```bash
-docker compose build web
-docker save -o pesk-messenger-images.tar pesk-messenger-web:latest nginx:1.27-alpine postgres:16-alpine redis:7-alpine
-```
-
-روی سرور:
-
-```bash
-docker load -i pesk-messenger-images.tar
-docker compose up -d --no-build --force-recreate
-docker compose logs -f web
-```
-
-نکته‌ها:
-
-- برای اینکه کلاینت‌ها (PWA/Static) حتماً آپدیت را ببینند، مقدار `APP_VERSION` را در `.env` تغییر دهید (مثلاً شماره نسخه یا تاریخ).
-- اگر HTTPS ندارید، حتماً این‌ها را در `.env` روی `0` بگذارید تا ریدایرکت/کوکی امن مشکل ایجاد نکند:
-  - `DJANGO_SECURE_SSL_REDIRECT=0`
-  - `DJANGO_SESSION_COOKIE_SECURE=0`
-  - `DJANGO_CSRF_COOKIE_SECURE=0`
-- برای WebSocketها در Nginx تنظیمات لازم داخل `docker/nginx.conf` انجام شده و مسیرهای `ws/` را پشتیبانی می‌کند.
-
-## وابستگی‌های Python (خلاصه)
-
-این پروژه بر پایه این ابزارها اجرا می‌شود:
-
-- Django + Daphne (ASGI) برای اجرای وب‌اپ
-- Channels + channels_redis برای WebSocket و حضور آنلاین
-- redis برای اتصال لایه‌ی Channels به Redis
-- psycopg2-binary برای اتصال PostgreSQL (در صورت فعال بودن)
-- pillow برای پردازش تصاویر
-- pywebpush برای Web Push Notification (در صورت تنظیم VAPID)
-- django-allauth برای احراز هویت/ورود
-- django-cleanup برای پاک‌کردن فایل‌های Media هنگام حذف مدل
-- django-htmx برای تعاملات HTMX
-
-## 1) آماده‌سازی سرور
+نصب پیش‌نیازهای سیستمی:
 
 ```bash
 sudo apt update
-sudo apt install -y python3-venv python3-pip nginx redis-server
+sudo apt install -y python3-venv python3-pip nginx redis-server postgresql postgresql-contrib
 sudo systemctl enable --now redis-server
-```
-
-اگر PostgreSQL می‌خواهید:
-
-```bash
-sudo apt install -y postgresql postgresql-contrib
-```
-
-اگر پیش‌نمایش فایل‌های Word/Excel به PDF را می‌خواهید (Office Preview):
-
-```bash
+# اختیاری (Office Preview):
 sudo apt install -y libreoffice
 ```
 
-## 2) ساخت یوزر و مسیر پروژه
+---
+
+## ۱) کاربر و مسیر پروژه
 
 ```bash
-sudo adduser --disabled-password --gecos "" pesk
-sudo mkdir -p /opt/pesk-messenger
-sudo chown -R pesk:pesk /opt/pesk-messenger
+sudo useradd -r -m -d /opt/messenger -s /bin/bash pesk   # اگر از قبل نیست
+sudo mkdir -p /opt/messenger
+sudo chown -R pesk:pesk /opt/messenger
 ```
 
-## 3) دریافت کد و نصب وابستگی‌ها
+## ۲) دریافت کد و venv و نصب وابستگی‌ها
 
 ```bash
 sudo -u pesk -H bash -lc '
-cd /opt/pesk-messenger
+cd /opt/messenger
 git clone <REPO_URL> .
 python3 -m venv venv
 source venv/bin/activate
+pip install --upgrade "pip>=23,<26"
 pip install -r requirements.txt
 '
 ```
 
-## 4) آماده‌سازی فایل‌های Static (Tailwind)
+### نصبِ سرورِ ASGIِ پروداکشن (مهم)
 
-این پروژه در زمان اجرا به Node نیاز ندارد، چون خروجی Tailwind به‌صورت فایل آماده در static موجود است.
-
-برای تغییر Tailwind روی لینوکس:
+اپ با **Gunicorn + Uvicorn worker** اجرا می‌شود، نه daphne. حتماً uvicorn را با اکسترای `standard` نصب کن تا کتابخانه‌ی **WebSocket** (پکیج `websockets`) و `uvloop`/`httptools` نصب شوند؛ در غیر این‌صورت HTTP کار می‌کند ولی WebSocket وصل نمی‌شود و خطای «در حال اتصال مجدد» می‌گیری:
 
 ```bash
-cd /opt/pesk-messenger/frontend
-npm ci
-npx tailwindcss -i ./src/input.css -o ../static/css/tailwind.css --minify
+sudo -u pesk /opt/messenger/venv/bin/pip install gunicorn "uvicorn[standard]"
 ```
 
-روی VPS فقط زمانی Node لازم است که بخواهید روی خود سرور Tailwind را build کنید.
-
-نکته:
-
-- این مرحله به pip نیاز ندارد؛ فقط Node.js (پیشنهادی: 18+ یا 20 LTS) و npm لازم است.
-- pip فقط برای نصب وابستگی‌های Python پروژه استفاده می‌شود (مرحله 3). پیشنهاد: داخل venv از pip نسخه `>=23,<26` استفاده کنید:
+تأیید نصبِ WebSocket:
 
 ```bash
-python3 -m pip install --upgrade "pip>=23,<26"
+/opt/messenger/venv/bin/python -c "import websockets; print('websockets OK')"
 ```
 
-## 5) تنظیم ENV روی سرور
+---
 
-پیشنهاد: یک فایل env بسازید و در systemd به سرویس معرفی کنید.
+## ۳) PostgreSQL
 
-مسیر پیشنهادی:
+### ساخت دیتابیس و کاربر
 
-`/etc/pesk-messenger/pesk-messenger.env`
+```bash
+sudo -u postgres psql <<'SQL'
+CREATE USER messenger_user WITH PASSWORD 'CHANGE_ME';
+CREATE DATABASE messenger_db OWNER messenger_user;
+GRANT ALL PRIVILEGES ON DATABASE messenger_db TO messenger_user;
+SQL
+```
 
-نحوه‌ی لود شدن env در کد (طبق [settings.py](~/messenger/a_core/settings.py)):
+### فعال‌سازیِ خودکارِ کلاستر هنگام بوت
 
-- اگر متغیر `DJANGO_ENV_FILE` ست شده باشد، ابتدا همان فایل خوانده می‌شود.
-- در غیر این صورت اولین فایل موجود از این لیست خوانده می‌شود:
-  - `./messenger.env`
-  - `./.env`
-  - `/etc/messenger/messenger.env`
-  - `/etc/pesk-messenger/pesk-messenger.env`
-- اگر یک کلید از قبل در Environment پروسه ست شده باشد (مثلاً توسط systemd `EnvironmentFile=`)، فایل env آن مقدار را Override نمی‌کند.
+این قدم لازم است؛ در غیر این‌صورت اگر PostgreSQL بیفتد خودش بالا نمی‌آید و کلِ اپ می‌خوابد:
 
-نمونه محتوا:
+```bash
+sudo systemctl enable postgresql@14-main
+sudo systemctl start postgresql@14-main
+sudo pg_lsclusters   # باید online باشد
+```
+
+### تنظیماتِ واقعیِ `postgresql.conf`
+
+فایل: `/etc/postgresql/14/main/postgresql.conf` — این مقادیر برای سروری با ~۲GB RAM و ~۵۰ کاربر تنظیم شده‌اند:
+
+```conf
+max_connections = 60
+shared_buffers = 256MB
+work_mem = 4MB
+maintenance_work_mem = 64MB
+effective_cache_size = 768MB
+```
+
+> نکته: `max_connections = 60` عمداً کمی بالاتر است چون هر کاربر ممکن است هم‌زمان با موبایل و دسکتاپ (دو دیوایس) وصل شود.
+
+بعد از تغییر:
+
+```bash
+sudo systemctl restart postgresql@14-main
+```
+
+### Watchdog دیتابیس (خودترمیمی)
+
+اگر PostgreSQL به هر دلیل بیفتد، این تایمر هر ۶۰ ثانیه چک می‌کند و در صورت down بودن، دوباره بالا می‌آورد.
+
+فایل `/etc/systemd/system/pg-watchdog.service`:
+
+```ini
+[Unit]
+Description=PostgreSQL watchdog - start cluster if down
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '/usr/bin/pg_isready -h 127.0.0.1 -p 5432 -q || /bin/systemctl start postgresql@14-main'
+```
+
+فایل `/etc/systemd/system/pg-watchdog.timer`:
+
+```ini
+[Unit]
+Description=Run PostgreSQL watchdog periodically
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec=60
+
+[Install]
+WantedBy=timers.target
+```
+
+فعال‌سازی و بررسی:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now pg-watchdog.timer
+sudo systemctl list-timers --all | grep pg-watchdog
+sudo systemctl status pg-watchdog.service --no-pager
+```
+
+---
+
+## ۴) Redis
+
+Redis هم برای **Channels layer** (WebSocket/حضور آنلاین) و هم برای **Django cache** (روی DB شماره‌ی `1`، مخصوصِ throttle/debounce) استفاده می‌شود.
+
+```bash
+sudo systemctl enable --now redis-server
+redis-cli ping   # باید PONG بدهد
+```
+
+---
+
+## ۵) فایل ENV
+
+مسیرِ واقعی: `/etc/messenger/messenger.env`
+
+ترتیبِ بارگذاریِ env در کد (طبق `a_core/settings.py`):
+1. اگر `DJANGO_ENV_FILE` ست شده باشد، همان اول خوانده می‌شود.
+2. وگرنه اولین فایلِ موجود از: `./messenger.env` → `./.env` → `/etc/messenger/messenger.env` → `/etc/pesk-messenger/pesk-messenger.env`.
+3. اگر کلیدی از قبل در Environment پروسه ست شده باشد (مثلاً از طریق systemd `EnvironmentFile=`)، فایلِ env آن را Override نمی‌کند.
+
+مقادیرِ واقعیِ این سرور (کلیدهای محرمانه **عمداً حذف شده‌اند** — در README نگذار، فقط روی سرور باشند):
 
 ```env
 DJANGO_DEBUG=0
-DJANGO_SECRET_KEY=CHANGE_ME_TO_A_RANDOM_LONG_SECRET
-DJANGO_ALLOWED_HOSTS=example.com,www.example.com
-DJANGO_CSRF_TRUSTED_ORIGINS=https://example.com,https://www.example.com
+DJANGO_SECRET_KEY=***REDACTED***
+DJANGO_ALLOWED_HOSTS=chat.your-domain.ir,www.chat.your-domain.ir
+DJANGO_CSRF_TRUSTED_ORIGINS=https://chat.your-domain.ir,https://www.chat.your-domain.ir
 
-APP_VERSION=dev
-APP_RESET_REQUIRED=0
-APP_RESET_MESSAGE=
+APP_VERSION=2.8.2
 
-CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL=0
+# حالت آفلاین: SMS و WebPush سمت سرور غیرفعال می‌شوند (این سرور آفلاین است)
+OFFLINE_MODE=1
+IGNORE_NAVIGATOR_ONLINE=0
 
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
 
-OFFLINE_MODE=0
-IGNORE_NAVIGATOR_ONLINE=0
-
-WEBPUSH_VAPID_PUBLIC_KEY=
-WEBPUSH_VAPID_PRIVATE_KEY=
-WEBPUSH_VAPID_CLAIMS_SUB=mailto:admin@example.com
-
-SMSIR_API_KEY=
-SMSIR_LINE_NUMBER=
-SMSIR_TEMPLATE_ID=
-
-# اگر PostgreSQL فعال است:
-DATABASE_NAME=chat_db
-DATABASE_USER=postgres
-DATABASE_PASSWORD=CHANGE_ME
-DATABASE_HOST=127.0.0.1
+DATABASE_NAME=messenger_db
+DATABASE_USER=messenger_user
+DATABASE_PASSWORD=***REDACTED***
+DATABASE_HOST=localhost
 DATABASE_PORT=5432
 
-# اگر PostgreSQL فعال نیست (SQLite):
-# SQLITE_PATH=/opt/pesk-messenger/db.sqlite3
+WEBPUSH_VAPID_PUBLIC_KEY=<public-key>
+WEBPUSH_VAPID_PRIVATE_KEY=***REDACTED***
+WEBPUSH_VAPID_CLAIMS_SUB=mailto:admin@chat.your-domain.ir
+
+SMSIR_API_KEY=***REDACTED***
+SMSIR_LINE_NUMBER=<line-number>
+SMSIR_TEMPLATE_ID=<template-id>
 ```
 
-نکته‌های مهم امنیتی:
+> ⚠️ امنیت: `messenger.env` را هرگز در ریپو Commit نکن. مقادیرِ محرمانه (`DJANGO_SECRET_KEY`، `DATABASE_PASSWORD`، `WEBPUSH_VAPID_PRIVATE_KEY`، `SMSIR_API_KEY`) نباید داخل README یا git بروند. اگر قبلاً لو رفته‌اند، **Rotate کن** (بخش امنیت).
 
-- فایل env را داخل ریپو Commit نکنید و آن را عمومی نکنید (به‌خصوص `DJANGO_SECRET_KEY`، کلیدهای VAPID و کلیدهای SMS).
-- اگر به اشتباه Secretها را منتشر کرده‌اید، فوراً Rotate کنید و کلیدهای جدید بسازید.
+---
 
-### معنی و کاربرد گزینه‌های ENV
+## ۶) سرویس systemd (Gunicorn + Uvicorn worker)
 
-**هسته‌ی Django**
-
-- `DJANGO_DEBUG` (پیش‌فرض: `1`): حالت توسعه/پروداکشن. در پروداکشن حتماً `0` باشد.
-- `DJANGO_SECRET_KEY` (پیش‌فرض: مقدار ناامن داخلی): کلید امنیتی Django؛ در پروداکشن باید طولانی و تصادفی باشد.
-- `DJANGO_ALLOWED_HOSTS` (پیش‌فرض: `localhost,127.0.0.1,*`): لیست Hostهایی که Django قبول می‌کند (CSV). در پروداکشن `*` نگذارید.
-- `DJANGO_CSRF_TRUSTED_ORIGINS` (پیش‌فرض: خالی): لیست Originهای مجاز برای CSRF (CSV) و باید شامل scheme باشد (مثل `https://example.com`).
-- `DJANGO_ENV_FILE` (اختیاری): مسیر فایل env سفارشی که قبل از بقیه تلاش می‌شود.
-
-**نسخه/آپدیت PWA**
-
-- `APP_VERSION` (پیش‌فرض: `dev-<mtime>`): برای Cache Busting روی فایل‌های Static و Service Worker استفاده می‌شود. در پروداکشن بهتر است شماره نسخه‌ی Deploy را بگذارید.
-- `APP_RESET_REQUIRED` (پیش‌فرض: `0`): اگر `1` باشد، UI آپدیت به کاربر می‌گوید بروزرسانی نیاز به پاکسازی داده‌های سایت دارد.
-- `APP_RESET_MESSAGE` (پیش‌فرض: خالی): پیام تکمیلی برای `APP_RESET_REQUIRED`.
-- `IGNORE_NAVIGATOR_ONLINE` (پیش‌فرض: در Debug=1 مقدار 1، در Debug=0 مقدار 0): اگر `1` باشد، UI وضعیت آنلاین/آفلاین مرورگر را نادیده می‌گیرد.
-
-**قابلیت‌های چت**
-
-- `CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL` (پیش‌فرض: `0`): اگر `1` باشد، اتاق `public_chat` برای همه‌ی کاربران قابل مشاهده/جستجو است؛ اگر `0` باشد فقط برای اعضا و مدیران.
-
-**Channels / Redis**
-
-- `REDIS_HOST` (پیش‌فرض: `localhost`): آدرس Redis برای Channels.
-- `REDIS_PORT` (پیش‌فرض: `6379`): پورت Redis برای Channels.
-
-**دیتابیس**
-
-- اگر یکی از این‌ها ست شود، PostgreSQL فعال می‌شود: `POSTGRES_HOST/POSTGRES_DB/POSTGRES_USER/POSTGRES_PASSWORD` یا `DATABASE_HOST/DATABASE_NAME/DATABASE_USER/DATABASE_PASSWORD`.
-- این پروژه برای مقداردهی به Database از `DATABASE_*` استفاده می‌کند و اگر نبود از `POSTGRES_*` می‌خواند.
-- متغیرهای قابل تنظیم:
-  - `DATABASE_NAME` یا `POSTGRES_DB` (پیش‌فرض: `chat_db`)
-  - `DATABASE_USER` یا `POSTGRES_USER` (پیش‌فرض: `postgres`)
-  - `DATABASE_PASSWORD` یا `POSTGRES_PASSWORD` (پیش‌فرض: خالی)
-  - `DATABASE_HOST` یا `POSTGRES_HOST` (پیش‌فرض: `localhost`)
-  - `DATABASE_PORT` یا `POSTGRES_PORT` (پیش‌فرض: `5432`)
-- اگر PostgreSQL فعال نشود، SQLite استفاده می‌شود:
-  - `SQLITE_PATH` (پیش‌فرض: `./db.sqlite3`)
-
-**HTTPS / Security (فقط وقتی `DJANGO_DEBUG=0`)**
-
-- `DJANGO_SECURE_SSL_REDIRECT` (پیش‌فرض: `1`): ریدایرکت HTTP به HTTPS (در پشت Nginx/Proxy باید `X-Forwarded-Proto` درست تنظیم شود).
-- `DJANGO_SESSION_COOKIE_SECURE` (پیش‌فرض: `1`): ارسال Session Cookie فقط روی HTTPS.
-- `DJANGO_CSRF_COOKIE_SECURE` (پیش‌فرض: `1`): ارسال CSRF Cookie فقط روی HTTPS.
-- `DJANGO_SECURE_HSTS_SECONDS` (پیش‌فرض: `0`): فعال‌سازی HSTS با ثانیه‌ی دلخواه (مثلاً `31536000`).
-- `DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS` (پیش‌فرض: `0`): اعمال HSTS روی زیردامنه‌ها.
-- `DJANGO_SECURE_HSTS_PRELOAD` (پیش‌فرض: `0`): سازگار با HSTS preload (فقط اگر مطمئنید).
-
-**حالت آفلاین و وابستگی‌های اینترنتی**
-
-- `OFFLINE_MODE` (پیش‌فرض: `0`): اگر `1` باشد، ارسال SMS و WebPush سمت سرور غیرفعال می‌شود.
-  - در حالت `OFFLINE_MODE=1`، ارسال OTP روی کنسول چاپ می‌شود.
-  - اگر `OFFLINE_MODE=0` باشد ولی کلیدهای WebPush یا SMS خالی باشند، برنامه اجرا می‌شود؛ فقط قابلیت‌های مربوطه فعال نمی‌شوند.
-
-**Web Push (PWA)**
-
-- `WEBPUSH_VAPID_PUBLIC_KEY`: کلید عمومی VAPID (Base64) برای مرورگر.
-- `WEBPUSH_VAPID_PRIVATE_KEY`: کلید خصوصی VAPID (برای سرور).
-- `WEBPUSH_VAPID_CLAIMS_SUB` (پیش‌فرض: خالی): مقدار `sub` در VAPID Claims (مثلاً `mailto:admin@example.com`).
-
-**SMS.ir**
-
-- `SMSIR_API_KEY`: کلید API برای SMS.ir.
-- `SMSIR_LINE_NUMBER`: شماره‌ی خط برای ارسال Bulk.
-- `SMSIR_TEMPLATE_ID`: شناسه‌ی Template برای OTP/Verify.
-
-### تنظیم دیتابیس
-
-این پروژه به‌صورت پیش‌فرض از SQLite استفاده می‌کند. برای Production پیشنهاد می‌شود PostgreSQL تنظیم شود.
-
-برای فعال شدن PostgreSQL کافی است یکی از `POSTGRES_HOST` یا `POSTGRES_DB` ست شود:
-
-```env
-POSTGRES_DB=chat_db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=CHANGE_ME
-POSTGRES_HOST=127.0.0.1
-POSTGRES_PORT=5432
-```
-
-اگر PostgreSQL تنظیم نشود، SQLite با `SQLITE_PATH` (اختیاری) استفاده می‌شود:
-
-```env
-SQLITE_PATH=/opt/pesk-messenger/db.sqlite3
-```
-
-## 6) migrate / collectstatic / superuser
-
-```bash
-sudo -u pesk -H bash -lc '
-cd /opt/pesk-messenger
-source venv/bin/activate
-export DJANGO_SETTINGS_MODULE=a_core.settings
-python manage.py migrate
-python manage.py collectstatic --noinput
-python manage.py createsuperuser
-'
-```
-
-## 7) ساخت Chat Group های لازم
-
-بعد از ورود به Admin:
-
-- در Chat Groups دو Group با `Group name` بسازید:
-  - `public_chat`
-  - `online-status`
-
-## 8) ساخت سرویس systemd (Daphne)
-
-فایل زیر را بسازید:
-
-`/etc/systemd/system/pesk-messenger.service`
+فایلِ واقعی `/etc/systemd/system/messenger.service`:
 
 ```ini
 [Unit]
-Description=Pesk Messenger (Django ASGI via Daphne)
-After=network.target redis-server.service
-Requires=redis-server.service
+Description=Messenger (Django ASGI via Gunicorn/Uvicorn)
+After=network.target postgresql@14-main.service redis-server.service
+Wants=postgresql@14-main.service redis-server.service
 
 [Service]
 User=pesk
-Group=pesk
-WorkingDirectory=/opt/pesk-messenger
-EnvironmentFile=/etc/pesk-messenger/pesk-messenger.env
-ExecStart=/opt/pesk-messenger/venv/bin/daphne -b 127.0.0.1 -p 8001 a_core.asgi:application
+WorkingDirectory=/opt/messenger
+EnvironmentFile=/etc/messenger/messenger.env
+ExecStart=/opt/messenger/venv/bin/gunicorn a_core.asgi:application \
+    -k uvicorn.workers.UvicornWorker \
+    -w 2 \
+    -b 127.0.0.1:8001 \
+    --timeout 120 \
+    --graceful-timeout 30 \
+    --max-requests 2000 \
+    --max-requests-jitter 200
 Restart=always
-RestartSec=3
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-سپس:
+> چرا `-w 2`؟ معماریِ قبلی تک‌پروسه‌ی daphne بود که زیرِ بارِ همزمان (چند کاربر با هم آنلاین) خفه می‌شد. دو ورکرِ Uvicorn بار را پخش می‌کنند. `--max-requests` هم ورکرها را دوره‌ای بازیافت می‌کند تا نشتِ حافظه جمع نشود.
+
+Drop-in واقعی `/etc/systemd/system/messenger.service.d/override.conf` (برای مسیرِ داخلیِ بکاپ در Nginx):
+
+```ini
+[Service]
+Environment=BACKUP_XACCEL_PREFIX=/protected-backups
+```
+
+فعال‌سازی و بررسی:
 
 ```bash
-sudo mkdir -p /etc/pesk-messenger
-sudo nano /etc/pesk-messenger/pesk-messenger.env
-sudo nano /etc/systemd/system/pesk-messenger.service
+sudo mkdir -p /etc/messenger
 sudo systemctl daemon-reload
-sudo systemctl enable --now pesk-messenger
-sudo systemctl status pesk-messenger --no-pager
+sudo systemctl enable --now messenger
+sudo systemctl status messenger --no-pager
+sudo journalctl -u messenger -f
 ```
 
-لاگ‌ها:
+> پیام `ASGI 'lifespan' protocol appears unsupported` در لاگ **طبیعی** است (اپِ ASGIِ جنگو lifespan را پیاده نمی‌کند) و خطا نیست.
 
-```bash
-sudo journalctl -u pesk-messenger -f
-```
+---
 
-## 9) تنظیم Nginx (Reverse Proxy + WebSocket)
+## ۷) Nginx (Reverse Proxy + WebSocket)
 
-نمونه فایل:
-
-`/etc/nginx/sites-available/pesk-messenger`
+محتوای واقعیِ کانفیگِ سایت (proxy به `127.0.0.1:8001`، پشتیبانیِ WebSocket روی `/ws/`، و مسیرِ داخلیِ بکاپ). SSL/HTTPS در این سرور توسط لایه‌ی cPanel/Certbot مدیریت می‌شود:
 
 ```nginx
 server {
-    server_name example.com www.example.com;
+    listen 80;
+    server_name chat.your-domain.ir www.chat.your-domain.ir;
 
-    
-    client_max_body_size 20g;
+    # اجازه‌ی آپلود فایل بزرگ (برای بازگردانی بکاپ حجیم)
+    client_max_body_size 5g;
 
-    location /static/ { alias /opt/messenger/staticfiles/; }
-    location /media/  { alias /opt/messenger/media/; }
+    location /static/ {
+        alias /opt/messenger/staticfiles/;
+        expires 30d;
+        add_header Cache-Control "public";
+    }
 
-    # Internal-only location: reachable ONLY via X-Accel-Redirect.
-    # nginx serves backup files directly (no python/daphne involvement).
+    location /media/ {
+        alias /opt/messenger/media/;
+    }
+
+    # مسیر داخلی: فقط از طریق X-Accel-Redirect قابل دسترسی است.
     location /protected-backups/ {
         internal;
         alias /opt/messenger/backups/;
@@ -415,85 +326,177 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
 
-        # Longer timeouts for slow/large operations (backup upload/restore).
+        # مهلت بیشتر برای عملیات طولانی (آپلود/بازگردانی بکاپ حجیم)
         proxy_read_timeout 3600s;
         proxy_send_timeout 3600s;
-        # Stream uploads straight to the backend instead of buffering the whole body.
+        # آپلود را مستقیم استریم کن (کم‌مصرف برای دیسک/رم)
         proxy_request_buffering off;
     }
-
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/example.com-0001/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/example.com-0001/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-
-}
-server {
-    if ($host = example.com) {
-        return 301 https://$host$request_uri;
-    } # managed by Certbot
-
-
-    listen 80;
-    server_name example.com;
-    return 404; # managed by Certbot
-
 }
 ```
 
-فعال‌سازی:
+بعد از تغییر:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/pesk-messenger /etc/nginx/sites-enabled/pesk-messenger
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-## 10) فعال‌سازی HTTPS (پیشنهادی)
+> توجه: چون WebSocket از `AllowedHostsOriginValidator` در `a_core/asgi.py` عبور می‌کند، دامنه باید در `DJANGO_ALLOWED_HOSTS` باشد وگرنه اتصالِ WS رد می‌شود.
 
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d example.com -d www.example.com
-```
+---
 
-در صورت استفاده از HTTPS، این env ها را هم می‌توانید فعال کنید:
-
-```env
-DJANGO_SECURE_SSL_REDIRECT=1
-DJANGO_SESSION_COOKIE_SECURE=1
-DJANGO_CSRF_COOKIE_SECURE=1
-DJANGO_SECURE_HSTS_SECONDS=31536000
-DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS=1
-DJANGO_SECURE_HSTS_PRELOAD=1
-```
-
-## تغییرات لازم روی کد بعد از Deploy
-
-نیازی به تغییر دستی کد بعد از Deploy نیست؛ تنظیمات Production و موارد امنیتی از طریق ENV کنترل می‌شوند:
-
-- `DJANGO_DEBUG` برای خاموش کردن Debug
-- `DJANGO_SECRET_KEY` برای کلید امن
-- `DJANGO_ALLOWED_HOSTS` و `DJANGO_CSRF_TRUSTED_ORIGINS` برای دامنه
-- `REDIS_HOST` و `REDIS_PORT` برای Channels
-- (اختیاری) متغیرهای PostgreSQL
-- `OFFLINE_MODE` برای کنترل وابستگی‌های اینترنتی (SMS/WebPush)
-
-## عیب‌یابی سریع
-
-چک تنظیمات:
+## ۸) migrate / collectstatic / superuser / گروه‌های چت
 
 ```bash
 sudo -u pesk -H bash -lc '
-cd /opt/pesk-messenger
+cd /opt/messenger
 source venv/bin/activate
-python manage.py check --deploy
+export DJANGO_SETTINGS_MODULE=a_core.settings
+python manage.py migrate
+python manage.py collectstatic --noinput
+python manage.py createsuperuser
 '
 ```
 
-مشاهده وضعیت سرویس:
+سپس در Admin دو Chat Group با این `Group name`ها بساز (لازم برای حضور آنلاین و چتِ عمومی):
+
+- `public_chat`
+- `online-status`
+
+---
+
+## ۹) تغییراتِ کدِ پایدارسازی (اعمال‌شده)
+
+این تغییرات برای رفعِ خفگیِ سرور زیرِ بارِ همزمان اعمال شده‌اند:
+
+### `a_core/settings.py`
+
+بلوکِ Cache (روی Redis DB `1`) — لازم برای throttle/debounce:
+
+```python
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://{host}:{port}/1".format(
+            host=(os.getenv("REDIS_HOST", "localhost").strip() or "localhost"),
+            port=int(os.getenv("REDIS_PORT", "6379")),
+        ),
+    }
+}
+```
+
+نگه‌داشتنِ اتصالِ دیتابیس (کاهش فشارِ باز/بسته‌شدنِ مداوم) — در بلوکِ `DATABASES["default"]`:
+
+```python
+"CONN_MAX_AGE": 60,
+```
+
+### `a_rtchat/consumers.py`
+
+```python
+from django.core.cache import cache
+```
+
+- `_touch_last_seen`: throttleِ ۳۰ ثانیه‌ای برای هر کاربر تا نوشتنِ مکرر در دیتابیس کم شود:
+
+```python
+if not cache.add(f"last_seen_touch:{user.id}", 1, timeout=30):
+    return
+```
+
+- `OnlineStatusConsumer.online_status`: debounceِ ۲ ثانیه‌ای برای جلوگیری از طوفانِ N² هنگام آنلاین‌شدنِ هم‌زمانِ چند نفر:
+
+```python
+if not cache.add("online_status_broadcast_lock", 1, timeout=2):
+    return
+```
+
+- ارسالِ push فقط وقتی حالتِ آفلاین خاموش است:
+
+```python
+if not bool(getattr(settings, "OFFLINE_MODE", False)):
+    transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
+```
+
+- رفعِ باگِ فراخوانیِ `log_error` در بخشِ reaction (افزودنِ آرگومانِ کاربر):
+
+```python
+log_error('ChatroomConsumer', self.user, f'reaction create failed msg={message.id}')
+```
+
+### `templates/base.html`  (مسیرِ واقعی: `/opt/messenger/templates/base.html`)
+
+تلاش برای اتصالِ مجددِ WebSocket از `setInterval(5s)` به **backoff نمایی + jitter** تغییر کرد تا هجومِ هم‌زمانِ همه‌ی کلاینت‌ها (reconnect storm) پیش نیاید:
+
+```javascript
+const base = Math.min(30000, 3000 * Math.pow(2, reconnectAttempts));
+const delay = base * (0.6 + Math.random() * 0.8);
+```
+
+---
+
+## ۱۰) عیب‌یابی و پایش
+
+بررسیِ سلامتِ اپ (با هدرِ Host واقعی؛ بدونِ آن جنگو ۴۰۰ می‌دهد چون `127.0.0.1` در ALLOWED_HOSTS نیست):
 
 ```bash
-sudo systemctl status pesk-messenger --no-pager
-sudo journalctl -u pesk-messenger -n 200 --no-pager
+curl -I -H "Host: chat.your-domain.ir" http://127.0.0.1:8001/
 ```
+
+تعدادِ اتصال‌های دیتابیس (باید زیرِ `60` بماند):
+
+```bash
+sudo -u postgres psql -c "SELECT count(*) FROM pg_stat_activity;"
+```
+
+مصرفِ حافظه‌ی پروسه‌ها:
+
+```bash
+ps -eo rss,pid,user,args --sort=-rss | head -20
+```
+
+لاگِ زنده (موقع اتصالِ کاربر باید `"WebSocket ..." [accepted]` و `connection open` ببینی):
+
+```bash
+sudo journalctl -u messenger -f
+```
+
+چکِ deploy جنگو:
+
+```bash
+sudo -u pesk -H bash -lc 'cd /opt/messenger && source venv/bin/activate && python manage.py check --deploy'
+```
+
+---
+
+## ۱۱) امنیت — چرخاندنِ کلیدهای محرمانه
+
+اگر این مقادیر جایی لو رفته‌اند، همه را عوض کن:
+
+- `DJANGO_SECRET_KEY`
+- `DATABASE_PASSWORD` (هم در PostgreSQL با `ALTER USER messenger_user WITH PASSWORD '...';` و هم در `messenger.env`، سپس `sudo systemctl restart messenger`)
+- `WEBPUSH_VAPID_PRIVATE_KEY` (و کلیدِ عمومیِ متناظر)
+- `SMSIR_API_KEY`
+
+---
+
+## (اختیاری) اجرا با Docker — برای run از روی GitHub
+
+> این روشِ جاریِ پروداکشنِ این سرور نیست (سرور bare-metal با systemd بالا آمده). اما فایل‌های Docker حالا با استکِ جدید هم‌سان شده‌اند تا هر کس از GitHub کلون کرد بتواند مستقیم run کند.
+
+تغییراتِ اعمال‌شده روی فایل‌های Docker:
+
+- **`Dockerfile`**: دستورِ اجرا از `daphne` به **Gunicorn + Uvicorn worker** تغییر کرد (همانِ پروداکشن)؛ تعدادِ ورکر از `WEB_CONCURRENCY` (پیش‌فرض 2).
+- **`docker/nginx.conf`**: `client_max_body_size` از `50m` به `5g`، افزودنِ `proxy_read/send_timeout 3600s` و `proxy_request_buffering off`، و تایم‌اوتِ طولانی‌تر روی `/ws/`.
+- **`docker-compose.yml`**: افزودنِ `WEB_CONCURRENCY` و passthroughِ کلیدهای WebPush/SMS.
+- **`requirements.txt`**: افزودنِ `gunicorn` و `uvicorn[standard]` (پکیجِ `websockets` را می‌آورد).
+
+اجرای محلی (تست):
+
+```bash
+docker compose up -d --build
+docker compose logs -f web
+```
+
+دیپلویِ آفلاین (انتقال با `.tar`): روی سیستمِ دارای اینترنت `docker compose build` + `docker save`، سپس روی سرور `docker load` + `docker compose up -d --no-build`.

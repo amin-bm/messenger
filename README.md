@@ -194,7 +194,7 @@ redis-cli ping   # باید PONG بدهد
 2. وگرنه اولین فایلِ موجود از: `./messenger.env` → `./.env` → `/etc/messenger/messenger.env` → `/etc/pesk-messenger/pesk-messenger.env`.
 3. اگر کلیدی از قبل در Environment پروسه ست شده باشد (مثلاً از طریق systemd `EnvironmentFile=`)، فایلِ env آن را Override نمی‌کند.
 
-مقادیرِ واقعیِ این سرور (کلیدهای محرمانه **عمداً حذف شده‌اند** — در README نگذار، فقط روی سرور باشند):
+مقادیرِ واقعیِ این سرور (کلیدهای محرمانه **عمداً حذف شده‌اند**):
 
 ```env
 DJANGO_DEBUG=0
@@ -225,8 +225,6 @@ SMSIR_API_KEY=***REDACTED***
 SMSIR_LINE_NUMBER=<line-number>
 SMSIR_TEMPLATE_ID=<template-id>
 ```
-
-> ⚠️ امنیت: `messenger.env` را هرگز در ریپو Commit نکن. مقادیرِ محرمانه (`DJANGO_SECRET_KEY`، `DATABASE_PASSWORD`، `WEBPUSH_VAPID_PRIVATE_KEY`، `SMSIR_API_KEY`) نباید داخل README یا git بروند. اگر قبلاً لو رفته‌اند، **Rotate کن** (بخش امنیت).
 
 ---
 
@@ -366,77 +364,7 @@ python manage.py createsuperuser
 
 ---
 
-## ۹) تغییراتِ کدِ پایدارسازی (اعمال‌شده)
-
-این تغییرات برای رفعِ خفگیِ سرور زیرِ بارِ همزمان اعمال شده‌اند:
-
-### `a_core/settings.py`
-
-بلوکِ Cache (روی Redis DB `1`) — لازم برای throttle/debounce:
-
-```python
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://{host}:{port}/1".format(
-            host=(os.getenv("REDIS_HOST", "localhost").strip() or "localhost"),
-            port=int(os.getenv("REDIS_PORT", "6379")),
-        ),
-    }
-}
-```
-
-نگه‌داشتنِ اتصالِ دیتابیس (کاهش فشارِ باز/بسته‌شدنِ مداوم) — در بلوکِ `DATABASES["default"]`:
-
-```python
-"CONN_MAX_AGE": 60,
-```
-
-### `a_rtchat/consumers.py`
-
-```python
-from django.core.cache import cache
-```
-
-- `_touch_last_seen`: throttleِ ۳۰ ثانیه‌ای برای هر کاربر تا نوشتنِ مکرر در دیتابیس کم شود:
-
-```python
-if not cache.add(f"last_seen_touch:{user.id}", 1, timeout=30):
-    return
-```
-
-- `OnlineStatusConsumer.online_status`: debounceِ ۲ ثانیه‌ای برای جلوگیری از طوفانِ N² هنگام آنلاین‌شدنِ هم‌زمانِ چند نفر:
-
-```python
-if not cache.add("online_status_broadcast_lock", 1, timeout=2):
-    return
-```
-
-- ارسالِ push فقط وقتی حالتِ آفلاین خاموش است:
-
-```python
-if not bool(getattr(settings, "OFFLINE_MODE", False)):
-    transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
-```
-
-- رفعِ باگِ فراخوانیِ `log_error` در بخشِ reaction (افزودنِ آرگومانِ کاربر):
-
-```python
-log_error('ChatroomConsumer', self.user, f'reaction create failed msg={message.id}')
-```
-
-### `templates/base.html`  (مسیرِ واقعی: `/opt/messenger/templates/base.html`)
-
-تلاش برای اتصالِ مجددِ WebSocket از `setInterval(5s)` به **backoff نمایی + jitter** تغییر کرد تا هجومِ هم‌زمانِ همه‌ی کلاینت‌ها (reconnect storm) پیش نیاید:
-
-```javascript
-const base = Math.min(30000, 3000 * Math.pow(2, reconnectAttempts));
-const delay = base * (0.6 + Math.random() * 0.8);
-```
-
----
-
-## ۱۰) عیب‌یابی و پایش
+## 9) عیب‌یابی و پایش
 
 بررسیِ سلامتِ اپ (با هدرِ Host واقعی؛ بدونِ آن جنگو ۴۰۰ می‌دهد چون `127.0.0.1` در ALLOWED_HOSTS نیست):
 
@@ -470,33 +398,190 @@ sudo -u pesk -H bash -lc 'cd /opt/messenger && source venv/bin/activate && pytho
 
 ---
 
-## ۱۱) امنیت — چرخاندنِ کلیدهای محرمانه
+## اجرا با Docker (نصب کامل روی سرورِ خودتان)
 
-اگر این مقادیر جایی لو رفته‌اند، همه را عوض کن:
+این روش کلِ پروژه (وب‌اپ + PostgreSQL + Redis + Nginx) را به‌صورتِ کانتینری روی سرورتان بالا می‌آورد، **بدونِ نصبِ دستیِ Python / Node / PostgreSQL / Redis / Nginx** روی خودِ سرور.
 
-- `DJANGO_SECRET_KEY`
-- `DATABASE_PASSWORD` (هم در PostgreSQL با `ALTER USER messenger_user WITH PASSWORD '...';` و هم در `messenger.env`، سپس `sudo systemctl restart messenger`)
-- `WEBPUSH_VAPID_PRIVATE_KEY` (و کلیدِ عمومیِ متناظر)
-- `SMSIR_API_KEY`
+### پیش‌نیاز
+فقط این دو مورد روی سرور لازم است:
+
+- **Docker Engine**
+- **Docker Compose plugin** (کامندِ `docker compose`)
+
+```bash
+docker --version
+docker compose version
+```
+
+### فایل‌های دخیل در Docker
+- `Dockerfile` (ریشه‌ی ریپو) — ساختِ ایمیجِ وب: buildِ فرانت (Tailwind با Node) + اجرای **gunicorn + uvicorn worker**.
+- `docker-compose.yml` (ریشه‌ی ریپو) — تعریفِ ۴ سرویس: `web` ، `nginx` ، `redis` ، `db` (PostgreSQL 14).
+- `docker/nginx.conf` — کانفیگِ Nginxِ داخلِ کانتینر (پورت ۸۰، پشتیبانیِ WebSocket، آپلودِ تا `5g`).
+
+### گامِ مشترک: ساخت فایل `.env`
+کنارِ `docker-compose.yml` یک فایلِ `.env` بساز (Compose خودکار می‌خواندش). حداقل این‌ها را تنظیم کن:
+
+```env
+# --- Django ---
+DJANGO_DEBUG=0
+DJANGO_SECRET_KEY=یک-کلیدِ-تصادفیِ-بلند-اینجا
+DJANGO_ALLOWED_HOSTS=chat.your-domain.ir,www.chat.your-domain.ir
+DJANGO_CSRF_TRUSTED_ORIGINS=https://chat.your-domain.ir,https://www.chat.your-domain.ir
+
+# اگر هنوز HTTPS نداری، این‌ها را 0 بگذار تا ریدایرکت/کوکیِ امن مشکل نسازد
+DJANGO_SECURE_SSL_REDIRECT=0
+DJANGO_SESSION_COOKIE_SECURE=0
+DJANGO_CSRF_COOKIE_SECURE=0
+
+APP_VERSION=1.0.0
+
+# --- PostgreSQL (داخلِ کانتینرِ db) ---
+POSTGRES_DB=chat_db
+POSTGRES_USER=chat_user
+POSTGRES_PASSWORD=یک-پسوردِ-قوی
+
+# --- Redis (داخلِ کانتینرِ redis) ---
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# --- تعدادِ ورکرِ وب ---
+WEB_CONCURRENCY=2
+
+# --- حالتِ آفلاین: اگر سرورت به اینترنت وصل نیست 1 بگذار (SMS/WebPush غیرفعال) ---
+OFFLINE_MODE=0
+
+# --- Web Push (اختیاری، فقط وقتی OFFLINE_MODE=0) ---
+WEBPUSH_VAPID_PUBLIC_KEY=
+WEBPUSH_VAPID_PRIVATE_KEY=
+WEBPUSH_VAPID_CLAIMS_SUB=mailto:admin@your-domain.ir
+
+# --- SMS.ir (اختیاری، فقط وقتی OFFLINE_MODE=0) ---
+SMSIR_API_KEY=
+SMSIR_LINE_NUMBER=
+SMSIR_TEMPLATE_ID=
+```
+
+> تولیدِ SECRET_KEYِ تصادفی:
+> ```bash
+> python3 -c "import secrets; print(secrets.token_urlsafe(64))"
+> ```
+
+نکته درباره‌ی دیتابیس در Docker: نیازی به نصب/ساختِ دستیِ Postgres نیست؛ کانتینرِ `db` خودش با همان `POSTGRES_*` بالا و مقداردهی می‌شود و وب‌اپ به `POSTGRES_HOST=db` وصل می‌شود (پیش‌فرضِ compose). دستورهای `migrate` و `collectstatic` هم خودکار موقعِ استارتِ کانتینرِ `web` اجرا می‌شوند.
 
 ---
 
-## (اختیاری) اجرا با Docker — برای run از روی GitHub
+### روش A — سروری که اینترنت دارد
 
-> این روشِ جاریِ پروداکشنِ این سرور نیست (سرور bare-metal با systemd بالا آمده). اما فایل‌های Docker حالا با استکِ جدید هم‌سان شده‌اند تا هر کس از GitHub کلون کرد بتواند مستقیم run کند.
-
-تغییراتِ اعمال‌شده روی فایل‌های Docker:
-
-- **`Dockerfile`**: دستورِ اجرا از `daphne` به **Gunicorn + Uvicorn worker** تغییر کرد (همانِ پروداکشن)؛ تعدادِ ورکر از `WEB_CONCURRENCY` (پیش‌فرض 2).
-- **`docker/nginx.conf`**: `client_max_body_size` از `50m` به `5g`، افزودنِ `proxy_read/send_timeout 3600s` و `proxy_request_buffering off`، و تایم‌اوتِ طولانی‌تر روی `/ws/`.
-- **`docker-compose.yml`**: افزودنِ `WEB_CONCURRENCY` و passthroughِ کلیدهای WebPush/SMS.
-- **`requirements.txt`**: افزودنِ `gunicorn` و `uvicorn[standard]` (پکیجِ `websockets` را می‌آورد).
-
-اجرای محلی (تست):
-
+۱) گرفتنِ کد:
 ```bash
+git clone <REPO_URL> pesk-messenger
+cd pesk-messenger
+```
+
+۲) ساختِ فایلِ `.env` (طبقِ بالا):
+```bash
+nano .env
+```
+
+۳) بالا آوردنِ سرویس‌ها (ایمیج‌ها روی همین سرور Build/Pull می‌شوند):
+```bash
+docker compose up -d --build
+docker compose ps
+docker compose logs -f web
+```
+
+۴) ساختِ کاربرِ ادمین:
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+۵) ورود به `http://SERVER_IP/admin/` و ساختِ دو Chat Group با نام‌های `public_chat` و `online-status`.
+
+آدرسِ برنامه: `http://SERVER_IP/` (پورتِ ۸۰). برای دامنه/HTTPS بخشِ پایین را ببین.
+
+**آپدیت بعد از تغییرِ کد:**
+```bash
+git pull
 docker compose up -d --build
 docker compose logs -f web
 ```
 
-دیپلویِ آفلاین (انتقال با `.tar`): روی سیستمِ دارای اینترنت `docker compose build` + `docker save`، سپس روی سرور `docker load` + `docker compose up -d --no-build`.
+---
+
+### روش B — سروری که اینترنت ندارد (انتقالِ آفلاین)
+
+ایده: ایمیج‌ها را روی یک سیستمِ **دارای اینترنت** بساز/دانلود کن، به `.tar` تبدیل کن، به سرور منتقل کن و آنجا `docker load` بزن.
+
+**۱) روی سیستمِ دارای اینترنت** (داخلِ ریشه‌ی ریپو):
+```bash
+# ساختِ ایمیجِ وب
+docker compose build
+
+# دانلودِ ایمیج‌های پایه
+docker pull nginx:1.27-alpine
+docker pull redis:7-alpine
+docker pull postgres:14-alpine
+
+# ذخیره‌ی همه در یک فایلِ tar
+docker save -o pesk-messenger-images.tar \
+  pesk-messenger-web:latest \
+  nginx:1.27-alpine \
+  redis:7-alpine \
+  postgres:14-alpine
+```
+
+**۲) انتقالِ این موارد به سرور** (با flash / scp / …):
+- `pesk-messenger-images.tar`
+- `docker-compose.yml`
+- پوشه‌ی `docker/` (شاملِ `nginx.conf`)
+- فایلِ `.env` (که خودت پر کرده‌ای)
+
+**۳) روی سرورِ بدونِ اینترنت:**
+```bash
+# بارگذاریِ ایمیج‌ها از فایلِ tar
+docker load -i pesk-messenger-images.tar
+
+# بالا آوردن بدونِ build و بدونِ pull
+docker compose up -d --no-build
+docker compose ps
+```
+
+**۴) ساختِ ادمین و گروه‌ها** (مثلِ روش A):
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+سپس در `/admin/` گروه‌های `public_chat` و `online-status` را بساز.
+
+**آپدیتِ آفلاین بعد از تغییرِ کد:** روی سیستمِ اینترنت‌دار دوباره `docker compose build` و `docker save`، فایلِ tar را منتقل کن، روی سرور:
+```bash
+docker load -i pesk-messenger-images.tar
+docker compose up -d --no-build --force-recreate
+docker compose logs -f web
+```
+
+> برای اینکه مطمئن شوی کلاینت‌ها (PWA) آپدیت را می‌گیرند، مقدارِ `APP_VERSION` را در `.env` هر بار عوض کن.
+
+---
+
+### دامنه و HTTPS در حالتِ Docker
+کانتینرِ `nginx` روی پورتِ ۸۰ گوش می‌دهد. برای دامنه و HTTPS دو راه داری:
+1. یک reverse proxy / ترمینیتِ SSL جلوترش بگذار (مثلاً Nginx یا Caddy روی هاست، یا Cloudflare) که به `http://127.0.0.1:80` پاس بدهد.
+2. یا خودت `docker/nginx.conf` را برای TLS و certbot توسعه بده و پورتِ ۴۴۳ را در `docker-compose.yml` باز کن.
+
+وقتی HTTPS فعال شد، در `.env` این‌ها را `1` کن:
+```env
+DJANGO_SECURE_SSL_REDIRECT=1
+DJANGO_SESSION_COOKIE_SECURE=1
+DJANGO_CSRF_COOKIE_SECURE=1
+```
+
+### دستورهای مفیدِ Docker
+```bash
+docker compose ps                 # وضعیت سرویس‌ها
+docker compose logs -f web        # لاگِ زنده‌ی وب
+docker compose exec web bash      # ورود به کانتینرِ وب
+docker compose restart web        # ری‌استارتِ وب
+docker compose down               # توقف (داده‌ها در volume می‌مانند)
+docker compose down -v            # توقف + پاک‌کردنِ کاملِ داده‌ها (خطرناک)
+```
+داده‌های ماندگار در volumeها: `pgdata` (دیتابیس)، `redisdata`، `staticfiles`، `media`.

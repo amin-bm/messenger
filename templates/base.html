@@ -589,7 +589,7 @@
         window.htmx.trigger(form, 'submit');
       };
 
-      // send();
+      send();
       window.setInterval(send, 30000);
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) send();
@@ -608,6 +608,21 @@
     document.body.addEventListener('htmx:afterSwap', refreshSidebarUI);
     document.body.addEventListener('htmx:afterSettle', refreshSidebarUI);
     document.body.addEventListener('htmx:wsAfterMessage', refreshSidebarUI);
+    // fallback: وقتی سوکت باز شد، اگر لیست چت خالی بود یک presence-ping بفرست
+    // تا اگر پوشِ اولیه‌ی سایدبار گم شده باشد، سرور دوباره آن را بفرستد.
+    document.body.addEventListener('htmx:wsOpen', () => {
+      const requestSidebarIfEmpty = () => {
+        const sc = document.getElementById('sidebar-content');
+        if (sc && !sc.innerHTML.trim()) {
+          const pf = document.getElementById('presence-ping-form');
+          if (pf && window.htmx && typeof window.htmx.trigger === 'function') {
+            try { window.htmx.trigger(pf, 'submit'); } catch (e) {}
+          }
+        }
+      };
+      requestSidebarIfEmpty();
+      window.setTimeout(requestSidebarIfEmpty, 800);
+    });
     document.addEventListener(
       'htmx:wsBeforeMessage',
       (e) => {
@@ -1790,7 +1805,7 @@
         if (resetRequired) {
           subtitle.textContent = resetMessage ? `این بروزرسانی نیاز به پاکسازی داده‌ها دارد: ${resetMessage}` : "این بروزرسانی نیاز به پاکسازی داده‌ها دارد.";
         } else {
-          subtitle.textContent = `نسخه فعل��: ${APP_VERSION}`;
+          subtitle.textContent = `نسخه فعل����: ${APP_VERSION}`;
         }
 
         if (note) note.style.display = resetRequired ? "block" : "none";

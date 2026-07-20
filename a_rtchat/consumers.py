@@ -608,6 +608,10 @@ class OnlineStatusConsumer(WebsocketConsumer):
         )
 
         self.accept()
+        # لیست چت را مستقیم و بدون دیبانس فقط برای همین کلاینتِ تازه‌متصل رندر و ارسال کن
+        # (جلوگیری از خالی‌ماندن سایدبار وقتی قفلِ سراسری debounce فعال است)
+        self.online_status_handler({"target_user_ids": [self.user.id]})
+        # سپس تغییرِ وضعیتِ آنلاین را (با دیبانس) به بقیه‌ی گروه اعلام کن
         self.online_status()
 
     def disconnect(self, close_code):
@@ -630,7 +634,10 @@ class OnlineStatusConsumer(WebsocketConsumer):
                 data = {}
             if (data or {}).get("type") == "ping":
                 log_receive('OnlineStatusConsumer', self.user, data)
-                
+                # fallback: در پاسخ به ping، سایدبار را مستقیم برای همین کلاینت بازتولید کن
+                # تا اگر پوشِ اولیه‌ی connect گم شده باشد، لیست چت پر شود.
+                self.online_status_handler({"target_user_ids": [self.user.id]})
+
 
     def online_status(self):
         # debounce: اگر در ۲ ثانیه‌ی اخیر broadcast شده، رد شو تا طوفانِ N² رخ ندهد

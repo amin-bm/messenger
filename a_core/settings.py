@@ -148,6 +148,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+    'a_users.middleware.MobileLoginNextMiddleware',
     'django_htmx.middleware.HtmxMiddleware',
 ]
 if DEBUG:
@@ -316,6 +317,7 @@ ACCOUNT_FORMS = {
     "signup": "a_users.allauth_forms.PhoneSignupForm",
     "login": "a_users.allauth_forms.PhoneLoginForm",
 }
+ACCOUNT_ADAPTER = "a_users.adapters.CustomAccountAdapter"
 
 CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL = _env_bool("CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", "0")
 

@@ -192,24 +192,10 @@ def _maybe_transcode_audio_message_to_mp3(message: GroupMessage) -> tuple[bool, 
 @messenger_required
 def chat_view(request, chatroom_identifier='public_chat'):
     if request.path == '/':
-        my_groups_qs = request.user.chat_groups.all()
-        if not my_groups_qs.exists():
-            return render(request, 'layouts/telegram.html')
-        last_state = (
-            ChatState.objects
-            .filter(user=request.user, group__in=my_groups_qs)
-            .select_related('group')
-            .order_by('-last_read')
-            .first()
-        )
-        if last_state and last_state.group_id:
-            chat_group = last_state.group
-        else:
-            last_group = my_groups_qs.order_by('-id').first()
-            if last_group:
-                chat_group = last_group
-            else:
-                chat_group = get_chat_group_by_identifier('public_chat')
+        # صفحه‌ی خانه فقط پوسته‌ی تلگرام/لیست چت‌ها را نشان می‌دهد و به‌طور
+        # خودکار وارد آخرین چت نمی‌شود؛ این از برگشت اشتباه به یک چت در موبایل
+        # جلوگیری می‌کند. باز کردن خودکار آخرین چت در دسکتاپ سمت JS انجام می‌شود.
+        return render(request, 'layouts/telegram.html')
     else:
         chat_group = get_chat_group_by_identifier(chatroom_identifier)
 

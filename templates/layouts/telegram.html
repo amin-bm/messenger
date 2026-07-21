@@ -17,7 +17,7 @@
       </div>
 
       <!-- Sidebar (لیست چت‌ها) -->
-      <aside id="tg-sidebar" class="{% if '/chat/room/' in request.path %}hidden md:flex{% else %}flex{% endif %} relative z-20 w-full md:w-[320px] shrink-0 border-b md:border-b-0 md:border-r border-slate-200/70 bg-white/35 backdrop-blur-xl flex-col dark:border-white/10 dark:bg-slate-950/30">
+      <aside id="tg-sidebar" class="{% if '/chat/room/' in request.path %}hidden md:flex{% else %}flex{% endif %} relative z-20 w-full md:w-[320px] shrink-0 min-h-0 border-b md:border-b-0 md:border-r border-slate-200/70 bg-white/35 backdrop-blur-xl flex-col dark:border-white/10 dark:bg-slate-950/30">
         <!-- Header سایدبار -->
         <div class="relative z-30 flex items-center gap-3 border-b border-slate-200/70 bg-white/50 px-3 py-2 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/35">
           <nav class="relative shrink-0">
@@ -145,7 +145,7 @@
         </div>
 
         <!-- لیست چت‌ها: همون آی‌دی قبلی برای سازگاری با کد شما -->
-        <nav class="relative z-0 flex-1 overflow-y-auto px-2 pb-3">
+        <nav id="tg-sidebar-scroll" class="relative z-0 flex-1 min-h-0 overflow-y-auto px-2 pb-3" style="-webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; touch-action: pan-y;">
             <div id="sidebar-search-results" class="hidden"></div>
             <div id="sidebar-content"></div>
         </nav>

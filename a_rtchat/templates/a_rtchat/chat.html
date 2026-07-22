@@ -1033,7 +1033,7 @@
     let activeTimer = null;
     window._rtchatLoadOlderActive = false;
 
-    // اولین ��یامی که همین الان داخل دید کاربر است را به‌عنوان لنگر انتخاب می‌کنیم.
+    // اولین یامی که همین الان داخل دید کاربر است را به‌عنوان لنگر انتخاب می‌کنیم.
     function pickAnchorMessageEl() {
       const list = document.getElementById("chat_messages");
       if (!list) return null;
@@ -3642,7 +3642,7 @@
 
             // اطمینان از محاسبه صحیح عرض قابل اسکرول هنگام زوم
             // وقتی origin سمت راست است، محتوا به چپ بزرگ می‌شود؛
-            // بنابراین باید عرض container بیرونی را به عرض مقیاس‌شده ��فزایش دهیم
+            // بنابراین باید عرض container بیرونی را به عرض مقیاس‌شده فزایش دهیم
             var scaledW = Math.ceil(w * s);
             var scaledH = Math.ceil(h * s);
 
@@ -5865,7 +5865,7 @@
 
     function findTarget() {
       if (!targetMessageId) return null;
-      // getElementById به CSS.escape نیاز ��دارد — رشته خام کافی است
+      // getElementById به CSS.escape نیاز دارد — رشته خام کافی است
       // CSS.escape اعداد رو تبدیل می‌کند (مثلاً "5686" → "\35 686") و ID را خراب می‌کند
       return document.getElementById("msg-" + targetMessageId);
     }

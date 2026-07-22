@@ -1,7 +1,7 @@
 {% load static %}
 {% if message.sticker %}
   <div class="mt-1">
-    <img src="{% static message.sticker_static_path %}" alt="🖼️ استیکر" class="h-28 w-28 sm:h-32 sm:w-32 object-contain select-none pointer-events-none" draggable="false" loading="lazy" decoding="async">
+    <img src="{% static message.sticker_static_path %}" alt="🖼️ استیکر" class="h-34 w-34 sm:h-38 sm:w-38 object-contain select-none pointer-events-none" draggable="false" loading="lazy" decoding="async">
   </div>
 {% endif %}
 {% if not message.file and message.body %}

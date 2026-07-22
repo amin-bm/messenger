@@ -416,6 +416,7 @@
                 <div id="media_tabs" class="flex items-center gap-1 border-b border-slate-200/70 dark:border-white/10 mb-2">
                   <button type="button" data-media-tab="emoji" class="media-tab flex-1 py-2 text-[13px] font-semibold rounded-t-lg transition">ایموجی</button>
                   <button type="button" data-media-tab="sticker" class="media-tab flex-1 py-2 text-[13px] font-semibold rounded-t-lg transition">استیکر</button>
+                  <button type="button" data-media-tab="date" class="media-tab flex-1 py-2 text-[13px] font-semibold rounded-t-lg transition">تاریخ</button>
                 </div>
 
                 <div data-media-panel="emoji">
@@ -423,6 +424,40 @@
                 </div>
                 <div data-media-panel="sticker" class="hidden">
                   <div id="sticker_picker_grid" class="grid grid-cols-3 gap-2 max-h-[260px] overflow-auto p-0.5"></div>
+                </div>
+                <div data-media-panel="date" class="hidden">
+                  <div id="date_picker_panel" class="max-h-[300px] overflow-auto p-1 text-slate-700 dark:text-slate-200" dir="rtl">
+                    <div class="text-[12px] font-semibold mb-1">تاریخ شمسی</div>
+                    <div class="grid grid-cols-3 gap-2 mb-2">
+                      <label class="flex flex-col text-[10px] text-slate-500 dark:text-slate-400">روز
+                        <input id="jdate_day" type="number" min="1" max="31" inputmode="numeric" class="mt-0.5 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-center text-slate-900 outline-none focus:border-blue-400 dark:border-white/10 dark:bg-white/10 dark:text-slate-100">
+                      </label>
+                      <label class="flex flex-col text-[10px] text-slate-500 dark:text-slate-400">ماه
+                        <select id="jdate_month" class="mt-0.5 w-full rounded-lg border border-slate-200 bg-white px-1 py-1 text-[13px] text-slate-900 outline-none focus:border-blue-400 dark:border-white/10 dark:bg-white/10 dark:text-slate-100"></select>
+                      </label>
+                      <label class="flex flex-col text-[10px] text-slate-500 dark:text-slate-400">سال
+                        <input id="jdate_year" type="number" min="1" max="1700" inputmode="numeric" class="mt-0.5 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-center text-slate-900 outline-none focus:border-blue-400 dark:border-white/10 dark:bg-white/10 dark:text-slate-100">
+                      </label>
+                    </div>
+                    <div class="flex items-center justify-between mb-1">
+                      <div class="text-[12px] font-semibold">معادل میلادی</div>
+                      <button id="gdate_recalc" type="button" class="text-[10px] rounded-lg px-2 py-0.5 text-blue-600 hover:bg-blue-50 dark:text-sky-400 dark:hover:bg-white/10">محاسبه دوباره</button>
+                    </div>
+                    <div class="text-[9px] text-slate-400 dark:text-slate-500 mb-1">در صورت نیاز می‌توانید تاریخ میلادی را دستی اصلاح کنید</div>
+                    <div class="grid grid-cols-3 gap-2 mb-2" dir="ltr">
+                      <label class="flex flex-col text-[10px] text-slate-500 dark:text-slate-400">Year
+                        <input id="gdate_year" type="number" inputmode="numeric" class="mt-0.5 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-center text-slate-900 outline-none focus:border-blue-400 dark:border-white/10 dark:bg-white/10 dark:text-slate-100">
+                      </label>
+                      <label class="flex flex-col text-[10px] text-slate-500 dark:text-slate-400">Month
+                        <input id="gdate_month" type="number" min="1" max="12" inputmode="numeric" class="mt-0.5 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-center text-slate-900 outline-none focus:border-blue-400 dark:border-white/10 dark:bg-white/10 dark:text-slate-100">
+                      </label>
+                      <label class="flex flex-col text-[10px] text-slate-500 dark:text-slate-400">Day
+                        <input id="gdate_day" type="number" min="1" max="31" inputmode="numeric" class="mt-0.5 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-[13px] text-center text-slate-900 outline-none focus:border-blue-400 dark:border-white/10 dark:bg-white/10 dark:text-slate-100">
+                      </label>
+                    </div>
+                    <div id="date_preview" class="rounded-xl bg-slate-50 border border-slate-200/70 px-2 py-2 text-center text-[13px] font-bold leading-6 text-slate-800 dark:bg-white/5 dark:border-white/10 dark:text-slate-100 mb-2"></div>
+                    <button id="date_send_btn" type="button" class="w-full rounded-xl bg-blue-600 py-2 text-[13px] font-semibold text-white hover:bg-blue-700 active:bg-blue-800">ارسال تاریخ</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -4516,6 +4551,264 @@
       sendSticker(b.dataset.stickerId);
       if (window.rtchatMediaPicker) window.rtchatMediaPicker.close();
     });
+  })();
+
+  (function () {
+    // ===== تب تاریخ: تبدیل شمسی به میلادی (کاملاً آفلاین) =====
+    const panel = document.querySelector('[data-media-panel="date"]');
+    if (!panel) return;
+
+    const elJDay = document.getElementById('jdate_day');
+    const elJMonth = document.getElementById('jdate_month');
+    const elJYear = document.getElementById('jdate_year');
+    const elGYear = document.getElementById('gdate_year');
+    const elGMonth = document.getElementById('gdate_month');
+    const elGDay = document.getElementById('gdate_day');
+    const elPreview = document.getElementById('date_preview');
+    const elSend = document.getElementById('date_send_btn');
+    const elRecalc = document.getElementById('gdate_recalc');
+    if (!elJDay || !elJMonth || !elJYear) return;
+
+    const J_MONTHS = ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"];
+    const G_MONTHS = ["ژانویه","فوریه","مارس","آوریل","مه","ژوئن","ژوئیه","اوت","سپتامبر","اکتبر","نوامبر","دسامبر"];
+    // getUTCDay(): 0=یکشنبه ... 6=شنبه
+    const WEEKDAYS = ["یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه","شنبه"];
+
+    // نشانگر پنهان برای شناسایی پیام تاریخ (نامرئی، تایپ‌نشدنی)
+    const DATE_SIG = "\u2063\u2064";
+
+    function toFa(n) {
+      const d = "۰۱۲۳۴۵۶۷۸۹";
+      return String(n).replace(/[0-9]/g, function (c) { return d[+c]; });
+    }
+    function div(a, b) { return Math.trunc(a / b); }
+    function mod(a, b) { return a - Math.trunc(a / b) * b; }
+    function jalCal(jy) {
+      const breaks = [-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
+      const bl = breaks.length; const gy = jy + 621; let leapJ = -14; let jp = breaks[0];
+      let jm, jump = 0, leapG, march, n, i;
+      if (jy < jp || jy >= breaks[bl - 1]) return null;
+      for (i = 1; i < bl; i += 1) { jm = breaks[i]; jump = jm - jp; if (jy < jm) break; leapJ = leapJ + div(jump, 33) * 8 + div(mod(jump, 33), 4); jp = jm; }
+      n = jy - jp;
+      leapJ = leapJ + div(n, 33) * 8 + div(mod(n, 33) + 3, 4);
+      if (mod(jump, 33) === 4 && jump - n === 4) leapJ += 1;
+      leapG = div(gy, 4) - div((div(gy, 100) + 1) * 3, 4) - 150;
+      march = 20 + leapJ - leapG;
+      return { gy: gy, march: march };
+    }
+    function g2d(gy, gm, gd) {
+      let d = div((gy + div(gm - 8, 6) + 100100) * 1461, 4) + div(153 * mod(gm + 9, 12) + 2, 5) + gd - 34840408;
+      d = d - div(div(gy + 100100 + div(gm - 8, 6), 100) * 3, 4) + 752;
+      return d;
+    }
+    function j2d(jy, jm, jd) {
+      const r = jalCal(jy); if (!r) return null;
+      return g2d(r.gy, 3, r.march) + (jm - 1) * 31 - div(jm, 7) * (jm - 7) + jd - 1;
+    }
+    function d2g(jdn) {
+      let j = 4 * jdn + 139361631;
+      j = j + div(div(4 * jdn + 183187720, 146097) * 3, 4) * 4 - 3908;
+      const i = div(mod(j, 1461), 4) * 5 + 308;
+      const gd = div(mod(i, 153), 5) + 1;
+      const gm = mod(div(i, 153), 12) + 1;
+      const gy = div(j, 1461) - 100100 + div(8 - gm, 6);
+      return { gy: gy, gm: gm, gd: gd };
+    }
+    function jalaliToGregorian(jy, jm, jd) {
+      const jdn = j2d(jy, jm, jd); if (jdn == null) return null;
+      return d2g(jdn);
+    }
+    function gregorianToJalali(gy, gm, gd) {
+      const target = g2d(gy, gm, gd);
+      let jy = gy - 621;
+      while (j2d(jy + 1, 1, 1) !== null && j2d(jy + 1, 1, 1) <= target) jy++;
+      while (j2d(jy, 1, 1) === null || j2d(jy, 1, 1) > target) jy--;
+      const doy = target - j2d(jy, 1, 1);
+      let jm, jd;
+      if (doy < 186) { jm = 1 + div(doy, 31); jd = 1 + mod(doy, 31); }
+      else { const d2 = doy - 186; jm = 7 + div(d2, 30); jd = 1 + mod(d2, 30); }
+      return { jy: jy, jm: jm, jd: jd };
+    }
+
+    // پر کردن ماه‌های شمسی
+    if (!elJMonth.dataset.built) {
+      J_MONTHS.forEach(function (name, idx) {
+        const o = document.createElement('option');
+        o.value = String(idx + 1); o.textContent = (idx + 1) + ' - ' + name;
+        elJMonth.appendChild(o);
+      });
+      elJMonth.dataset.built = "1";
+    }
+
+    function readJalali() {
+      const jy = parseInt(elJYear.value, 10);
+      const jm = parseInt(elJMonth.value, 10);
+      const jd = parseInt(elJDay.value, 10);
+      if (!jy || !jm || !jd) return null;
+      if (jm < 1 || jm > 12 || jd < 1 || jd > 31) return null;
+      return { jy: jy, jm: jm, jd: jd };
+    }
+
+    function syncFromJalali() {
+      const j = readJalali();
+      if (!j) { elPreview.textContent = "تاریخ شمسی را کامل وارد کنید"; return; }
+      const g = jalaliToGregorian(j.jy, j.jm, j.jd);
+      if (!g) { elPreview.textContent = "سال شمسی خارج از محدوده است"; return; }
+      elGYear.value = String(g.gy);
+      elGMonth.value = String(g.gm);
+      elGDay.value = String(g.gd);
+      renderPreview();
+    }
+
+    function buildText() {
+      const j = readJalali();
+      const gy = parseInt(elGYear.value, 10);
+      const gm = parseInt(elGMonth.value, 10);
+      const gd = parseInt(elGDay.value, 10);
+      if (!j || !gy || !gm || !gd || gm < 1 || gm > 12 || gd < 1 || gd > 31) return null;
+      const dt = new Date(Date.UTC(gy, gm - 1, gd));
+      const wd = WEEKDAYS[dt.getUTCDay()];
+      const jLine = "📅 " + wd + "، " + toFa(j.jd) + " " + J_MONTHS[j.jm - 1] + " " + toFa(j.jy);
+      const gLine = "🗓 " + gd + " " + G_MONTHS[gm - 1] + " " + gy;
+      return { jLine: jLine, gLine: gLine };
+    }
+
+    function renderPreview() {
+      const t = buildText();
+      if (!t) { elPreview.textContent = "تاریخ را کامل وارد کنید"; return; }
+      elPreview.textContent = t.jLine + "  |  " + t.gLine;
+    }
+
+    function setDefaults() {
+      if (elJDay.value || elJYear.value) { renderPreview(); return; }
+      const now = new Date();
+      const approx = gregorianToJalali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+      if (approx) {
+        elJYear.value = String(approx.jy);
+        elJMonth.value = String(approx.jm);
+        elJDay.value = String(approx.jd);
+      } else {
+        elJYear.value = "1404"; elJMonth.value = "1"; elJDay.value = "1";
+      }
+      syncFromJalali();
+    }
+
+    [elJDay, elJMonth, elJYear].forEach(function (el) {
+      el.addEventListener('input', syncFromJalali);
+      el.addEventListener('change', syncFromJalali);
+    });
+    [elGYear, elGMonth, elGDay].forEach(function (el) {
+      el.addEventListener('input', renderPreview);
+      el.addEventListener('change', renderPreview);
+    });
+    if (elRecalc) elRecalc.addEventListener('click', function (e) { e.preventDefault(); syncFromJalali(); });
+
+    function currentReplyToId() {
+      try { const rt = document.getElementById("reply_to_input"); if (rt && rt.value) return String(rt.value).trim(); } catch (e) {}
+      return "";
+    }
+    function sendBodyPayload(body) {
+      const payload = JSON.stringify({ body: body, reply_to: currentReplyToId() });
+      const srcEl = document.getElementById("chat_message_form");
+      try {
+        const _internal = srcEl && srcEl["htmx-internal-data"];
+        const _liveSock = _internal && _internal.webSocket;
+        if (_liveSock && _liveSock.readyState === 1) { _liveSock.send(payload); return true; }
+      } catch (err) {}
+      try {
+        const wrapper = window.__rtchatWsWrapper;
+        if (wrapper && typeof wrapper.send === "function") { wrapper.send(payload); return true; }
+        const sock = wrapper && wrapper.socket;
+        if (sock && sock.readyState === 1) { sock.send(payload); return true; }
+      } catch (err2) {}
+      return false;
+    }
+
+    if (elSend) elSend.addEventListener('click', function (e) {
+      e.preventDefault();
+      const t = buildText();
+      if (!t) { renderPreview(); return; }
+      const body = DATE_SIG + t.jLine + "\n" + t.gLine;
+      const ok = sendBodyPayload(body);
+      if (ok) {
+        if (typeof window.rtchatClearReply === "function") { try { window.rtchatClearReply(); } catch (e2) {} }
+        if (window.rtchatMediaPicker) window.rtchatMediaPicker.close();
+      }
+    });
+
+    setDefaults();
+  })();
+
+  (function () {
+    // ===== زیباسازی پیام‌های تاریخ (بدون تصویر، سبک) =====
+    const DATE_SIG = "\u2063\u2064";
+    const list = document.getElementById("chat_messages");
+    if (!list) return;
+
+    function styleDateMessage(li) {
+      if (!li || li.nodeType !== 1) return;
+      if (li.dataset.dateStyled === "1") return;
+      const raw = li.getAttribute("data-message-body") || "";
+      if (raw.indexOf(DATE_SIG) === -1) return;
+      const container = li.querySelector('[data-message-body-container]');
+      if (!container) return;
+
+      const moved = [];
+      let node = container.firstChild;
+      while (node) {
+        const next = node.nextSibling;
+        if (node.nodeType === 3) { moved.push(node); }
+        else if (node.nodeType === 1 && node.tagName === "BR") { moved.push(node); }
+        else if (node.nodeType === 1) { break; }
+        node = next;
+      }
+      if (!moved.length) { li.dataset.dateStyled = "1"; return; }
+
+      moved.forEach(function (n) {
+        if (n.nodeType === 3 && n.nodeValue.indexOf(DATE_SIG) !== -1) {
+          n.nodeValue = n.nodeValue.split(DATE_SIG).join("");
+        }
+      });
+
+      const wrapper = document.createElement("div");
+      wrapper.setAttribute("data-date-card", "1");
+      wrapper.style.textAlign = "center";
+      wrapper.style.fontWeight = "700";
+      wrapper.style.fontSize = "1.15rem";
+      wrapper.style.lineHeight = "1.9";
+      wrapper.style.padding = "6px 12px";
+      wrapper.style.borderRadius = "12px";
+      wrapper.style.background = "rgba(59,130,246,0.08)";
+      wrapper.style.display = "block";
+      wrapper.style.direction = "rtl";
+
+      const first = moved[0];
+      container.insertBefore(wrapper, first);
+      moved.forEach(function (n) { wrapper.appendChild(n); });
+      li.dataset.dateStyled = "1";
+    }
+
+    function scan(root) {
+      if (root && root.nodeType === 1 && root.matches && root.matches('li[data-message-id]')) { styleDateMessage(root); return; }
+      const scope = (root && root.querySelectorAll) ? root : list;
+      Array.prototype.forEach.call(scope.querySelectorAll('li[data-message-id]'), styleDateMessage);
+    }
+
+    scan(list);
+
+    if ("MutationObserver" in window) {
+      const mo = new MutationObserver(function (muts) {
+        for (const m of muts) {
+          if (!m.addedNodes) continue;
+          m.addedNodes.forEach(function (n) {
+            if (n.nodeType !== 1) return;
+            if (n.matches && n.matches('li[data-message-id]')) styleDateMessage(n);
+            else if (n.querySelectorAll) scan(n);
+          });
+        }
+      });
+      mo.observe(list, { childList: true, subtree: true });
+    }
   })();
 
   (function () {

@@ -192,10 +192,24 @@ def _maybe_transcode_audio_message_to_mp3(message: GroupMessage) -> tuple[bool, 
 @messenger_required
 def chat_view(request, chatroom_identifier='public_chat'):
     if request.path == '/':
-        # صفحه‌ی خانه فقط پوسته‌ی تلگرام/لیست چت‌ها را نشان می‌دهد و به‌طور
-        # خودکار وارد آخرین چت نمی‌شود؛ این از برگشت اشتباه به یک چت در موبایل
-        # جلوگیری می‌کند. باز کردن خودکار آخرین چت در دسکتاپ سمت JS انجام می‌شود.
-        return render(request, 'layouts/telegram.html')
+        my_groups_qs = request.user.chat_groups.all()
+        if not my_groups_qs.exists():
+            return render(request, 'layouts/telegram.html')
+        last_state = (
+            ChatState.objects
+            .filter(user=request.user, group__in=my_groups_qs)
+            .select_related('group')
+            .order_by('-last_read')
+            .first()
+        )
+        if last_state and last_state.group_id:
+            chat_group = last_state.group
+        else:
+            last_group = my_groups_qs.order_by('-id').first()
+            if last_group:
+                chat_group = last_group
+            else:
+                chat_group = get_chat_group_by_identifier('public_chat')
     else:
         chat_group = get_chat_group_by_identifier(chatroom_identifier)
 
@@ -1635,3 +1649,109 @@ def toggle_mute(request, chatroom_name):
     )
 
     return HttpResponse(status=204)
+
+
+# ---------------------------------------------------------------------------
+# Thumbnail for avatars (user profile + group avatar)
+# Same logic as chat_message_image_thumb, but works on a media path and only
+# allows the avatars/ and group_avatars/ directories.
+# ---------------------------------------------------------------------------
+_AVATAR_THUMB_MAX_PX = 128
+_AVATAR_ALLOWED_DIRS = ("avatars", "group_avatars")
+
+
+@messenger_required
+def avatar_thumb(request):
+    from urllib.parse import unquote
+
+    if request.method != "GET":
+        return HttpResponse(status=405)
+
+    rel = (request.GET.get("p") or "").strip().lstrip("/")
+    if not rel or ".." in rel or "\\" in rel:
+        raise Http404
+    top = rel.split("/", 1)[0]
+    if top not in _AVATAR_ALLOWED_DIRS:
+        raise Http404
+
+    # اگر پیدا نشد، شاید مسیر هنوز percent-encoded باشد (اسم فایل فارسی/یونیکد)
+    if not default_storage.exists(rel):
+        alt = unquote(rel)
+        if alt != rel and ".." not in alt and default_storage.exists(alt):
+            rel = alt
+        else:
+            raise Http404
+
+    try:
+        size = int(default_storage.size(rel) or 0)
+    except Exception:
+        size = 0
+    digest = hashlib.sha256(f"{rel}:{size}:avatar-thumb-v1".encode("utf-8")).hexdigest()[:16]
+    etag = f'"{digest}"'
+
+    if request.META.get("HTTP_IF_NONE_MATCH", "").strip() == etag:
+        r = HttpResponse(status=304)
+        r["ETag"] = etag
+        r["Cache-Control"] = "private, max-age=31536000, immutable"
+        return r
+
+    thumb_webp_rel_path = f"thumbs/avatars/{digest}.webp"
+    thumb_jpg_rel_path = f"thumbs/avatars/{digest}.jpg"
+
+    if default_storage.exists(thumb_webp_rel_path):
+        with default_storage.open(thumb_webp_rel_path, "rb") as f:
+            data = f.read()
+        res = HttpResponse(data, content_type="image/webp")
+        res["ETag"] = etag
+        res["Cache-Control"] = "private, max-age=31536000, immutable"
+        return res
+    if default_storage.exists(thumb_jpg_rel_path):
+        with default_storage.open(thumb_jpg_rel_path, "rb") as f:
+            data = f.read()
+        res = HttpResponse(data, content_type="image/jpeg")
+        res["ETag"] = etag
+        res["Cache-Control"] = "private, max-age=31536000, immutable"
+        return res
+
+    max_px = _AVATAR_THUMB_MAX_PX
+    fobj = default_storage.open(rel, "rb")
+    try:
+        try:
+            img = Image.open(fobj)
+        except Exception:
+            raise Http404
+        img = ImageOps.exif_transpose(img)
+        img.thumbnail((max_px, max_px), Image.Resampling.LANCZOS)
+
+        if img.mode == "RGBA":
+            bg = Image.new("RGB", img.size, (255, 255, 255))
+            bg.paste(img, mask=img.split()[-1])
+            img = bg
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
+
+        try:
+            buf = io.BytesIO()
+            img.save(buf, format="WEBP", quality=72, method=6)
+            data = buf.getvalue()
+            if not default_storage.exists(thumb_webp_rel_path):
+                default_storage.save(thumb_webp_rel_path, ContentFile(data))
+            res = HttpResponse(data, content_type="image/webp")
+            res["ETag"] = etag
+            res["Cache-Control"] = "private, max-age=31536000, immutable"
+            return res
+        except Exception:
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=78, optimize=True, progressive=True)
+            data = buf.getvalue()
+            if not default_storage.exists(thumb_jpg_rel_path):
+                default_storage.save(thumb_jpg_rel_path, ContentFile(data))
+            res = HttpResponse(data, content_type="image/jpeg")
+            res["ETag"] = etag
+            res["Cache-Control"] = "private, max-age=31536000, immutable"
+            return res
+    finally:
+        try:
+            fobj.close()
+        except Exception:
+            pass

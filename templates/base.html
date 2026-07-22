@@ -646,50 +646,6 @@
     window.addEventListener('popstate', refreshSidebarUI);
     window.addEventListener('resize', refreshSidebarUI);
 
-    // بعد از برگشت از صفحات دیگر، تعویض HTMX/WS یا افزودن مخاطب/گروه،
-    // اسکرول لیست چت‌ها/مخاطبین در موبایل گاهی می‌خوابد. این تابع
-    // lockهای باقی‌مانده را پاک می‌کند و scroll container را دوباره پایدار می‌کند.
-    function repairMobileSidebarScroll() {
-      const isMobile = window.matchMedia('(max-width: 767px)').matches;
-      if (!isMobile) return;
-
-      try {
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.touchAction = '';
-        document.documentElement.style.touchAction = '';
-        document.documentElement.classList.remove(
-          'tg-nav-forward',
-          'tg-nav-back',
-          'tg-leave-forward',
-          'tg-leave-back'
-        );
-        delete document.documentElement.dataset.tgNavLock;
-      } catch (err) {}
-
-      const sidebar = document.getElementById('tg-sidebar');
-      const main = document.getElementById('tg-main');
-      const scroller = document.getElementById('tg-sidebar-scroll');
-      if (!sidebar || !main || !scroller) return;
-
-      const path = window.location.pathname || '';
-      const inChat = path.startsWith('/chat/room/');
-      if (inChat) return;
-
-      sidebar.classList.remove('hidden');
-      sidebar.classList.add('flex');
-      main.classList.add('hidden');
-
-      scroller.style.overflowY = 'auto';
-      scroller.style.webkitOverflowScrolling = 'touch';
-      scroller.style.touchAction = 'pan-y';
-      scroller.style.overscrollBehaviorY = 'contain';
-
-      // force reflow برای Safari / PWA موبایل
-      void scroller.offsetHeight;
-    }
-
     function updateMobileLayout() {
       const sidebar = document.getElementById('tg-sidebar');
       const main = document.getElementById('tg-main');
@@ -716,10 +672,6 @@
         main.classList.add('hidden');
         if (backBtn) backBtn.classList.add('hidden');
       }
-
-      window.setTimeout(repairMobileSidebarScroll, 0);
-      window.setTimeout(repairMobileSidebarScroll, 80);
-      window.setTimeout(repairMobileSidebarScroll, 250);
     }
 
     function setTelegramNavDir(dir) {
@@ -936,45 +888,15 @@
       window.setTimeout(clearTelegramNavDir, 650);
     });
 
-    // اطمینان از پایدار ماندن اسکرول لیست چت‌ها/مخاطبین در موبایل
-    document.addEventListener('DOMContentLoaded', repairMobileSidebarScroll);
-    window.addEventListener('pageshow', repairMobileSidebarScroll);
-    window.addEventListener('resize', repairMobileSidebarScroll);
-    window.addEventListener('popstate', repairMobileSidebarScroll);
-    if (document.body) {
-      document.body.addEventListener('htmx:afterSwap', repairMobileSidebarScroll);
-      document.body.addEventListener('htmx:afterSettle', repairMobileSidebarScroll);
-      document.body.addEventListener('htmx:wsAfterMessage', repairMobileSidebarScroll);
-    }
-
     function rememberLastChatUrl() {
       const path = window.location.pathname || '';
       if (path.startsWith('/chat/room/')) localStorage.setItem('lastChatUrl', path);
     }
 
     function goToLastChatOrHome(e) {
+      const lastChatUrl = localStorage.getItem('lastChatUrl') || '';
       if (e) e.preventDefault();
       const home = '/';
-      const isMobile = window.matchMedia('(max-width: 767px)').matches;
-
-      // در موبایل صفحات منو/پروفایل/تنظیمات باید به لیست چت‌ها برگردند،
-      // نه به آخرین چتی که قبلاً باز شده بود.
-      if (isMobile) {
-        try {
-          sessionStorage.removeItem('tgNavDir');
-          document.documentElement.classList.remove(
-            'tg-nav-forward',
-            'tg-nav-back',
-            'tg-leave-forward',
-            'tg-leave-back'
-          );
-          delete document.documentElement.dataset.tgNavLock;
-        } catch (err) {}
-        window.location.href = home;
-        return false;
-      }
-
-      const lastChatUrl = localStorage.getItem('lastChatUrl') || '';
       const target = lastChatUrl.startsWith('/chat/room/') ? lastChatUrl : home;
 
       if (target === home) {
@@ -1366,7 +1288,7 @@
         const usernameNode = a.querySelector('.text-xs');
 
         openProfileModal({
-          avatarUrl: img ? img.getAttribute('src') : '',
+          avatarUrl: img ? (img.getAttribute('data-full') || img.getAttribute('src')) : '',
           name: nameNode ? nameNode.textContent.trim() : '',
           username: usernameNode ? usernameNode.textContent.replace('@', '').trim() : '',
           chatUrl: a.getAttribute('href') || '',
@@ -1735,7 +1657,7 @@
           return;
         }
 
-        subtitle.textContent = "نصب در ا��ن مرورگر در دسترس نیست.";
+        subtitle.textContent = "نصب در این مرورگر در دسترس نیست.";
         body.textContent =
           "اگر داخل مرورگرهای داخلی (مثل تلگرام/اینستاگرام) باز کرده‌اید، لینک را در Chrome یا Safari باز کنید.\n" +
           "همچنین نصب PWA روی موبایل معمولاً نیاز به HTTPS دارد.";

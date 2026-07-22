@@ -1,3 +1,4 @@
+{% load media_extras %}
 {# a_rtchat/partials/online_status.html #}
 
 {# 1) Tabs -> در header سایدبار (telegram.html) #}
@@ -46,7 +47,7 @@
 
             <div class="relative shrink-0">
               {% if item.avatar_url %}
-                <img class="h-10 w-10 rounded-full object-cover" src="{{ item.avatar_url }}">
+                <img class="h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" src="{{ item.avatar_url|thumb }}">
               {% else %}
                 <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold text-gray-600 dark:bg-white/10 dark:text-slate-200">
                   {{ item.avatar_letter }}
@@ -115,7 +116,7 @@
           <a href="{{ c.url }}"
              class="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-gray-200 transition dark:hover:bg-white/10">
             <div class="relative shrink-0">
-              <img class="h-10 w-10 rounded-full object-cover" src="{{ c.avatar }}">
+              <img class="h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" src="{{ c.avatar|thumb }}" data-full="{{ c.avatar }}">
               {% if c.is_online %}
                 <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 ring-2 ring-gray-50 dark:ring-slate-950/30"></span>
               {% else %}

@@ -1,4 +1,5 @@
 {% extends chat_base_template|default:"layouts/telegram.html" %}
+{% load media_extras %}
 
 {% block content %}
 
@@ -49,7 +50,7 @@
                     data-chat-url="">
               <div class="relative">
                 <div id="online-icon" class="gray-dot absolute -bottom-1 -right-1"></div>
-                <img class="w-10 h-10 rounded-full object-cover" src="{{ other_user.profile.avatar }}">
+                <img class="w-10 h-10 rounded-full object-cover" loading="lazy" decoding="async" src="{{ other_user.profile.avatar|thumb }}">
               </div>
 
               <div class="min-w-0">
@@ -74,7 +75,7 @@
             <div class="flex items-center gap-2 min-w-0">
               <button id="group-members-trigger" type="button" class="flex items-center gap-3 min-w-0 text-left" aria-label="Group members" hx-get="{% url 'chat-media-gallery' chatroom_identifier %}?tab=members" hx-target="body" hx-swap="beforeend" hx-trigger="click">
                 {% if chat_group.avatar %}
-                  <img class="h-10 w-10 rounded-full object-cover shrink-0" src="{{ chat_group.avatar.url }}">
+                  <img class="h-10 w-10 rounded-full object-cover shrink-0" loading="lazy" decoding="async" src="{{ chat_group.avatar.url|thumb }}">
                 {% else %}
                   <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0 flex items-center justify-center text-sm font-semibold text-gray-600">
                     {{ chat_group.groupchat_name|slice:":1"|upper }}

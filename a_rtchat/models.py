@@ -114,15 +114,33 @@ class GroupMessage(models.Model):
    is_pinned = models.BooleanField(default=False)
    pinned_at = models.DateTimeField(null=True, blank=True)
    pinned_by = models.ForeignKey(User, null=True, blank=True, related_name='pinned_messages', on_delete=models.SET_NULL)
+   sticker = models.CharField(max_length=8, null=True, blank=True)
 
    IMAGE_EXTENSIONS = frozenset({
       ".jpg", ".jpeg", ".png", ".gif",
       ".webp", ".bmp", ".tiff", ".svg",
    })
 
+   STICKER_IDS = frozenset({
+      "01", "02", "03", "04", "05", "06",
+      "07", "08", "09", "10", "11", "12",
+   })
+
+   @property
+   def is_sticker(self):
+      return bool(self.sticker)
+
+   @property
+   def sticker_static_path(self):
+      if not self.sticker:
+         return ""
+      return f"stickers/{self.sticker}.png"
+
    
    @property
    def pin_preview(self):
+      if self.sticker:
+         return "🖼️ استیکر"
       if self.body:
          return self.body
       if self.file:
@@ -166,6 +184,8 @@ class GroupMessage(models.Model):
          return f'{self.author.username} : {self.body}'
       elif self.file:
          return f'{self.author.username} : {self.filename}'
+      elif self.sticker:
+         return f'{self.author.username} : sticker {self.sticker}'
 
    class Meta:
       ordering = ['-created']

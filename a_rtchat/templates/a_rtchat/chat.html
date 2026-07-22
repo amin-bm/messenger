@@ -402,7 +402,7 @@
 
           <div class="flex items-center gap-3 text-gray-500 dark:text-slate-300">
             <div style="position: relative; display: flex; align-items: center;">
-              <button id="emoji_btn" type="button" class="hover:text-gray-700 dark:hover:text-white" aria-label="Emoji">
+              <button id="media_btn" type="button" class="hover:text-gray-700 dark:hover:text-white" aria-label="ایموجی و استیکر">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
                   <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" stroke="currentColor" stroke-width="2"/>
                   <path d="M8.5 10a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM15.5 10a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" fill="currentColor"/>
@@ -410,9 +410,20 @@
                 </svg>
               </button>
 
-              <div id="emoji_picker" class="hidden absolute bottom-[calc(100%+10px)] right-0 z-50 w-[320px] max-w-[90vw] rounded-[14px] border border-slate-200/80 bg-white/90 p-2 shadow-[0_10px_25px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90">
+              <div id="media_picker" class="hidden absolute bottom-[calc(100%+10px)] right-0 z-50 w-[320px] max-w-[90vw] rounded-[14px] border border-slate-200/80 bg-white/90 p-2 shadow-[0_10px_25px_rgba(0,0,0,0.12)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-900/90">
                 <div class="absolute -bottom-1.5 right-3.5 h-3 w-3 rotate-45 border-r border-b border-slate-200/80 bg-white/90 dark:border-white/10 dark:bg-slate-900/90"></div>
-                <div id="emoji_picker_grid" class="grid grid-cols-8 gap-1 text-[20px] leading-none max-h-[220px] overflow-auto p-0.5"></div>
+
+                <div id="media_tabs" class="flex items-center gap-1 border-b border-slate-200/70 dark:border-white/10 mb-2">
+                  <button type="button" data-media-tab="emoji" class="media-tab flex-1 py-2 text-[13px] font-semibold rounded-t-lg transition">ایموجی</button>
+                  <button type="button" data-media-tab="sticker" class="media-tab flex-1 py-2 text-[13px] font-semibold rounded-t-lg transition">استیکر</button>
+                </div>
+
+                <div data-media-panel="emoji">
+                  <div id="emoji_picker_grid" class="grid grid-cols-8 gap-1 text-[20px] leading-none max-h-[220px] overflow-auto p-0.5"></div>
+                </div>
+                <div data-media-panel="sticker" class="hidden">
+                  <div id="sticker_picker_grid" class="grid grid-cols-3 gap-2 max-h-[260px] overflow-auto p-0.5"></div>
+                </div>
               </div>
             </div>
 
@@ -1033,7 +1044,7 @@
     let activeTimer = null;
     window._rtchatLoadOlderActive = false;
 
-    // اولین یامی که همین الان داخل دید کاربر است را به‌عنوان لنگر انتخاب می‌کنیم.
+    // اولین ��یامی که همین الان داخل دید کاربر است را به‌عنوان لنگر انتخاب می‌کنیم.
     function pickAnchorMessageEl() {
       const list = document.getElementById("chat_messages");
       if (!list) return null;
@@ -3642,7 +3653,7 @@
 
             // اطمینان از محاسبه صحیح عرض قابل اسکرول هنگام زوم
             // وقتی origin سمت راست است، محتوا به چپ بزرگ می‌شود؛
-            // بنابراین باید عرض container بیرونی را به عرض مقیاس‌شده فزایش دهیم
+            // بنابراین باید عرض container بیرونی را به عرض مقیاس‌شده ��فزایش دهیم
             var scaledW = Math.ceil(w * s);
             var scaledH = Math.ceil(h * s);
 
@@ -4315,11 +4326,74 @@
   })();
 
   (function () {
-    const emojiBtn = document.getElementById('emoji_btn');
-    const picker = document.getElementById('emoji_picker');
+    // ===== کنترلر پنل ایموجی/استیکر (تب‌دار مثل تلگرام) =====
+    const btn = document.getElementById('media_btn');
+    const picker = document.getElementById('media_picker');
+    const form = document.getElementById('chat_message_form');
+    if (!btn || !picker) return;
+
+    const tabButtons = Array.prototype.slice.call(picker.querySelectorAll('[data-media-tab]'));
+    const panels = Array.prototype.slice.call(picker.querySelectorAll('[data-media-panel]'));
+
+    const ACTIVE = ["text-blue-600", "dark:text-sky-400", "border-b-2", "border-blue-600", "dark:border-sky-400"];
+    const INACTIVE = ["text-gray-500", "dark:text-slate-400"];
+
+    function setActiveTab(name) {
+      tabButtons.forEach(function (tb) {
+        const on = tb.getAttribute("data-media-tab") === name;
+        ACTIVE.forEach(function (c) { tb.classList.toggle(c, on); });
+        INACTIVE.forEach(function (c) { tb.classList.toggle(c, !on); });
+      });
+      panels.forEach(function (pnl) {
+        pnl.classList.toggle("hidden", pnl.getAttribute("data-media-panel") !== name);
+      });
+    }
+
+    function isOpen() { return !picker.classList.contains("hidden"); }
+    function open() { picker.classList.remove("hidden"); }
+    function close() { picker.classList.add("hidden"); }
+    function toggle() { if (isOpen()) close(); else open(); }
+
+    // تب پیش‌فرض
+    setActiveTab("emoji");
+
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggle();
+    });
+
+    tabButtons.forEach(function (tb) {
+      tb.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        setActiveTab(tb.getAttribute("data-media-tab"));
+      });
+    });
+
+    picker.addEventListener("click", function (e) { e.stopPropagation(); });
+
+    _docOn("click", function () {
+      if (isStale()) return;
+      if (isOpen()) close();
+    });
+
+    _docOn("keydown", function (e) {
+      if (isStale()) return;
+      if (e.key === "Escape") close();
+    });
+
+    if (form) form.addEventListener("htmx:wsAfterSend", close);
+
+    // در دسترس برای هندلرهای گرید
+    window.rtchatMediaPicker = { open: open, close: close, toggle: toggle, isOpen: isOpen, setActiveTab: setActiveTab };
+  })();
+
+  (function () {
+    // ===== گرید ایموجی =====
     const grid = document.getElementById('emoji_picker_grid');
     const form = document.getElementById('chat_message_form');
-    if (!emojiBtn || !picker || !grid || !form) return;
+    if (!grid || !form) return;
 
     const input = form.querySelector('input[name="body"], textarea[name="body"]');
     if (!input) return;
@@ -4335,33 +4409,16 @@
 
     if (!grid.dataset.built) {
       const frag = document.createDocumentFragment();
-      emojis.forEach((emoji) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.dataset.emoji = emoji;
-        btn.className = "h-9 w-9 rounded-xl hover:bg-gray-100 active:bg-gray-200 flex items-center justify-center";
-        btn.textContent = emoji;
-        frag.appendChild(btn);
+      emojis.forEach(function (emoji) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.dataset.emoji = emoji;
+        b.className = "h-9 w-9 rounded-xl hover:bg-gray-100 active:bg-gray-200 flex items-center justify-center";
+        b.textContent = emoji;
+        frag.appendChild(b);
       });
       grid.appendChild(frag);
       grid.dataset.built = "1";
-    }
-
-    function isOpen() {
-      return !picker.classList.contains("hidden");
-    }
-
-    function open() {
-      picker.classList.remove("hidden");
-    }
-
-    function close() {
-      picker.classList.add("hidden");
-    }
-
-    function toggle() {
-      if (isOpen()) close();
-      else open();
     }
 
     function insertEmoji(emoji) {
@@ -4376,32 +4433,89 @@
       input.dispatchEvent(new Event("input", { bubbles: true }));
     }
 
-    emojiBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggle();
+    grid.addEventListener("click", function (e) {
+      const b = e.target.closest("button[data-emoji]");
+      if (!b) return;
+      insertEmoji(b.dataset.emoji || "");
+    });
+  })();
+
+  (function () {
+    // ===== گرید استیکر و ارسال =====
+    const grid = document.getElementById('sticker_picker_grid');
+    if (!grid) return;
+
+    const STICKER_BASE = (window.RTCHAT_STICKER_BASE || "/static/stickers/");
+    const STICKER_IDS = (window.RTCHAT_STICKER_IDS && window.RTCHAT_STICKER_IDS.length) ? window.RTCHAT_STICKER_IDS.map(String) : [
+      "01", "02", "03", "04", "05", "06",
+      "07", "08", "09", "10", "11", "12"
+    ];
+    const STICKERS = STICKER_IDS.map(function (id) {
+      return { id: String(id), src: STICKER_BASE + String(id) + ".png" };
     });
 
-    picker.addEventListener("click", (e) => e.stopPropagation());
+    if (!grid.dataset.built) {
+      const frag = document.createDocumentFragment();
+      STICKERS.forEach(function (st) {
+        if (!st || !st.src) return;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.dataset.stickerId = st.id;
+        b.dataset.stickerSrc = st.src;
+        b.className = "rounded-xl p-1 hover:bg-gray-100 active:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center aspect-square";
+        const img = document.createElement("img");
+        img.src = st.src;
+        img.alt = "استیکر";
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.className = "max-h-full max-w-full object-contain rounded-lg";
+        b.appendChild(img);
+        frag.appendChild(b);
+      });
+      grid.appendChild(frag);
+      grid.dataset.built = "1";
+    }
 
-    _docOn("click", () => {
-      if (isStale()) return;
-      if (isOpen()) close();
+    function currentReplyToId() {
+      try {
+        const rt = document.getElementById("reply_to_input");
+        if (rt && rt.value) return String(rt.value).trim();
+      } catch (e) {}
+      return "";
+    }
+
+    function sendStickerPayload(sid) {
+      const payload = JSON.stringify({ type: "sticker", sticker_id: sid, reply_to: currentReplyToId() });
+      const srcEl = document.getElementById("chat_message_form");
+      try {
+        const _internal = srcEl && srcEl["htmx-internal-data"];
+        const _liveSock = _internal && _internal.webSocket;
+        if (_liveSock && _liveSock.readyState === 1) { _liveSock.send(payload); return true; }
+      } catch (err) {}
+      try {
+        const wrapper = window.__rtchatWsWrapper;
+        if (wrapper && typeof wrapper.send === "function") { wrapper.send(payload); return true; }
+        const sock = wrapper && wrapper.socket;
+        if (sock && sock.readyState === 1) { sock.send(payload); return true; }
+      } catch (err2) {}
+      return false;
+    }
+
+    function sendSticker(stickerId) {
+      const sid = String(stickerId || "").trim();
+      if (!sid) return;
+      const ok = sendStickerPayload(sid);
+      if (ok && typeof window.rtchatClearReply === "function") {
+        try { window.rtchatClearReply(); } catch (e) {}
+      }
+    }
+
+    grid.addEventListener("click", function (e) {
+      const b = e.target.closest("button[data-sticker-id]");
+      if (!b) return;
+      sendSticker(b.dataset.stickerId);
+      if (window.rtchatMediaPicker) window.rtchatMediaPicker.close();
     });
-
-    _docOn("keydown", (e) => {
-      if (isStale()) return;
-      if (e.key === "Escape") close();
-    });
-
-    grid.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-emoji]");
-      if (!btn) return;
-      insertEmoji(btn.dataset.emoji || "");
-      close();
-    });
-
-    form.addEventListener("htmx:wsAfterSend", close);
   })();
 
   (function () {
@@ -4883,7 +4997,7 @@
     const bodyInput = messageForm ? messageForm.querySelector('input[name="body"], textarea[name="body"]') : null;
     const fileInput = document.getElementById("id_file");
     const filePickBtn = document.getElementById("file_pick_btn");
-    const emojiBtn = document.getElementById("emoji_btn");
+    const emojiBtn = document.getElementById("media_btn");
     const recordBtn = document.getElementById("voice_record_btn");
     const stopBtn = document.getElementById("voice_stop_btn");
     const previewEl = document.getElementById("voice_preview");
@@ -5865,7 +5979,7 @@
 
     function findTarget() {
       if (!targetMessageId) return null;
-      // getElementById به CSS.escape نیاز دارد — رشته خام کافی است
+      // getElementById به CSS.escape نیاز ��دارد — رشته خام کافی است
       // CSS.escape اعداد رو تبدیل می‌کند (مثلاً "5686" → "\35 686") و ID را خراب می‌کند
       return document.getElementById("msg-" + targetMessageId);
     }

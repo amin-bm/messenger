@@ -126,6 +126,8 @@ def _send_push_notifications_for_message(message_id: int) -> None:
     body = ""
     if message.body:
         body = message.body
+    elif message.sticker:
+        body = "🖼️ استیکر"
     elif message.file:
         body = f"📎 {message.filename or 'File'}"
     identifier = group.group_slug or group.group_name
@@ -329,6 +331,10 @@ class ChatroomConsumer(WebsocketConsumer):
             self.handle_reaction(data)
             return
 
+        if (data.get('type') or '').strip() == 'sticker':
+            self.handle_sticker(data)
+            return
+
         body = data.get('body', '').strip()
         reply_to_id = str(data.get('reply_to') or '').strip()
 
@@ -370,6 +376,47 @@ class ChatroomConsumer(WebsocketConsumer):
         else:
             event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [self.user.id])}
             log_group_send('ChatroomConsumer', 'online-status', 'online_status_handler', target_user_ids)
+        async_to_sync(self.channel_layer.group_send)("online-status", event)
+
+    def handle_sticker(self, data):
+        sticker_id = str(data.get('sticker_id') or '').strip()
+        if sticker_id not in GroupMessage.STICKER_IDS:
+            return
+
+        reply_to_id = str(data.get('reply_to') or '').strip()
+        reply_to = None
+        if reply_to_id.isdigit():
+            reply_to = (
+                GroupMessage.objects
+                .filter(group=self.chatroom, id=int(reply_to_id))
+                .first()
+            )
+
+        message = GroupMessage.objects.create(
+            sticker=sticker_id,
+            author=self.user,
+            group=self.chatroom,
+            reply_to=reply_to,
+        )
+
+        if not bool(getattr(settings, "OFFLINE_MODE", False)):
+            transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
+
+        log_group_send('ChatroomConsumer', self.chatroom_name, 'message_handler')
+        async_to_sync(self.channel_layer.group_send)(
+            self.chatroom_name,
+            {"type": "message_handler", "message_id": message.id}
+        )
+
+        target_user_ids = list(self.chatroom.members.values_list("id", flat=True))
+        if (
+            not target_user_ids
+            and self.chatroom.group_name == "public_chat"
+            and bool(getattr(settings, "CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", False))
+        ):
+            event = {"type": "online_status_handler"}
+        else:
+            event = {"type": "online_status_handler", "target_user_ids": (target_user_ids or [self.user.id])}
         async_to_sync(self.channel_layer.group_send)("online-status", event)
 
     def message_handler(self, event):

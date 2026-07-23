@@ -276,10 +276,9 @@
                 <div>
                     <label class="block text-xs text-gray-600 dark:text-slate-400 mb-1">ساعت (به وقت تهران)</label>
                     <div class="flex items-center gap-2">
-                        <input type="number" name="minute" min="0" max="59" value="{{ schedule.minute }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
-                        <span class="text-gray-500">:</span>
                         <input type="number" name="hour" min="0" max="23" value="{{ schedule.hour }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
-
+                        <span class="text-gray-500">:</span>
+                        <input type="number" name="minute" min="0" max="59" value="{{ schedule.minute }}" class="w-20 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center dark:bg-slate-900 dark:border-white/15 dark:text-slate-100" />
                     </div>
                     <div class="text-[11px] text-gray-400 mt-1">ساعت ۰ تا ۲۳ ، دقیقه ۰ تا ۵۹</div>
                 </div>
@@ -454,11 +453,14 @@
             pollBackup(jobId) {
                 const url = this.urls.progressBase.replace('__JOB__', jobId);
                 const self = this;
+                let lastOkTs = Date.now();
+                const giveUpMs = 10 * 60 * 1000;
                 const tick = async function () {
                     try {
                         const res = await fetch(url, { credentials: 'same-origin' });
                         const data = await res.json();
                         if (!data.ok) throw new Error('');
+                        lastOkTs = Date.now();
                         self.createPercent = Math.round(data.percent || 0);
                         if (data.status === 'done') {
                             self.createPercent = 100;
@@ -475,9 +477,14 @@
                         }
                         setTimeout(tick, 800);
                     } catch (e) {
-                        self.createStatus = 'error';
-                        self.createError = 'دریافت وضعیت ناموفق بود.';
-                        self.creating = false;
+                        // سرور در حال پردازش سنگین است و موقتاً پاسخ نمی‌دهد؛ به تلاش ادامه بده
+                        if (Date.now() - lastOkTs > giveUpMs) {
+                            self.createStatus = 'error';
+                            self.createError = 'ارتباط با سرور برقرار نشد. بکاپ ممکن است همچنان در حال ساخت باشد؛ کمی بعد صفحه را تازه کنید.';
+                            self.creating = false;
+                            return;
+                        }
+                        setTimeout(tick, 2000);
                     }
                 };
                 tick();

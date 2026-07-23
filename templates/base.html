@@ -2615,6 +2615,7 @@
           statusBar.classList.add("bg-amber-50", "text-amber-700", "border", "border-amber-200", "dark:bg-amber-900/60", "dark:text-amber-300", "dark:border-amber-500/30");
           statusText && (statusText.textContent = "در حال اتصال مجدد…");
           setIcon("spinner");
+          statusRetry && statusRetry.classList.remove("hidden");
         } else if (state === "server") {
           statusBar.classList.add("bg-purple-50", "text-purple-700", "border", "border-purple-200", "dark:bg-purple-900/60", "dark:text-purple-300", "dark:border-purple-500/30");
           statusText && (statusText.textContent = "مشکل در اتصال به سرور.");
@@ -2649,10 +2650,61 @@
         }
       }
 
+      // Every element that owns a websocket (NOT just the in-chat form),
+      // so reconnect works on the chat LIST page too.
+      function getWsElements() {
+        const els = [];
+        try {
+          document.querySelectorAll("[ws-connect]").forEach((el) => els.push(el));
+        } catch (e) {}
+        if (messageForm && els.indexOf(messageForm) === -1) els.push(messageForm);
+        return els;
+      }
+
+      // Immediately ask htmx to (re)connect every websocket element.
       function attemptReconnect() {
-        if (!messageForm) return;
-        if (window.htmx && typeof window.htmx.process === "function") window.htmx.process(messageForm);
-        if (window.htmx && typeof window.htmx.trigger === "function") window.htmx.trigger(messageForm, "htmx:wsReconnect");
+        if (!window.htmx) return;
+        getWsElements().forEach((el) => {
+          try {
+            if (typeof window.htmx.process === "function") window.htmx.process(el);
+            if (typeof window.htmx.trigger === "function") window.htmx.trigger(el, "htmx:wsReconnect");
+          } catch (e) {}
+        });
+      }
+
+      // Re-check the connection RIGHT NOW (retry tap / focus / network back).
+      // Reads the real socket state so a stale banner clears instantly.
+      function verifyConnection() {
+        const online = typeof window.rtchatIsOnline === "function"
+          ? window.rtchatIsOnline()
+          : (typeof navigator === "undefined" ? true : navigator.onLine !== false);
+        if (!online) {
+          wsConnected = false;
+          updateConnectivity();
+          return;
+        }
+        const st = hasOpenSocket();
+        if (st.open) {
+          wsConnected = true;      // really connected -> clear banner now
+          updateConnectivity();
+          return;
+        }
+        if (!st.sawSocket) {
+          // Could not track a real socket; keep event-based belief but still nudge.
+          attemptReconnect();
+          updateConnectivity();
+          return;
+        }
+        wsConnected = false;
+        updateConnectivity();
+        attemptReconnect();
+        // Socket may open a moment later; re-check from readyState.
+        window.setTimeout(function () {
+          if (hasOpenSocket().open) {
+            wsConnected = true;
+            updateConnectivity();
+          }
+        }, 600);
       }
 
       var reconnectAttempts = 0;
@@ -2669,7 +2721,12 @@
           reconnectTimer = 0;
           const stillOnline = typeof window.rtchatIsOnline === "function" ? window.rtchatIsOnline() : (typeof navigator === "undefined" ? true : navigator.onLine !== false);
           if (!stillOnline || wsConnected) return;
+          // Self-heal: if the socket is actually open, clear the banner.
+          if (hasOpenSocket().open) { wsConnected = true; updateConnectivity(); return; }
           attemptReconnect();
+          window.setTimeout(function () {
+            if (hasOpenSocket().open) { wsConnected = true; updateConnectivity(); }
+          }, 600);
           startReconnectTimer();
         }, delay);
       }
@@ -2732,12 +2789,50 @@
         updateDuration();
       }
 
-      function handleWsOpen() {
+      const wsSockets = new Set();
+
+      function trackSocketFromEvent(e) {
+        try {
+          const d = (e && e.detail) || {};
+          const sock =
+            (d.socketWrapper && d.socketWrapper.socket) ||
+            d.socket ||
+            (d.socketWrapper && d.socketWrapper.webSocket) ||
+            null;
+          if (sock && typeof sock.readyState === "number") wsSockets.add(sock);
+        } catch (err) {}
+      }
+
+      // Source of truth for connectivity: inspect the REAL socket readyState,
+      // instead of trusting ws events (which can be missed on slow networks and
+      // leave the banner stuck on "reconnecting" even after the socket is back).
+      function hasOpenSocket() {
+        let open = false;
+        let sawSocket = false;
+        wsSockets.forEach((s) => {
+          if (!s) { wsSockets.delete(s); return; }
+          sawSocket = true;
+          if (s.readyState === 1) open = true;         // OPEN
+          if (s.readyState === 3) wsSockets.delete(s);  // CLOSED -> forget
+        });
+        return { open: open, sawSocket: sawSocket };
+      }
+
+      function handleWsOpen(e) {
+        trackSocketFromEvent(e);
         wsConnected = true;
         updateConnectivity();
       }
 
-      function handleWsDisconnected() {
+      function handleWsDisconnected(e) {
+        trackSocketFromEvent(e);
+        // If another socket is still open, don't flip the whole UI to offline.
+        const st = hasOpenSocket();
+        if (st.open) {
+          wsConnected = true;
+          updateConnectivity();
+          return;
+        }
         wsConnected = false;
         wsDisconnectedAt = wsDisconnectedAt || Date.now();
         updateConnectivity();
@@ -2789,25 +2884,30 @@
 
       if (statusRetry) {
         statusRetry.addEventListener("click", () => {
-          attemptReconnect();
-          updateConnectivity();
+          verifyConnection();
+        });
+      }
+      // Make the whole status bar tappable so the user can force a re-check
+      // even during "reconnecting" (which shows no button by default).
+      if (statusBar) {
+        statusBar.style.cursor = "pointer";
+        statusBar.addEventListener("click", () => {
+          verifyConnection();
         });
       }
 
       document.body && document.body.addEventListener("htmx:wsOpen", handleWsOpen);
       document.body && document.body.addEventListener("htmx:wsClose", handleWsDisconnected);
       document.body && document.body.addEventListener("htmx:wsError", handleWsDisconnected);
-      window.addEventListener("online", updateConnectivity);
+      window.addEventListener("online", verifyConnection);
       window.addEventListener("offline", updateConnectivity);
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
-          attemptReconnect();
-          updateConnectivity();
+          verifyConnection();
         }
       });
       window.addEventListener("focus", () => {
-        attemptReconnect();
-        updateConnectivity();
+        verifyConnection();
       });
 
       window.rtchatShowConnToast = showToast;
@@ -2817,6 +2917,7 @@
       };
       window.rtchatRefreshConnectionUI = updateConnectivity;
       window.rtchatAttemptReconnect = attemptReconnect;
+      window.rtchatVerifyConnection = verifyConnection;
 
       bindViewportListeners();
       setTimeout(updateConnectivity, 1600);

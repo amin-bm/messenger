@@ -658,8 +658,9 @@ class OnlineStatusConsumer(WebsocketConsumer):
         # لیست چت را مستقیم و بدون دیبانس فقط برای همین کلاینتِ تازه‌متصل رندر و ارسال کن
         # (جلوگیری از خالی‌ماندن سایدبار وقتی قفلِ سراسری debounce فعال است)
         self.online_status_handler({"target_user_ids": [self.user.id]})
+        self._initial_sidebar_confirmed = True
         # سپس تغییرِ وضعیتِ آنلاین را (با دیبانس) به بقیه‌ی گروه اعلام کن
-        self.online_status()
+        self.online_status(exclude_user_id=self.user.id)
 
     def disconnect(self, close_code):
         log_disconnect('OnlineStatusConsumer', self.user, close_code)
@@ -670,7 +671,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
             self.group_name,
             self.channel_name
         )
-        self.online_status()
+        self.online_status(exclude_user_id=self.user.id)
 
     def receive(self, text_data=None, bytes_data=None):
         _touch_last_seen(self.user)
@@ -683,18 +684,26 @@ class OnlineStatusConsumer(WebsocketConsumer):
                 log_receive('OnlineStatusConsumer', self.user, data)
                 # fallback: در پاسخ به ping، سایدبار را مستقیم برای همین کلاینت بازتولید کن
                 # تا اگر پوشِ اولیه‌ی connect گم شده باشد، لیست چت پر شود.
-                self.online_status_handler({"target_user_ids": [self.user.id]})
+                if not getattr(self, "_initial_sidebar_confirmed", False):
+                    self._initial_sidebar_confirmed = True
+                    self.online_status_handler({"target_user_ids": [self.user.id]})
 
 
-    def online_status(self):
+    def online_status(self, exclude_user_id=None):
         # debounce: اگر در ۲ ثانیه‌ی اخیر broadcast شده، رد شو تا طوفانِ N² رخ ندهد
         if not cache.add("online_status_broadcast_lock", 1, timeout=2):
             return
         log_group_send('OnlineStatusConsumer', 'online-status', 'online_status_handler', 'broadcast')
         event = {'type': 'online_status_handler'}
+        if exclude_user_id is not None:
+            event['exclude_user_id'] = exclude_user_id
         async_to_sync(self.channel_layer.group_send)(self.group_name, event)
 
     def online_status_handler(self, event):
+        # خودِ کاربری که تازه متصل شده را در broadcast دوباره رندر نکن (قبلاً مستقیم رندر شد)
+        exclude_user_id = (event or {}).get("exclude_user_id")
+        if exclude_user_id is not None and self.user.id == exclude_user_id:
+            return
         target_user_ids = (event or {}).get("target_user_ids")
 
         if target_user_ids is not None:

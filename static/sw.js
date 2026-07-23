@@ -94,6 +94,22 @@ function offlineFallbackResponse() {
   });
 }
 
+// لاگ تشخیصی سرویس‌ورکر → به /pwa/log می‌فرستد (این مسیر توسط fetch-handler رهگیری نمی‌شود).
+function swLog(ev, data) {
+  try {
+    const body = JSON.stringify(
+      Object.assign({ ev: ev, v: SW_VERSION, t: Date.now(), src: "sw" }, data || {})
+    );
+    fetch("/pwa/log", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: body,
+      keepalive: true,
+    }).catch(function () {});
+  } catch (e) {}
+}
+
 async function notifyClients(message) {
   const clientList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   for (const client of clientList) {
@@ -130,15 +146,25 @@ self.addEventListener("install", (event) => {
   // چیزی برای نمایش وجود داشته باشد (به‌جای صفحه‌ی سفید). این کار best-effort است.
   event.waitUntil(
     (async () => {
+      swLog("sw_install");
+      let rootCached = false;
+      let rootStatus = 0;
+      let rootRedirected = false;
       try {
         const cache = await caches.open(CACHE_NAME);
         try {
           const rootRes = await fetch(new Request("/", { cache: "reload" }));
-          if (rootRes && rootRes.ok) {
+          rootStatus = rootRes ? rootRes.status : 0;
+          rootRedirected = !!(rootRes && rootRes.redirected);
+          // مهم: پاسخِ ریدایرکت‌شده (مثلاً صفحه‌ی لاگین) را به‌عنوان «/» کش نکن،
+          // وگرنه fallback ناوبری ممکن است صفحه‌ی اشتباه/سفید نشان دهد.
+          if (rootRes && rootRes.ok && !rootRes.redirected) {
             await cache.put("/", rootRes.clone());
+            rootCached = true;
           }
         } catch (e) {}
       } catch (e) {}
+      swLog("sw_install_done", { rootCached: rootCached, rootStatus: rootStatus, rootRedirected: rootRedirected });
     })()
   );
 });
@@ -161,7 +187,7 @@ self.addEventListener("activate", (event) => {
         // کمی صبر کن تا client controllerchange رو process کنه، بعد پیام بفرست
         return new Promise(resolve => setTimeout(resolve, 100));
       })
-      .then(() => notifyClients({ type: "SW_ACTIVATED", version: SW_VERSION }))
+      .then(() => { swLog("sw_activate"); return notifyClients({ type: "SW_ACTIVATED", version: SW_VERSION }); })
   );
 });
 
@@ -410,6 +436,8 @@ async function fetchWithTimeout(request, ms) {
 }
 
 async function networkFirstNavigation(req) {
+  let navPath = "?";
+  try { navPath = new URL(req.url).pathname; } catch (e) {}
   try {
     // مهم: درخواست را با redirect: "follow" بفرست. اگر درخواست ناوبری با
     // redirect: "manual" (پیش‌فرض) fetch شود و سرور 302 بدهد (مثلاً ریدایرکت به لاگین)،
@@ -430,6 +458,7 @@ async function networkFirstNavigation(req) {
     // به آدرس نهایی بده تا اپ درست جابه‌جا شود.
     if (res && res.redirected && res.url) {
       const dest = res.url;
+      swLog("nav_redirect", { path: navPath, dest: dest });
       const html =
         '<!DOCTYPE html><html><head><meta charset="utf-8">' +
         "<script>location.replace(" + JSON.stringify(dest) + ");</script>" +
@@ -445,20 +474,22 @@ async function networkFirstNavigation(req) {
       // کش کردن نباید پاسخ‌دهی به صفحه را بلاک یا fail کند.
       cache.put(req, res.clone()).catch(() => {});
     }
+    swLog("nav_net", { path: navPath, status: res ? res.status : 0, ok: !!(res && res.ok) });
     return res;
   } catch (e) {
     // ۱) اگر همین آدرس قبلاً کش شده بود.
     const cached = await caches.match(req);
-    if (cached) return cached;
+    if (cached) { swLog("nav_fallback", { path: navPath, kind: "cached", err: String((e && e.message) || e) }); return cached; }
 
     // ۲) ریشه‌ی سایت را بدون توجه به query/version برگردان.
     const root =
       (await caches.match("/", { ignoreSearch: true })) ||
       (await caches.match(versioned("/"))) ||
       (await caches.match("/"));
-    if (root) return root;
+    if (root) { swLog("nav_fallback", { path: navPath, kind: "root", err: String((e && e.message) || e) }); return root; }
 
     // ۳) هرگز پاسخ خالی نده — صفحه‌ی fallback که خودش دوباره تلاش می‌کند.
+    swLog("nav_fallback", { path: navPath, kind: "offline", err: String((e && e.message) || e) });
     return offlineFallbackResponse();
   }
 }

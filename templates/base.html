@@ -36,6 +36,45 @@
     })();
   </script>
 
+  <!-- PWA diagnostic beacon (موقت) — وضعیت لحظه‌ی باز شدن اپ را به /pwa/log می‌فرستد -->
+  <script>
+    (function () {
+      try {
+        function pwaBeacon(ev, extra) {
+          try {
+            var m = function (n) { var el = document.querySelector('meta[name="' + n + '"]'); return el ? el.content : ""; };
+            var data = {
+              ev: ev, src: "client", t: Date.now(), url: location.href,
+              standalone: (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone || false,
+              online: navigator.onLine,
+              appver: m("app-version"),
+              ctrl: (navigator.serviceWorker && navigator.serviceWorker.controller && navigator.serviceWorker.controller.scriptURL) || null,
+              ua: navigator.userAgent
+            };
+            for (var k in (extra || {})) data[k] = extra[k];
+            var body = JSON.stringify(data);
+            if (navigator.sendBeacon) {
+              navigator.sendBeacon("/pwa/log", new Blob([body], { type: "application/json" }));
+            } else {
+              fetch("/pwa/log", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: body, keepalive: true }).catch(function () {});
+            }
+          } catch (e) {}
+        }
+        window.__pwaBeacon = pwaBeacon;
+        pwaBeacon("page_boot");
+        window.addEventListener("error", function (e) {
+          pwaBeacon("js_error", { msg: (e && e.message) || "", file: (e && e.filename) || "", line: (e && e.lineno) || 0 });
+        });
+        window.addEventListener("unhandledrejection", function (e) {
+          pwaBeacon("js_reject", { msg: String((e && e.reason) || "").slice(0, 300) });
+        });
+        document.addEventListener("DOMContentLoaded", function () { pwaBeacon("dom_ready"); });
+        window.addEventListener("load", function () { pwaBeacon("win_load"); });
+        window.addEventListener("pageshow", function (e) { pwaBeacon("pageshow", { persisted: !!(e && e.persisted) }); });
+      } catch (e) {}
+    })();
+  </script>
+
   <script>
     (function () {
       try {

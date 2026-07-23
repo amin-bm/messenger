@@ -20,6 +20,7 @@ from django.conf.urls.static import static
 from django.conf import settings
 from a_users.views import profile_view
 from a_home.views import *
+from a_home.pwa_debug_views import pwa_log
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -34,6 +35,7 @@ urlpatterns = [
     path('pwa/vapid-public-key', vapid_public_key, name='pwa-vapid-public-key'),
     path('pwa/subscribe', pwa_subscribe, name='pwa-subscribe'),
     path('pwa/unsubscribe', pwa_unsubscribe, name='pwa-unsubscribe'),
+    path('pwa/log', pwa_log, name='pwa-log'),
 ]
 
 # Only used when DEBUG=True, whitenoise can serve files when DEBUG=False

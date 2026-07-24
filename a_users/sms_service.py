@@ -45,7 +45,7 @@ def _smsir_request(url: str, api_key: str, payload: dict) -> dict | None:
 
 
 def send_sms_ir(phone_number: str, message: str) -> bool:
-    if bool(getattr(settings, "OFFLINE_MODE", False)):
+    if bool(getattr(settings, "SMS_DISABLED", False)):
         return False
 
     api_key = _settings_or_env("SMSIR_API_KEY")
@@ -67,7 +67,7 @@ def send_sms_ir(phone_number: str, message: str) -> bool:
 
 
 def send_otp_sms_ir(phone_number: str, otp: str) -> bool:
-    if bool(getattr(settings, "OFFLINE_MODE", False)):
+    if bool(getattr(settings, "SMS_DISABLED", False)):
         print(f"OTP for {phone_number}: {otp}")
         return True
 
@@ -90,6 +90,38 @@ def send_otp_sms_ir(phone_number: str, otp: str) -> bool:
         "mobile": phone_number,
         "templateId": template_id_value,
         "parameters": [{"name": "CODE", "value": str(otp)}],
+    }
+    result = _smsir_request(url, api_key, payload)
+    return bool(result) and int(result.get("status") or 0) == 1
+
+
+def send_notify_sms_ir(phone_number: str, title: str = "") -> bool:
+    """
+    ارسال پیامک اعلان با استفاده از یک قالب مجزا (SMSIR_NOTIFY_TEMPLATE_ID).
+    متن پیام در پنل sms.ir تعریف می‌شود و یک متغیر #NAME# دارد که با نام گیرنده پر می‌شود.
+    این تابع مستقل از OFFLINE_MODE است و فقط با SMS_DISABLED کنترل می‌شود.
+    """
+    if bool(getattr(settings, "SMS_DISABLED", False)):
+        return False
+
+    api_key = _settings_or_env("SMSIR_API_KEY")
+    template_id = _settings_or_env("SMSIR_NOTIFY_TEMPLATE_ID")
+
+    if not api_key or not template_id:
+        logger.warning("SMSIR notify disabled: missing API key or notify template id")
+        return False
+
+    url = "https://api.sms.ir/v1/send/verify"
+    try:
+        template_id_value: int | str = int(template_id)
+    except Exception:
+        template_id_value = template_id
+    # قالب sms.ir حداقل یک متغیر لازم دارد. متغیر #NAME# با نام گیرنده پر می‌شود.
+    name_value = (title or "").strip() or "کاربر"
+    payload = {
+        "mobile": phone_number,
+        "templateId": template_id_value,
+        "parameters": [{"name": "NAME", "value": name_value}],
     }
     result = _smsir_request(url, api_key, payload)
     return bool(result) and int(result.get("status") or 0) == 1

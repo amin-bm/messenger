@@ -162,6 +162,56 @@ def _send_push_notifications_for_message(message_id: int) -> None:
             continue
 
 
+def _send_sms_notifications_for_message(message_id: int) -> None:
+    """
+    ارسال پیامک اعلان برای اعضای آفلاین یک پیام (دستور @sms).
+    برای گروه: همه‌ی اعضای آفلاین به‌جز فرستنده.
+    برای چت خصوصی: طرف مقا���� اگر آفلاین باشد.
+    مستقل از OFFLINE_MODE است و فقط با SMS_DISABLED غیرفعال می‌شود.
+    """
+    if bool(getattr(settings, "SMS_DISABLED", False)):
+        return
+    try:
+        from a_users.sms_service import send_notify_sms_ir
+    except Exception:
+        return
+    try:
+        message = (
+            GroupMessage.objects
+            .select_related("group", "author")
+            .get(id=message_id)
+        )
+    except GroupMessage.DoesNotExist:
+        return
+    group = message.group
+    member_ids = list(
+        group.members.exclude(id=message.author_id).values_list("id", flat=True)
+    )
+    if not member_ids:
+        return
+    cutoff = _presence_cutoff()
+    # فقط اعضای آفلاین: کسانی که آخرین بازدیدشان قدیمی‌تر از آستانه‌ی حضور است
+    offline_members = (
+        Profile.objects
+        .select_related("user")
+        .filter(user_id__in=member_ids, last_seen__lt=cutoff)
+        .exclude(phone__isnull=True)
+        .exclude(phone__exact="")
+    )
+    seen: set[str] = set()
+    for profile in offline_members:
+        phone = (profile.phone or "").strip()
+        if not phone or phone in seen:
+            continue
+        seen.add(phone)
+        # مقدار متغیر #NAME# قالب: پراپرتی name مدل (displayname یا username)
+        name = (getattr(profile, "name", "") or "").strip()
+        try:
+            send_notify_sms_ir(phone, name)
+        except Exception:
+            continue
+
+
 def _touch_last_seen(user) -> None:
     if not getattr(user, "is_authenticated", False):
         return
@@ -338,6 +388,16 @@ class ChatroomConsumer(WebsocketConsumer):
         body = data.get('body', '').strip()
         reply_to_id = str(data.get('reply_to') or '').strip()
 
+        # دستور مخفی @sms: اگر پیام با "@sms" شروع شود، پیام عادی ثبت می‌شود
+        # و علاوه بر آن، برای اعضای آفلاین پیامک اعلان فرستاده می‌شود.
+        # پیشوند @sms از متن قابل‌نمایش حذف می‌شود.
+        sms_command = False
+        if body[:4].lower() == "@sms":
+            rest = body[4:]
+            if rest == "" or rest[:1].isspace():
+                sms_command = True
+                body = rest.strip()
+
         if not body:
             return
 
@@ -358,6 +418,9 @@ class ChatroomConsumer(WebsocketConsumer):
 
         if not bool(getattr(settings, "OFFLINE_MODE", False)):
             transaction.on_commit(lambda: _send_push_notifications_for_message(message.id))
+
+        if sms_command and not bool(getattr(settings, "SMS_DISABLED", False)):
+            transaction.on_commit(lambda: _send_sms_notifications_for_message(message.id))
 
         log_group_send('ChatroomConsumer', self.chatroom_name, 'message_handler')
         async_to_sync(self.channel_layer.group_send)(
@@ -682,7 +745,7 @@ class OnlineStatusConsumer(WebsocketConsumer):
                 data = {}
             if (data or {}).get("type") == "ping":
                 log_receive('OnlineStatusConsumer', self.user, data)
-                # fallback: در پاسخ به ping، سایدبار را مستقیم برای همین کلاینت بازتولید کن
+                # fallback: در پاسخ به ping�� سایدبار را مستقیم برای همین کلاینت بازتولید کن
                 # تا اگر پوشِ اولیه‌ی connect گم شده باشد، لیست چت پر شود.
                 if not getattr(self, "_initial_sidebar_confirmed", False):
                     self._initial_sidebar_confirmed = True

@@ -79,7 +79,7 @@ def otp_login_start(request):
     request.session["otp_login_next"] = next_url
 
     if send_otp_sms_ir(phone, otp):
-        messages.success(request, "برای دریافت رمز موقت به آقای مقدم یا آقای نصیری پیام دهید")
+        messages.success(request, "رمز موقت ارسال شد")
         return redirect(reverse("account_login") + "?otp=verify")
 
     _clear_otp_session(request.session)

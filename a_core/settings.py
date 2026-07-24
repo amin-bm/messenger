@@ -104,6 +104,9 @@ SECRET_KEY = os.getenv(
 DEBUG = _env_bool("DJANGO_DEBUG", "1")
 
 OFFLINE_MODE = _env_bool("OFFLINE_MODE", "0")
+# Controls SMS sending independently of OFFLINE_MODE.
+# When "1", SMS (bulk + OTP) is disabled while WebPush stays governed by OFFLINE_MODE.
+SMS_DISABLED = _env_bool("SMS_DISABLED", "0")
 IGNORE_NAVIGATOR_ONLINE = _env_bool("IGNORE_NAVIGATOR_ONLINE", "1" if DEBUG else "0")
 
 ALLOWED_HOSTS = _env_csv("DJANGO_ALLOWED_HOSTS") or ['localhost', '127.0.0.1', '*']

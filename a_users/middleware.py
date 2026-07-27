@@ -15,6 +15,15 @@ for _candidate in ("a_users.ws_logger", "a_core.ws_logger", "ws_logger"):
 
 log = logging.getLogger("ws_debug")
 
+# جانگو مقدار csrfmiddlewaretoken فرم را هر بار با یک salt تصادفی ماسک می‌کند،
+# بنابراین هیچ‌وقت با مقدار خام کوکی csrftoken برابر نیست (۶۴ کاراکتر در برابر ۳۲).
+# برای مقایسه‌ی درست باید اول unmask شود؛ این توابع private هستند پس import‌شان محافظت‌شده است.
+try:
+    from django.middleware.csrf import CSRF_TOKEN_LENGTH, _unmask_cipher_token
+except Exception:  # pragma: no cover - سازگاری با نسخه‌های دیگر جانگو
+    CSRF_TOKEN_LENGTH = 64
+    _unmask_cipher_token = None
+
 
 def _fp(value):
     """انگشت‌نگاری کوتاه از یک token — خود token لاگ نمی‌شود."""
@@ -24,6 +33,35 @@ def _fp(value):
         return hashlib.sha256(value.encode("utf-8")).hexdigest()[:10]
     except Exception:
         return "?"
+
+
+def _unmask(form_token):
+    """راز اصلی را از token ماسک‌شده‌ی فرم بیرون می‌کشد.
+
+    اگر token طول ماسک‌شده (۶۴) را داشته باشد unmask می‌شود؛ اگر از قبل خام باشد
+    (۳۲) همان برگردانده می‌شود. در صورت هر خطا None برمی‌گردد تا مقایسه نامعلوم بماند.
+    """
+    if not form_token:
+        return None
+    try:
+        if len(form_token) == CSRF_TOKEN_LENGTH and _unmask_cipher_token is not None:
+            return _unmask_cipher_token(form_token)
+        return form_token
+    except Exception:
+        return None
+
+
+def _tokens_match(cookie_token, form_token):
+    """مقایسه‌ی درست کوکی csrftoken با token فرم.
+
+    خروجی: True (هم‌خوان)، False (ناهم‌خوان) یا None (قابل ارزیابی نبود).
+    """
+    if not cookie_token or not form_token:
+        return False
+    unmasked = _unmask(form_token)
+    if unmasked is None:
+        return None
+    return unmasked == cookie_token
 
 
 def _resolve_login_path() -> str:
@@ -57,15 +95,18 @@ class MobileLoginNextMiddleware:
             if request.method == "POST":
                 sent = request.POST.get("csrfmiddlewaretoken") or ""
                 nxt = (request.POST.get("next") or "").strip()
+                match = _tokens_match(cookie_token, sent)
 
                 # (3) لاگ تشخیصی
                 log.info(
-                    "[LOGIN_POST] mobile=%s cookie_fp=%s form_fp=%s match=%s "
-                    "cookie_present=%s next=%r csrf_retry=%s",
+                    "[LOGIN_POST] mobile=%s cookie_fp=%s cookie_len=%s form_fp=%s form_len=%s "
+                    "match=%s cookie_present=%s next=%r csrf_retry=%s",
                     mobile,
                     _fp(cookie_token),
+                    len(cookie_token),
                     _fp(sent),
-                    bool(cookie_token) and _fp(cookie_token) == _fp(sent),
+                    len(sent),
+                    "unknown" if match is None else match,
                     bool(cookie_token),
                     nxt or "-",
                     request.GET.get("csrf_retry", "0"),

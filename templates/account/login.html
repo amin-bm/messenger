@@ -332,6 +332,47 @@
       });
     }
 
+    // جلوگیری از submit دوباره‌ی فرم‌ها (منبع خطای CSRF 403 روی موبایل).
+    // اگر فرم دو بار برود، جانگو بعد از لاگین موفق کوکی csrftoken را rotate می‌کند
+    // و درخواست دوم با token کهنه می‌تواند 403 بخورد.
+    function installDoubleSubmitGuard() {
+      const postForms = () => document.querySelectorAll('form[method="post"]');
+
+      function lock(form) {
+        form.dataset.submitting = '1';
+        form.querySelectorAll('button[type="submit"]').forEach((btn) => {
+          btn.disabled = true;
+          btn.classList.add('opacity-60', 'cursor-not-allowed');
+        });
+      }
+
+      function unlock(form) {
+        form.dataset.submitting = '0';
+        form.querySelectorAll('button[type="submit"]').forEach((btn) => {
+          btn.disabled = false;
+          btn.classList.remove('opacity-60', 'cursor-not-allowed');
+        });
+      }
+
+      postForms().forEach((form) => {
+        form.addEventListener('submit', (e) => {
+          if (form.dataset.submitting === '1') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+          }
+          lock(form);
+        });
+      });
+
+      // مهم برای iOS: با back/forward یا بازگشت از cache دکمه قفل نماند.
+      window.addEventListener('pageshow', () => {
+        postForms().forEach(unlock);
+      });
+    }
+
+    installDoubleSubmitGuard();
+
     applyMobileDefaultRedirect();
   })();
 </script>

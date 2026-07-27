@@ -12,6 +12,44 @@ const CACHE_NAME = `${CACHE_PREFIX}${SW_VERSION}`;
 // حداکثر زمانی که منتظر شبکه می‌مانیم تا respondWith هیچ‌وقت برای همیشه معلق نماند.
 const NAV_TIMEOUT_MS = 8000;
 
+// ── صفحات حساس به session/CSRF ───────────────────────────────────────────────
+// HTML این مسیرها شامل csrfmiddlewaretoken است که به کوکی csrftoken همان لحظه گره خورده.
+// اگر نسخه‌ی کش‌شده‌ی این صفحات بعداً سرو شود، token کهنه است و submit کاربر
+// با خطای «403 - تأیید نشد. درخواست لغو شد CSRF» رد می‌شود.
+// پس این صفحات: نه کش می‌شوند، نه از کش سرو می‌شوند.
+const AUTH_SENSITIVE_PREFIXES = ["/accounts/", "/otp/", "/profile/onboarding"];
+
+function isAuthSensitiveHtml(pathname) {
+  for (const p of AUTH_SENSITIVE_PREFIXES) {
+    if (pathname.startsWith(p)) return true;
+  }
+  return false;
+}
+
+// پاک‌سازی نسخه‌های کش‌شده‌ی صفحات حساس که ممکن است از نسخه‌های قبلی اپ باقی مانده باشند.
+async function purgeAuthSensitiveCache() {
+  let removed = 0;
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const keys = await cache.keys();
+    for (const request of keys) {
+      let pathname = "";
+      try {
+        pathname = new URL(request.url).pathname;
+      } catch (e) {
+        continue;
+      }
+      if (isAuthSensitiveHtml(pathname)) {
+        try {
+          await cache.delete(request);
+          removed += 1;
+        } catch (e) {}
+      }
+    }
+  } catch (e) {}
+  return removed;
+}
+
 function versioned(url) {
   if (!SW_VERSION) return url;
   if (url.includes("?")) return `${url}&v=${encodeURIComponent(SW_VERSION)}`;
@@ -182,6 +220,8 @@ self.addEventListener("activate", (event) => {
           })
         )
       )
+      .then(() => purgeAuthSensitiveCache())
+      .then((removed) => { if (removed) swLog("sw_purge_sensitive", { removed: removed }); })
       .then(() => self.clients.claim())
       .then(() => {
         // کمی صبر کن تا client controllerchange رو process کنه، بعد پیام بفرست
@@ -438,6 +478,7 @@ async function fetchWithTimeout(request, ms) {
 async function networkFirstNavigation(req) {
   let navPath = "?";
   try { navPath = new URL(req.url).pathname; } catch (e) {}
+  const sensitive = isAuthSensitiveHtml(navPath);
   try {
     // مهم: درخواست را با redirect: "follow" بفرست. اگر درخواست ناوبری با
     // redirect: "manual" (پیش‌فرض) fetch شود و سرور 302 بدهد (مثلاً ریدایرکت به لاگین)،
@@ -469,27 +510,45 @@ async function networkFirstNavigation(req) {
       });
     }
 
-    if (res && res.ok) {
+    // مهم: صفحات حساس (لاگین/ثبت‌نام/OTP) هرگز کش نمی‌شوند، چون csrf token داخلشان
+    // فقط برای همان لحظه معتبر است.
+    if (res && res.ok && !sensitive) {
       const cache = await caches.open(CACHE_NAME);
       // کش کردن نباید پاسخ‌دهی به صفحه را بلاک یا fail کند.
       cache.put(req, res.clone()).catch(() => {});
     }
-    swLog("nav_net", { path: navPath, status: res ? res.status : 0, ok: !!(res && res.ok) });
+    swLog("nav_net", {
+      path: navPath,
+      status: res ? res.status : 0,
+      ok: !!(res && res.ok),
+      sensitive: sensitive,
+      stored: !!(res && res.ok && !sensitive),
+    });
     return res;
   } catch (e) {
+    const errStr = String((e && e.message) || e);
+
+    // ۰) برای صفحات حساس هیچ‌وقت نسخه‌ی کش‌شده را نده.
+    //    یک صفحه‌ی لاگینِ کهنه = csrf token منقضی = خطای 403 بعد از submit.
+    //    بهتر است صفحه‌ی «در حال اتصال…» را ببیند که خودش retry می‌کند.
+    if (sensitive) {
+      swLog("nav_fallback", { path: navPath, kind: "offline_sensitive", sensitive: true, err: errStr });
+      return offlineFallbackResponse();
+    }
+
     // ۱) اگر همین آدرس قبلاً کش شده بود.
     const cached = await caches.match(req);
-    if (cached) { swLog("nav_fallback", { path: navPath, kind: "cached", err: String((e && e.message) || e) }); return cached; }
+    if (cached) { swLog("nav_fallback", { path: navPath, kind: "cached", err: errStr }); return cached; }
 
     // ۲) ریشه‌ی سایت را بدون توجه به query/version برگردان.
     const root =
       (await caches.match("/", { ignoreSearch: true })) ||
       (await caches.match(versioned("/"))) ||
       (await caches.match("/"));
-    if (root) { swLog("nav_fallback", { path: navPath, kind: "root", err: String((e && e.message) || e) }); return root; }
+    if (root) { swLog("nav_fallback", { path: navPath, kind: "root", err: errStr }); return root; }
 
     // ۳) هرگز پاسخ خالی نده — صفحه‌ی fallback که خودش دوباره تلاش می‌کند.
-    swLog("nav_fallback", { path: navPath, kind: "offline", err: String((e && e.message) || e) });
+    swLog("nav_fallback", { path: navPath, kind: "offline", err: errStr });
     return offlineFallbackResponse();
   }
 }

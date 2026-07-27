@@ -322,6 +322,10 @@ ACCOUNT_FORMS = {
 }
 ACCOUNT_ADAPTER = "a_users.adapters.CustomAccountAdapter"
 
+# ویوی سفارشی خطای CSRF: هم لاگ تشخیصی کامل می‌گیرد، هم روی فرم لاگین
+# به‌جای صفحه‌ی 403 کاربر را به یک فرم تازه با token معتبر برمی‌گرداند.
+CSRF_FAILURE_VIEW = "a_users.csrf_failure.csrf_failure"
+
 CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL = _env_bool("CHAT_PUBLIC_CHAT_VISIBLE_TO_ALL", "0")
 
 try:

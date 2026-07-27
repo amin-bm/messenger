@@ -500,6 +500,8 @@ class ChatroomConsumer(WebsocketConsumer):
             'user': self.user,
             'chat_group': self.chatroom,
             'is_group_admin': self.chatroom.is_admin(self.user),
+            'can_pin_messages': self.chatroom.can_pin(self.user),
+            'can_lock_pins': self.chatroom.can_lock_pins(self.user),
             'private_other_last_read': _private_other_last_read(self.chatroom, self.user),
         }
         html = render_to_string("a_rtchat/partials/chat_message_p.html", context=context)
@@ -534,6 +536,8 @@ class ChatroomConsumer(WebsocketConsumer):
             'chat_group': self.chatroom,
             'oob': True,
             'is_group_admin': self.chatroom.is_admin(self.user),
+            'can_pin_messages': self.chatroom.can_pin(self.user),
+            'can_lock_pins': self.chatroom.can_lock_pins(self.user),
             'private_other_last_read': _private_other_last_read(self.chatroom, self.user),
         }
         html = render_to_string("a_rtchat/chat_message.html", context=context)
@@ -572,6 +576,8 @@ class ChatroomConsumer(WebsocketConsumer):
             "chat_group": self.chatroom,
             "oob_swap": "outerHTML",
             "is_group_admin": self.chatroom.is_admin(self.user),
+            "can_pin_messages": self.chatroom.can_pin(self.user),
+            "can_lock_pins": self.chatroom.can_lock_pins(self.user),
             "private_other_last_read": last_read,
         }
         html = "".join(
@@ -591,12 +597,14 @@ class ChatroomConsumer(WebsocketConsumer):
             self.chatroom.chat_messages
             .filter(is_pinned=True)
             .select_related("author", "author__profile")
-            .order_by("pinned_at", "id")
+            .order_by("-pin_locked", "pinned_at", "id")
         )
-        can_pin = bool(self.chatroom.is_private or self.chatroom.is_admin(self.user))
+        can_pin = bool(self.chatroom.can_pin(self.user))
+        can_lock = bool(self.chatroom.can_lock_pins(self.user))
         context = {
             "pinned_messages": pinned_messages,
             "can_pin_messages": can_pin,
+            "can_lock_pins": can_lock,
             "chat_group": self.chatroom,
             "user": self.user,
             "pinned_oob": True,

@@ -306,6 +306,8 @@ def chat_view(request, chatroom_identifier='public_chat'):
                 'user' : request.user,
                 'chat_group': chat_group,
                 'is_group_admin': _user_is_chat_group_admin(request.user, chat_group),
+                'can_pin_messages': _user_can_pin_in_group(request.user, chat_group),
+                'can_lock_pins': _user_can_lock_pins(request.user, chat_group),
                 'private_other_last_read': private_other_last_read,
             }
             return render(request, 'a_rtchat/partials/chat_message_p.html', context)
@@ -318,6 +320,7 @@ def chat_view(request, chatroom_identifier='public_chat'):
         'chatroom_ws_name': chat_group.group_name,
         'chat_group': chat_group,
         'is_group_admin': _user_is_chat_group_admin(request.user, chat_group),
+        'can_lock_pins': _user_can_lock_pins(request.user, chat_group),
         'private_other_last_read': private_other_last_read,
         'chat_group_admin_ids': list(
             set(chat_group.admins.values_list("id", flat=True))
@@ -327,7 +330,7 @@ def chat_view(request, chatroom_identifier='public_chat'):
             chat_group.chat_messages
             .filter(is_pinned=True)
             .select_related("author", "author__profile")
-            .order_by("pinned_at", "id")
+            .order_by("-pin_locked", "pinned_at", "id")
         ),
         'can_pin_messages': _user_can_pin_in_group(request.user, chat_group),
     }
@@ -409,6 +412,8 @@ def chat_messages_older(request, chatroom_identifier):
         "has_more": has_more,
         "next_before": next_before,
         "is_group_admin": _user_is_chat_group_admin(request.user, chat_group),
+        "can_pin_messages": _user_can_pin_in_group(request.user, chat_group),
+        "can_lock_pins": _user_can_lock_pins(request.user, chat_group),
         "private_other_last_read": private_other_last_read,
     }
     return render(request, "a_rtchat/partials/chat_messages_older.html", context)
@@ -607,6 +612,21 @@ def chatroom_edit_view(request, chatroom_name):
             selected_admin_ids = selected_admin_ids & member_ids
             chat_group.admins.set(User.objects.filter(id__in=selected_admin_ids))
 
+            pin_policy_raw = (request.POST.get("pin_policy") or "").strip()
+            valid_pin_policies = {c[0] for c in ChatGroup.PIN_POLICY_CHOICES}
+            if pin_policy_raw in valid_pin_policies:
+                chat_group.pin_policy = pin_policy_raw
+                chat_group.save(update_fields=["pin_policy"])
+
+            pin_user_ids = set()
+            for raw in request.POST.getlist("pin_allowed_users"):
+                if str(raw).isdigit():
+                    pin_user_ids.add(int(raw))
+            pin_user_ids = pin_user_ids & set(chat_group.members.values_list("id", flat=True))
+            chat_group.pin_allowed_users.set(User.objects.filter(id__in=pin_user_ids))
+
+            _broadcast_pinned_update(chat_group)
+
             channel_layer = get_channel_layer()
             async_to_sync(channel_layer.group_send)(
                 "online-status",
@@ -632,6 +652,8 @@ def chatroom_edit_view(request, chatroom_name):
             set(chat_group.admins.values_list("id", flat=True))
             | ({int(chat_group.admin_id)} if chat_group.admin_id else set())
         ),
+        'pin_allowed_ids': set(chat_group.pin_allowed_users.values_list("id", flat=True)),
+        'max_locked_pins': MAX_LOCKED_PINS,
     }
     return render(request, 'a_rtchat/chatroom_edit.html', context)
 
@@ -1340,6 +1362,8 @@ def chat_message_edit(request, message_id):
         "user": request.user,
         "chat_group": chat_group,
         "is_group_admin": _user_is_chat_group_admin(request.user, chat_group),
+        "can_pin_messages": _user_can_pin_in_group(request.user, chat_group),
+        "can_lock_pins": _user_can_lock_pins(request.user, chat_group),
     }
     return render(request, "a_rtchat/chat_message.html", context)
 
@@ -1502,25 +1526,59 @@ def chat_message_forward(request, message_id):
 
 
 MAX_PINNED_MESSAGES = 3
+MAX_LOCKED_PINS = 2
 
 
 def _user_can_pin_in_group(user, chat_group):
     if getattr(chat_group, "is_private", False):
         return True
+    try:
+        return bool(chat_group.can_pin(user))
+    except Exception:
+        return _user_is_chat_group_admin(user, chat_group)
+
+
+def _user_can_lock_pins(user, chat_group):
+    if getattr(chat_group, "is_private", False):
+        return False
     return _user_is_chat_group_admin(user, chat_group)
 
 
-def _pinned_messages_payload(chat_group):
+def _user_can_remove_pin(user, chat_group, message):
+    """Locked pins can only be removed/replaced by group admins."""
+    if not _user_can_pin_in_group(user, chat_group):
+        return False
+    if getattr(message, "pin_locked", False):
+        return _user_can_lock_pins(user, chat_group)
+    return True
+
+
+def _unpin_message(message):
+    message.is_pinned = False
+    message.pinned_at = None
+    message.pinned_by = None
+    message.pin_locked = False
+    message.save(update_fields=["is_pinned", "pinned_at", "pinned_by", "pin_locked"])
+
+
+def _pinned_messages_payload(chat_group, user=None, only_removable=True):
     pinned = (
         chat_group.chat_messages
         .filter(is_pinned=True)
         .select_related("author", "author__profile")
-        .order_by("pinned_at", "id")
+        .order_by("-pin_locked", "pinned_at", "id")
     )
     items = []
     for m in pinned:
+        if user is not None and only_removable and not _user_can_remove_pin(user, chat_group, m):
+            continue
         author_name = getattr(getattr(m.author, "profile", None), "name", None) or m.author.username
-        items.append({"id": m.id, "author": author_name, "preview": m.pin_preview})
+        items.append({
+            "id": m.id,
+            "author": author_name,
+            "preview": m.pin_preview,
+            "locked": bool(m.pin_locked),
+        })
     return items
 
 
@@ -1557,10 +1615,9 @@ def toggle_pin_message(request, message_id):
         return JsonResponse({"error": "forbidden"}, status=403)
 
     if message.is_pinned:
-        message.is_pinned = False
-        message.pinned_at = None
-        message.pinned_by = None
-        message.save(update_fields=["is_pinned", "pinned_at", "pinned_by"])
+        if not _user_can_remove_pin(request.user, chat_group, message):
+            return JsonResponse({"error": "locked"}, status=403)
+        _unpin_message(message)
         _broadcast_pinned_update(chat_group)
         return HttpResponse(status=204)
 
@@ -1570,21 +1627,61 @@ def toggle_pin_message(request, message_id):
     if pinned_qs.count() >= MAX_PINNED_MESSAGES:
         victim = None
         if replace_raw.isdigit():
-            victim = pinned_qs.filter(id=int(replace_raw)).first()
-        if not victim:
+            candidate = pinned_qs.filter(id=int(replace_raw)).first()
+            if candidate is not None and _user_can_remove_pin(request.user, chat_group, candidate):
+                victim = candidate
+        if victim is None:
             return JsonResponse(
-                {"error": "limit", "max": MAX_PINNED_MESSAGES, "pinned": _pinned_messages_payload(chat_group)},
+                {
+                    "error": "limit",
+                    "max": MAX_PINNED_MESSAGES,
+                    "pinned": _pinned_messages_payload(chat_group, request.user),
+                    "locked": pinned_qs.filter(pin_locked=True).count(),
+                    "can_lock": _user_can_lock_pins(request.user, chat_group),
+                },
                 status=409,
             )
-        victim.is_pinned = False
-        victim.pinned_at = None
-        victim.pinned_by = None
-        victim.save(update_fields=["is_pinned", "pinned_at", "pinned_by"])
+        _unpin_message(victim)
 
     message.is_pinned = True
     message.pinned_at = timezone.now()
     message.pinned_by = request.user
-    message.save(update_fields=["is_pinned", "pinned_at", "pinned_by"])
+    message.pin_locked = False
+    message.save(update_fields=["is_pinned", "pinned_at", "pinned_by", "pin_locked"])
+    _broadcast_pinned_update(chat_group)
+    return HttpResponse(status=204)
+
+
+@messenger_required
+def toggle_pin_lock(request, message_id):
+    """Admin-only: lock/unlock a pinned message (max MAX_LOCKED_PINS locked)."""
+    if request.method != "POST":
+        return HttpResponse(status=405)
+
+    message = get_object_or_404(GroupMessage, id=message_id)
+    chat_group = message.group
+
+    if chat_group.group_name == "public_chat" and not _public_chat_visible_to_user(request.user, chat_group):
+        raise Http404
+
+    if not _user_can_lock_pins(request.user, chat_group):
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    if not message.is_pinned:
+        return JsonResponse({"error": "not_pinned"}, status=400)
+
+    if message.pin_locked:
+        message.pin_locked = False
+        message.save(update_fields=["pin_locked"])
+        _broadcast_pinned_update(chat_group)
+        return HttpResponse(status=204)
+
+    locked_count = chat_group.chat_messages.filter(is_pinned=True, pin_locked=True).count()
+    if locked_count >= MAX_LOCKED_PINS:
+        return JsonResponse({"error": "lock_limit", "max": MAX_LOCKED_PINS}, status=409)
+
+    message.pin_locked = True
+    message.save(update_fields=["pin_locked"])
     _broadcast_pinned_update(chat_group)
     return HttpResponse(status=204)
 

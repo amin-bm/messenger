@@ -46,6 +46,17 @@ class ChatGroup(models.Model):
    members = models.ManyToManyField(User, related_name='chat_groups', blank=True)
    is_private = models.BooleanField(default=False)
 
+   PIN_POLICY_ADMINS = 'admins'
+   PIN_POLICY_ALL = 'all'
+   PIN_POLICY_SELECTED = 'selected'
+   PIN_POLICY_CHOICES = [
+      (PIN_POLICY_ADMINS, 'only admins'),
+      (PIN_POLICY_ALL, 'all members'),
+      (PIN_POLICY_SELECTED, 'admins and selected members'),
+   ]
+   pin_policy = models.CharField(max_length=16, choices=PIN_POLICY_CHOICES, default=PIN_POLICY_ADMINS)
+   pin_allowed_users = models.ManyToManyField(User, related_name='pin_allowed_in_groups', blank=True)
+
    def save(self, *args, **kwargs):
       if not self.group_slug:
          if self.group_name in {"public_chat", "online-status"}:
@@ -71,6 +82,32 @@ class ChatGroup(models.Model):
 
    def __str__(self):
       return self.groupchat_name or self.group_slug or self.group_name
+
+   def can_pin(self, user) -> bool:
+      """Whether `user` may pin/unpin messages in this chat group."""
+      if not getattr(user, "is_authenticated", False):
+         return False
+      if self.is_private:
+         return True
+      if self.is_admin(user):
+         return True
+      if not user.id:
+         return False
+      policy = self.pin_policy or self.PIN_POLICY_ADMINS
+      try:
+         if policy == self.PIN_POLICY_ALL:
+            return self.members.filter(id=user.id).exists()
+         if policy == self.PIN_POLICY_SELECTED:
+            return self.pin_allowed_users.filter(id=user.id).exists()
+      except Exception:
+         return False
+      return False
+
+   def can_lock_pins(self, user) -> bool:
+      """Only group admins may lock pins (locking is meaningless in private chats)."""
+      if self.is_private:
+         return False
+      return self.is_admin(user)
 
    def is_admin(self, user: User) -> bool:
       if not getattr(user, "is_authenticated", False):
@@ -114,6 +151,7 @@ class GroupMessage(models.Model):
    is_pinned = models.BooleanField(default=False)
    pinned_at = models.DateTimeField(null=True, blank=True)
    pinned_by = models.ForeignKey(User, null=True, blank=True, related_name='pinned_messages', on_delete=models.SET_NULL)
+   pin_locked = models.BooleanField(default=False)
    sticker = models.CharField(max_length=8, null=True, blank=True)
 
    IMAGE_EXTENSIONS = frozenset({

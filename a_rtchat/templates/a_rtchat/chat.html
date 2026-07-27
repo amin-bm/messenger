@@ -6771,26 +6771,44 @@
       var modal = document.getElementById("pin_limit_modal");
       if (modal) modal.classList.add("hidden");
     }
-    function openModal(url, pinned) {
+    function openModal(url, data) {
+      var pinned = (data && Array.isArray(data.pinned)) ? data.pinned : [];
+      var lockedCount = (data && data.locked) ? data.locked : 0;
       window.__rtchatPinPendingUrl = url;
-      window.__rtchatPinPending = Array.isArray(pinned) ? pinned : [];
+      window.__rtchatPinPending = pinned;
       var modal = document.getElementById("pin_limit_modal");
       var listEl = document.getElementById("pin_limit_list");
+      var oldestBtn = document.getElementById("pin_limit_oldest");
       if (!modal || !listEl) return;
       listEl.innerHTML = "";
-      window.__rtchatPinPending.forEach(function (p) {
-        var row = document.createElement("button");
-        row.type = "button";
-        row.className = "w-full flex items-center gap-2 rounded-xl px-3 py-2 text-right hover:bg-gray-100 dark:hover:bg-white/10";
-        row.setAttribute("data-replace-id", p.id);
-        row.innerHTML = '<span class="text-base shrink-0">📌</span>' +
-          '<span class="min-w-0 flex-1">' +
-          '<span class="block text-xs font-semibold text-gray-800 truncate dark:text-slate-100">' + esc(p.author) + '</span>' +
-          '<span class="block text-xs text-gray-500 truncate dark:text-slate-400" dir="auto">' + esc(p.preview) + '</span>' +
-          '</span>' +
-          '<span class="shrink-0 text-[11px] font-semibold text-red-600">آزاد کن</span>';
-        listEl.appendChild(row);
-      });
+      if (!pinned.length) {
+        var note = document.createElement("div");
+        note.className = "px-3 py-2 text-xs text-gray-500 dark:text-slate-400";
+        note.textContent = "همهٔ‌ی پین‌های فعلی توسط ادمین قفل شده‌اند و قابل جایگزینی نیستند.";
+        listEl.appendChild(note);
+        if (oldestBtn) oldestBtn.classList.add("hidden");
+      } else {
+        if (oldestBtn) oldestBtn.classList.remove("hidden");
+        if (lockedCount) {
+          var lnote = document.createElement("div");
+          lnote.className = "px-3 pb-1 text-[11px] text-amber-600 dark:text-amber-400";
+          lnote.textContent = "🔒 " + lockedCount + " پین قفل‌شده قابل تغییر نیست.";
+          listEl.appendChild(lnote);
+        }
+        pinned.forEach(function (p) {
+          var row = document.createElement("button");
+          row.type = "button";
+          row.className = "w-full flex items-center gap-2 rounded-xl px-3 py-2 text-right hover:bg-gray-100 dark:hover:bg-white/10";
+          row.setAttribute("data-replace-id", p.id);
+          row.innerHTML = '<span class="text-base shrink-0">' + (p.locked ? "🔒" : "📌") + '</span>' +
+            '<span class="min-w-0 flex-1">' +
+            '<span class="block text-xs font-semibold text-gray-800 truncate dark:text-slate-100">' + esc(p.author) + '</span>' +
+            '<span class="block text-xs text-gray-500 truncate dark:text-slate-400" dir="auto">' + esc(p.preview) + '</span>' +
+            '</span>' +
+            '<span class="shrink-0 text-[11px] font-semibold text-red-600">آزاد کن</span>';
+          listEl.appendChild(row);
+        });
+      }
       modal.classList.remove("hidden");
     }
     function togglePin(messageEl) {
@@ -6798,8 +6816,12 @@
       var url = messageEl.getAttribute("data-pin-url") || "";
       if (!url) return;
       postPin(url, null).then(function (r) {
-        if (r.status === 409 && r.data && r.data.error === "limit") { openModal(url, r.data.pinned || []); }
-        else if (!r.ok && r.status === 403) { window.alert("فقط ادمین‌ها می‌توانند پیام پین کنند."); }
+        if (r.status === 409 && r.data && r.data.error === "limit") { openModal(url, r.data); return; }
+        if (!r.ok && r.status === 403) {
+          var err = (r.data && r.data.error) || "";
+          if (err === "locked") { window.alert("این پین توسط ادمین قفل شده و قابل حذف نیست."); }
+          else { window.alert("شما اجازهٔ‌ پین کردن پیام در این گروه را ندارید."); }
+        }
       });
     }
     window.rtchatTogglePin = togglePin;
@@ -6820,6 +6842,19 @@
         }
         var modalEl = document.getElementById("pin_limit_modal");
         if (modalEl && !modalEl.classList.contains("hidden") && !e.target.closest("#pin_limit_card")) { closeModal(); return; }
+        var lockBtn = e.target.closest("[data-pin-lock-id]");
+        if (lockBtn) {
+          e.preventDefault(); e.stopPropagation();
+          var lurl = lockBtn.getAttribute("data-pin-lock-url") || "";
+          if (lurl) {
+            postPin(lurl, null).then(function (r) {
+              if (r.status === 409 && r.data && r.data.error === "lock_limit") {
+                window.alert("حداکثر " + (r.data.max || 2) + " پین می‌تواند قفل باشد.");
+              }
+            });
+          }
+          return;
+        }
         var unpinBtn = e.target.closest("[data-pin-unpin-id]");
         if (unpinBtn) { e.preventDefault(); e.stopPropagation(); var uurl = unpinBtn.getAttribute("data-pin-url") || ""; if (uurl) postPin(uurl, null); return; }
         var jumpBtn = e.target.closest("[data-pin-jump-id]");

@@ -15,6 +15,7 @@ urlpatterns = [
     path('chat/message/<int:message_id>/forward', chat_message_forward, name='chat-message-forward'),
     path('chat/message/<int:message_id>/delete', chat_message_delete, name='chat-message-delete'),
     path('chat/message/<int:message_id>/pin', toggle_pin_message, name='chat-message-pin'),
+    path('chat/message/<int:message_id>/pin-lock', toggle_pin_lock, name='chat-message-pin-lock'),
     path('chat/message/<int:message_id>/thumb', chat_message_image_thumb, name='chat-message-thumb'),
     path('chat/avatar/thumb', avatar_thumb, name='avatar-thumb'),
     path('chat/message/<int:message_id>/transcode', chat_message_transcode, name='chat-message-transcode'),

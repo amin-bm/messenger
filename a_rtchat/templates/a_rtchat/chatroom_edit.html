@@ -1,141 +1,217 @@
 {% extends 'layouts/box.html' %}
 {% load static %}
+{% load media_extras %}
 
 {% block content %}
 
 <h2>Edit Chat</h2>
-<form method="post" enctype="multipart/form-data" class="space-y-4">
+
+<form method="post" enctype="multipart/form-data" class="space-y-4" id="chatroom_edit_form">
     {% csrf_token %}
 
-    <!-- Group Avatar -->
-    <div class="flex flex-col items-center gap-3">
-        <div class="relative w-24 h-24">
-            <div class="w-full h-full rounded-full overflow-hidden bg-gray-200 ring-2 ring-white shadow">
-                {% if chat_group.avatar %}
-                    <img id="group_avatar_preview"
-                        src="{{ chat_group.avatar.url }}"
-                        class="w-full h-full object-cover"
-                        alt="Group avatar">
-                {% else %}
-                    <div class="h-10 w-10 rounded-full bg-gray-200 shrink-0 flex items-center justify-center text-sm font-semibold text-gray-600">
-                        {{ chat_group.groupchat_name|slice:":1"|upper }}
+    {# ===================== Tabs ===================== #}
+    <div role="tablist" class="mt-2 flex items-center gap-1 rounded-xl bg-gray-100 p-1 text-sm dark:bg-white/5">
+        <button type="button" role="tab" data-ce-tab="info" aria-selected="true"
+                class="ce-tab flex-1 rounded-lg px-2 py-1.5 font-medium">اطلاعات</button>
+        <button type="button" role="tab" data-ce-tab="add" aria-selected="false"
+                class="ce-tab flex-1 rounded-lg px-2 py-1.5 font-medium">
+            <span class="ce-lbl-full">افزودن عضو</span><span class="ce-lbl-short">افزودن</span> <span class="ce-count">{{ add_candidates|length }}</span>
+        </button>
+        <button type="button" role="tab" data-ce-tab="members" aria-selected="false"
+                class="ce-tab flex-1 rounded-lg px-2 py-1.5 font-medium">
+            اعضا <span class="ce-count">{{ chat_group.members.count }}</span>
+        </button>
+        <button type="button" role="tab" data-ce-tab="pin" aria-selected="false"
+                class="ce-tab flex-1 rounded-lg px-2 py-1.5 font-medium">پین</button>
+    </div>
+
+    {# ===================== Panel: info ===================== #}
+    <div data-ce-panel="info" class="ce-panel">
+
+        <!-- Group Avatar -->
+        <div class="flex flex-col items-center gap-3">
+            <div id="group_avatar_wrap" class="relative w-24 h-24 transition-opacity">
+                <div class="w-full h-full rounded-full overflow-hidden bg-gray-200 ring-2 ring-white shadow">
+                    {% if chat_group.avatar %}
+                        <img id="group_avatar_preview"
+                            src="{{ chat_group.avatar.url|thumb }}"
+                            data-full="{{ chat_group.avatar.url }}"
+                            loading="lazy"
+                            decoding="async"
+                            class="w-full h-full object-cover"
+                            alt="Group avatar">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center text-2xl font-semibold text-gray-600">
+                            {{ chat_group.groupchat_name|slice:":1"|upper }}
+                        </div>
+                    {% endif %}
+                </div>
+                <label for="{{ form.avatar.id_for_label }}"
+                       title="تغییر عکس گروه"
+                       class="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white cursor-pointer shadow">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </label>
+            </div>
+
+            {# ویجت خام آپلود جنگو (شامل متن «Currently» و تیکِ Clear) مخفی است #}
+            {# و از طریق دکمه‌ی مداد و دکمه‌ی «حذف عکس گروه» کنترل می‌شود. #}
+            <div id="avatar_widget_raw" class="sr-only">{{ form.avatar }}</div>
+
+            {% if chat_group.avatar %}
+            <button type="button" id="btn_remove_avatar"
+                    class="text-xs text-gray-500 hover:text-red-600 underline underline-offset-2">
+                حذف عکس گروه
+            </button>
+            <div id="avatar_remove_note" class="hidden text-xs text-red-600">
+                عکس گروه پس از ذخیره حذف می‌شود.
+                <button type="button" id="btn_undo_remove_avatar" class="underline underline-offset-2">انصراف</button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Group Name -->
+        <div class="mt-4 ce-field">
+            {{ form.groupchat_name.label_tag }}
+            {{ form.groupchat_name }}
+        </div>
+    </div>
+
+    {# ===================== Panel: add members ===================== #}
+    <div data-ce-panel="add" class="ce-panel hidden">
+        <input type="search" data-ce-filter="add" placeholder="جست‌وجوی کاربر…" autocomplete="off"
+               class="mb-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5">
+
+        <div data-ce-list="add" class="divide-y divide-gray-100 dark:divide-white/10">
+            {% for u in add_candidates %}
+            <div class="flex justify-between items-center" data-ce-row
+                 data-search="{{ u.profile.name|lower }} {{ u.username|lower }}">
+                <div class="flex items-center gap-2 py-2">
+                    <img class="w-14 h-14 rounded-full object-cover"
+                         src="{{ u.profile.avatar|thumb }}"
+                         data-full="{{ u.profile.avatar }}"
+                         loading="lazy"
+                         decoding="async" />
+                    <div>
+                        <span class="font-bold">{{ u.profile.name }}</span>
+                        <span class="text-sm font-light text-gray-600">@{{ u.username }}</span>
                     </div>
-                {% endif %}
+                </div>
+
+                <div class="inline-block pr-4">
+                    <input type="checkbox" name="add_members" value="{{ u.id }}" class="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-0" />
+                </div>
             </div>
-            <label for="{{ form.avatar.id_for_label }}"
-                   class="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white cursor-pointer shadow">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </label>
+            {% empty %}
+            <div class="py-2 text-sm text-gray-500">No users to add</div>
+            {% endfor %}
         </div>
-        {{ form.avatar }}
+
+        <div data-ce-empty="add" class="hidden py-3 text-sm text-gray-500">نتیجه‌ای پیدا نشد.</div>
     </div>
 
-    <!-- Group Name -->
-    <div>
-        {{ form.groupchat_name.label_tag }}
-        {{ form.groupchat_name }}
-    </div>
+    {# ===================== Panel: members ===================== #}
+    <div data-ce-panel="members" class="ce-panel hidden">
+        <input type="search" data-ce-filter="members" placeholder="جست‌وجوی عضو…" autocomplete="off"
+               class="mb-2 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm dark:border-white/10 dark:bg-white/5">
 
-    <div class="my-4">
+        <div data-ce-list="members" class="divide-y divide-gray-100 dark:divide-white/10">
+            {% for member in chat_group.members.all %}
+            <div class="flex justify-between items-center" data-ce-row
+                 data-search="{{ member.profile.name|lower }} {{ member.username|lower }}">
+                <div class="flex items-center gap-2 py-2">
+                    <img class="w-14 h-14 rounded-full object-cover"
+                         src="{{ member.profile.avatar|thumb }}"
+                         data-full="{{ member.profile.avatar }}"
+                         loading="lazy"
+                         decoding="async" />
+                    <div>
+                        <span class="font-bold ce-member-name">{{ member.profile.name }}</span>
+                        <span class="text-sm font-light text-gray-600">@{{ member.username }}</span>
+                        {% if member.id in selected_admin_ids %}
+                        <span class="text-xs text-indigo-600 ml-2">ادمین</span>
+                        {% endif %}
+                    </div>
+                </div>
 
-    <div class="my-4">
-    <h2>Add Members</h2>
-    {% for u in add_candidates %}
-    <div class="flex justify-between items-center">
-        <div class="flex items-center gap-2 py-2">
-            <img class="w-14 h-14 rounded-full object-cover" src="{{ u.profile.avatar }}" />
-            <div>
-                <span class="font-bold">{{ u.profile.name }}</span>
-                <span class="text-sm font-light text-gray-600">@{{ u.username }}</span>
+                <div class="flex items-center gap-3 pr-4">
+                    {% if member != chat_group.admin %}
+                    <label class="ce-chip ce-chip-admin" title="ادمین کردن این عضو">
+                        <input type="checkbox" name="group_admins" value="{{ member.id }}" class="ce-chip-input" {% if member.id in selected_admin_ids %}checked{% endif %} />
+                        <span class="ce-chip-body">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                            ادمین
+                        </span>
+                    </label>
+                    <label class="ce-chip ce-chip-remove" title="حذف این عضو از گروه">
+                        <input type="checkbox" name="remove_members" value="{{ member.id }}" class="ce-chip-input" />
+                        <span class="ce-chip-body">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M9 7V5h6v2m-8 0l1 13h8l1-13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            حذف
+                        </span>
+                    </label>
+                    {% else %}
+                    <div class="text-sm text-gray-400">Creator</div>
+                    {% endif %}
+                </div>
             </div>
+            {% endfor %}
         </div>
 
-        <div class="inline-block pr-4">
-            <input type="checkbox" name="add_members" value="{{ u.id }}" class="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-0" />
-        </div>
-    </div>
-    {% empty %}
-    <div class="py-2 text-sm text-gray-500">No users to add</div>
-    {% endfor %}
+        <div data-ce-empty="members" class="hidden py-3 text-sm text-gray-500">نتیجه‌ای پیدا نشد.</div>
     </div>
 
-    <div class="my-4">
-    <h2>Members</h2>
-    {% for member in chat_group.members.all %}
-    <div class="flex justify-between items-center">
-        <div class="flex items-center gap-2 py-2">
-            <img class="w-14 h-14 rounded-full object-cover" src="{{ member.profile.avatar }}" />
-            <div>
-                <span class="font-bold">{{ member.profile.name }}</span> 
-                <span class="text-sm font-light text-gray-600">@{{ member.username }}</span>
-                {% if member.id in selected_admin_ids %}
-                <span class="text-xs text-indigo-600 ml-2">ادمین</span>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="flex items-center gap-3 pr-4">
-            {% if member != chat_group.admin %}
-            <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
-                <input type="checkbox" name="group_admins" value="{{ member.id }}" class="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-0" {% if member.id in selected_admin_ids %}checked{% endif %} />
-                ادمین
-            </label>
-            <input type="checkbox" name="remove_members" value="{{ member.id }}" class="relative p-5 cursor-pointer appearance-none rounded-md border after:absolute after:left-0 after:top-0 after:h-full after:w-full after:bg-[url('{% static 'images/multiply.png' %}')] after:bg-center checked:bg-red-500 hover:ring hover:ring-gray-300 focus:outline-none" />
-            {% else %}
-            <div class="text-sm text-gray-400">Creator</div>
-            {% endif %}
-        </div>
-    </div> 
-    {% endfor %}
-    </div>
-
-    <div class="my-4">
-    <h2>دسترسی پین پیام</h2>
-    <div class="space-y-2 mt-2">
-        <label class="flex items-start gap-2 cursor-pointer select-none">
-            <input type="radio" name="pin_policy" value="admins" class="mt-1 h-4 w-4 cursor-pointer" {% if chat_group.pin_policy == 'admins' or not chat_group.pin_policy %}checked{% endif %} />
-            <span>
-                <span class="font-bold">فقط ادمین‌ها</span>
-                <span class="block text-xs text-gray-500">فقط شما و ادمین‌های گروه می‌توانند پیام پین کنند.</span>
-            </span>
-        </label>
-        <label class="flex items-start gap-2 cursor-pointer select-none">
-            <input type="radio" name="pin_policy" value="all" class="mt-1 h-4 w-4 cursor-pointer" {% if chat_group.pin_policy == 'all' %}checked{% endif %} />
-            <span>
-                <span class="font-bold">همهٔ‌ی اعضا</span>
-                <span class="block text-xs text-gray-500">هر عضوی در گروه می‌تواند پیام پین یا آنپین کند.</span>
-            </span>
-        </label>
-        <label class="flex items-start gap-2 cursor-pointer select-none">
-            <input type="radio" name="pin_policy" value="selected" class="mt-1 h-4 w-4 cursor-pointer" {% if chat_group.pin_policy == 'selected' %}checked{% endif %} />
-            <span>
-                <span class="font-bold">ادمین‌ها و اعضای انتخاب‌شده</span>
-                <span class="block text-xs text-gray-500">فقط اعضایی که انتخاب می‌کنید اجازهٔ‌ پین دارند.</span>
-            </span>
-        </label>
-    </div>
-
-    <div id="pin_allowed_box" class="mt-3 rounded-xl border border-gray-200 p-3 {% if chat_group.pin_policy != 'selected' %}hidden{% endif %}">
-        <div class="text-sm font-bold mb-1">اعضای مجاز به پین</div>
-        {% for member in chat_group.members.all %}
-            {% if member.id not in selected_admin_ids %}
-            <label class="flex items-center justify-between py-1 cursor-pointer">
-                <span class="flex items-center gap-2">
-                    <img class="w-8 h-8 rounded-full object-cover" src="{{ member.profile.avatar }}" />
-                    <span class="text-sm">{{ member.profile.name|default:member.username }} <span class="text-xs text-gray-500">@{{ member.username }}</span></span>
+    {# ===================== Panel: pin policy ===================== #}
+    <div data-ce-panel="pin" class="ce-panel hidden">
+        <h2>دسترسی پین پیام</h2>
+        <div class="space-y-2 mt-2">
+            <label class="flex items-start gap-2 cursor-pointer select-none">
+                <input type="radio" name="pin_policy" value="admins" class="mt-1 h-4 w-4 cursor-pointer" {% if chat_group.pin_policy == 'admins' or not chat_group.pin_policy %}checked{% endif %} />
+                <span>
+                    <span class="font-bold">فقط ادمین‌ها</span>
+                    <span class="block text-xs text-gray-500">فقط شما و ادمین‌های گروه می‌توانند پیام پین کنند.</span>
                 </span>
-                <input type="checkbox" name="pin_allowed_users" value="{{ member.id }}" class="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-0" {% if member.id in pin_allowed_ids %}checked{% endif %} />
             </label>
-            {% endif %}
-        {% endfor %}
-        <div class="mt-1 text-xs text-gray-500">ادمین‌ها همیشه اجازهٔ‌ پین دارند.</div>
-    </div>
+            <label class="flex items-start gap-2 cursor-pointer select-none">
+                <input type="radio" name="pin_policy" value="all" class="mt-1 h-4 w-4 cursor-pointer" {% if chat_group.pin_policy == 'all' %}checked{% endif %} />
+                <span>
+                    <span class="font-bold">همهٔ‌ی اعضا</span>
+                    <span class="block text-xs text-gray-500">هر عضوی در گروه می‌تواند پیام پین یا آنپین کند.</span>
+                </span>
+            </label>
+            <label class="flex items-start gap-2 cursor-pointer select-none">
+                <input type="radio" name="pin_policy" value="selected" class="mt-1 h-4 w-4 cursor-pointer" {% if chat_group.pin_policy == 'selected' %}checked{% endif %} />
+                <span>
+                    <span class="font-bold">ادمین‌ها و اعضای انتخاب‌شده</span>
+                    <span class="block text-xs text-gray-500">فقط اعضایی که انتخاب می‌کنید اجازهٔ‌ پین دارند.</span>
+                </span>
+            </label>
+        </div>
 
-    <div class="mt-3 text-xs text-gray-500">
-        🔒 ادمین می‌تواند تا {{ max_locked_pins|default:2 }} پین را قفل کند. پین قفل‌شده همیشه بالاتر نمایش داده می‌شود و اعضای عادی نمی‌توانند آن را حذف یا جایگزین کنند.
-    </div>
+        <div id="pin_allowed_box" class="mt-3 rounded-xl border border-gray-200 p-3 dark:border-white/10 {% if chat_group.pin_policy != 'selected' %}hidden{% endif %}">
+            <div class="text-sm font-bold mb-1">اعضای مجاز به پین</div>
+            {% for member in chat_group.members.all %}
+                {% if member.id not in selected_admin_ids %}
+                <label class="flex items-center justify-between py-1 cursor-pointer">
+                    <span class="flex items-center gap-2">
+                        <img class="w-8 h-8 rounded-full object-cover"
+                             src="{{ member.profile.avatar|thumb }}"
+                             data-full="{{ member.profile.avatar }}"
+                             loading="lazy"
+                             decoding="async" />
+                        <span class="text-sm">{{ member.profile.name|default:member.username }} <span class="text-xs text-gray-500">@{{ member.username }}</span></span>
+                    </span>
+                    <input type="checkbox" name="pin_allowed_users" value="{{ member.id }}" class="h-5 w-5 cursor-pointer rounded border-gray-300 text-blue-600 focus:ring-0" {% if member.id in pin_allowed_ids %}checked{% endif %} />
+                </label>
+                {% endif %}
+            {% endfor %}
+            <div class="mt-1 text-xs text-gray-500">ادمین‌ها همیشه اجازهٔ‌ پین دارند.</div>
+        </div>
+
+        <div class="mt-3 text-xs text-gray-500">
+            🔒 ادمین می‌تواند تا {{ max_locked_pins|default:2 }} پین را قفل کند. پین قفل‌شده همیشه بالاتر نمایش داده می‌شود و اعضای عادی نمی‌توانند آن را حذف یا جایگزین کنند.
+        </div>
     </div>
 
     <button class="button mt-2" type="submit">Update</button>
@@ -143,22 +219,297 @@
 
 <a href="{% url 'chatroom-delete' chat_group.group_name %}" class="inline-block flex justify-end mt-4 text-gray-400 hover:text-red-500" >Delete Chatroom</a>
 
+<style>
+  .ce-tab {
+    color: #4b5563;
+    transition: background-color .15s, color .15s;
+  }
+  .ce-tab[aria-selected="true"] {
+    background: #ffffff;
+    color: #2563eb;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+  }
+  .ce-count {
+    display: inline-block;
+    min-width: 1.25rem;
+    padding: 0 .3rem;
+    border-radius: 9999px;
+    background: rgba(0, 0, 0, .08);
+    font-size: .7rem;
+    line-height: 1.1rem;
+    vertical-align: middle;
+  }
+  .ce-tab[aria-selected="true"] .ce-count {
+    background: rgba(37, 99, 235, .12);
+  }
+  .dark .ce-tab { color: #cbd5e1; }
+  .dark .ce-tab[aria-selected="true"] {
+    background: rgba(255, 255, 255, .12);
+    color: #38bdf8;
+  }
+  .dark .ce-count { background: rgba(255, 255, 255, .14); }
+
+  /* --- mobile: keep every tab label on a single line --- */
+  .ce-tab { white-space: nowrap; }
+  .ce-lbl-short { display: none; }
+
+  @media (max-width: 430px) {
+    .ce-lbl-full { display: none; }
+    .ce-lbl-short { display: inline; }
+    .ce-tab {
+      font-size: .75rem;
+      padding-left: .25rem;
+      padding-right: .25rem;
+    }
+    .ce-count {
+      min-width: 1rem;
+      padding: 0 .2rem;
+      font-size: .625rem;
+    }
+  }
+
+  /* --- visible input box for the group name (light + dark) --- */
+  .ce-field label {
+    display: block;
+    margin-bottom: .35rem;
+    font-size: .8rem;
+    font-weight: 600;
+    color: #374151;
+  }
+  .ce-field input[type="text"],
+  .ce-field input:not([type]),
+  .ce-field textarea {
+    width: 100% !important;
+    box-sizing: border-box;
+    padding: .55rem .75rem !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: .75rem !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    font-size: .95rem;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .ce-field input[type="text"]:focus,
+  .ce-field input:not([type]):focus,
+  .ce-field textarea:focus {
+    outline: none;
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+  }
+  .dark .ce-field label { color: #cbd5e1; }
+  .dark .ce-field input[type="text"],
+  .dark .ce-field input:not([type]),
+  .dark .ce-field textarea {
+    background: rgba(255, 255, 255, .06) !important;
+    border-color: rgba(255, 255, 255, .22) !important;
+    color: #e5e7eb !important;
+  }
+  .dark .ce-field input[type="text"]:focus,
+  .dark .ce-field input:not([type]):focus,
+  .dark .ce-field textarea:focus {
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, .20);
+  }
+
+  /* --- member action chips (admin / remove) --- */
+  .ce-chip {
+    display: inline-flex;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+  }
+  .ce-chip-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .ce-chip-body {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .32rem .6rem;
+    border-radius: 9999px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #4b5563;
+    font-size: .72rem;
+    font-weight: 600;
+    line-height: 1rem;
+    white-space: nowrap;
+    transition: background-color .15s, border-color .15s, color .15s;
+  }
+  .ce-chip-body svg {
+    width: 14px;
+    height: 14px;
+    flex: none;
+  }
+  .ce-chip:hover .ce-chip-body { border-color: #9ca3af; }
+  .ce-chip-input:focus-visible + .ce-chip-body {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .25);
+  }
+
+  .ce-chip-admin .ce-chip-input:checked + .ce-chip-body {
+    background: #eef2ff;
+    border-color: #6366f1;
+    color: #4338ca;
+  }
+
+  .ce-chip-remove .ce-chip-body {
+    color: #b91c1c;
+    border-color: #fecaca;
+  }
+  .ce-chip-remove:hover .ce-chip-body { border-color: #f87171; }
+  .ce-chip-remove .ce-chip-input:checked + .ce-chip-body {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #ffffff;
+  }
+
+  [data-ce-row].ce-row-removing { opacity: .55; }
+  [data-ce-row].ce-row-removing .ce-member-name { text-decoration: line-through; }
+
+  .dark .ce-chip-body {
+    background: rgba(255, 255, 255, .05);
+    border-color: rgba(255, 255, 255, .18);
+    color: #cbd5e1;
+  }
+  .dark .ce-chip-admin .ce-chip-input:checked + .ce-chip-body {
+    background: rgba(99, 102, 241, .28);
+    border-color: #818cf8;
+    color: #c7d2fe;
+  }
+  .dark .ce-chip-remove .ce-chip-body {
+    color: #fca5a5;
+    border-color: rgba(248, 113, 113, .35);
+  }
+  .dark .ce-chip-remove .ce-chip-input:checked + .ce-chip-body {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #ffffff;
+  }
+
+  @media (max-width: 430px) {
+    .ce-chip-body {
+      padding: .3rem .5rem;
+      font-size: .68rem;
+    }
+  }
+</style>
+
 <script>
+/* ---------- Tabs ---------- */
+(function () {
+    var form = document.getElementById('chatroom_edit_form');
+    if (!form) return;
+    var tabs = form.querySelectorAll('[data-ce-tab]');
+    var panels = form.querySelectorAll('[data-ce-panel]');
+    if (!tabs.length || !panels.length) return;
+
+    function show(name) {
+        for (var i = 0; i < panels.length; i++) {
+            panels[i].classList.toggle('hidden', panels[i].getAttribute('data-ce-panel') !== name);
+        }
+        for (var j = 0; j < tabs.length; j++) {
+            tabs[j].setAttribute('aria-selected', tabs[j].getAttribute('data-ce-tab') === name ? 'true' : 'false');
+        }
+    }
+
+    for (var k = 0; k < tabs.length; k++) {
+        (function (btn) {
+            btn.addEventListener('click', function () {
+                show(btn.getAttribute('data-ce-tab'));
+            });
+        })(tabs[k]);
+    }
+
+    /* اگر فیلدی نامعتبر بود و در تبِ مخفی قرار داشت، به آن تب سوییچ کن
+       تا مرورگر بتواند خطا را نشان دهد. */
+    form.addEventListener('invalid', function (e) {
+        var el = e.target;
+        var panel = el && el.closest ? el.closest('[data-ce-panel]') : null;
+        if (panel) show(panel.getAttribute('data-ce-panel'));
+    }, true);
+
+    show('info');
+})();
+
+/* ---------- Client-side filter for long user lists ---------- */
+(function () {
+    var inputs = document.querySelectorAll('[data-ce-filter]');
+    for (var i = 0; i < inputs.length; i++) {
+        (function (input) {
+            var key = input.getAttribute('data-ce-filter');
+            var list = document.querySelector('[data-ce-list="' + key + '"]');
+            var empty = document.querySelector('[data-ce-empty="' + key + '"]');
+            if (!list) return;
+            input.addEventListener('input', function () {
+                var q = (input.value || '').trim().toLowerCase();
+                var rows = list.querySelectorAll('[data-ce-row]');
+                var visible = 0;
+                for (var r = 0; r < rows.length; r++) {
+                    var hay = rows[r].getAttribute('data-search') || '';
+                    var match = !q || hay.indexOf(q) !== -1;
+                    rows[r].classList.toggle('hidden', !match);
+                    if (match) visible++;
+                }
+                if (empty) empty.classList.toggle('hidden', visible !== 0);
+            });
+        })(inputs[i]);
+    }
+})();
+
+/* ---------- Group avatar: preview + clean "remove" control ---------- */
 (function () {
     var input = document.getElementById('{{ form.avatar.id_for_label }}');
     var preview = document.getElementById('group_avatar_preview');
-    if (!input || !preview) return;
-    input.classList.add('sr-only');
-    input.addEventListener('change', function () {
-        var file = input.files && input.files[0];
-        if (!file) return;
-        var url = URL.createObjectURL(file);
-        preview.src = url;
-    });
-})();
-</script>
+    var raw = document.getElementById('avatar_widget_raw');
+    var wrap = document.getElementById('group_avatar_wrap');
+    var removeBtn = document.getElementById('btn_remove_avatar');
+    var undoBtn = document.getElementById('btn_undo_remove_avatar');
+    var note = document.getElementById('avatar_remove_note');
 
-<script>
+    /* تیکِ «Clear» جنگو داخل ویجت خام است؛ آن را پیدا و از راه دکمه کنترل می‌کنیم. */
+    var clearBox = raw ? raw.querySelector('input[type="checkbox"]') : null;
+
+    function setRemoved(on) {
+        if (clearBox) clearBox.checked = !!on;
+        if (note) note.classList.toggle('hidden', !on);
+        if (removeBtn) removeBtn.classList.toggle('hidden', !!on);
+        if (wrap) wrap.classList.toggle('opacity-40', !!on);
+    }
+
+    if (removeBtn) removeBtn.addEventListener('click', function () { setRemoved(true); });
+    if (undoBtn) undoBtn.addEventListener('click', function () { setRemoved(false); });
+
+    if (input) {
+        input.addEventListener('change', function () {
+            var file = input.files && input.files[0];
+            if (!file) return;
+            /* انتخاب عکس جدید، حذف را لغو می‌کند */
+            setRemoved(false);
+            if (preview) preview.src = URL.createObjectURL(file);
+        });
+    }
+})();
+
+/* ---------- Members: reflect "remove" selection on the row ---------- */
+(function () {
+    var boxes = document.querySelectorAll('input[name="remove_members"]');
+    for (var i = 0; i < boxes.length; i++) {
+        (function (box) {
+            var row = box.closest ? box.closest('[data-ce-row]') : null;
+            function sync() {
+                if (row) row.classList.toggle('ce-row-removing', box.checked);
+            }
+            box.addEventListener('change', sync);
+            sync();
+        })(boxes[i]);
+    }
+})();
+
+/* ---------- Pin policy: show/hide allowed-members box ---------- */
 (function () {
     var radios = document.querySelectorAll('input[name="pin_policy"]');
     var box = document.getElementById('pin_allowed_box');

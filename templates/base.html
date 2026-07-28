@@ -10,6 +10,9 @@
   <title>Pesk Messenger</title>
 
   <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}?v={{ APP_VERSION|urlencode }}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16.png' %}?v={{ APP_VERSION|urlencode }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32.png' %}?v={{ APP_VERSION|urlencode }}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'pwa-icon-192.png' %}?v={{ APP_VERSION|urlencode }}">
   <link rel="manifest" href="/manifest.webmanifest?v={{ APP_VERSION|urlencode }}">
   <meta name="theme-color" content="#0ea5e9">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1511,8 +1514,8 @@
         const url = chat.url || "/";
         const options = {
           body,
-          icon: "/static/logo.png",
-          badge: "/static/logo.png",
+          icon: "/static/pwa-icon-192.png",
+          badge: "/static/notification-badge-96.png",
           tag: `rtchat:${url}`,
           renotify: false,
           data: { url },

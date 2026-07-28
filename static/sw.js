@@ -84,6 +84,7 @@ const APP_SHELL = [
   "/static/pwa-maskable-192.png",
   "/static/pwa-maskable-512.png",
   "/static/pwa-apple-touch-180.png",
+  "/static/notification-badge-96.png",
 ].map(versioned);
 
 // یک صفحه‌ی fallback حداقلی که هیچ‌وقت سفید نیست و به‌محض برگشتن اتصال، خودش را رفرش می‌کند.
@@ -603,8 +604,8 @@ self.addEventListener("push", (event) => {
       const url = data.url || "/";
       const options = {
         body: data.body || "",
-        icon: "/static/logo.png",
-        badge: "/static/logo.png",
+        icon: "/static/pwa-icon-192.png",
+        badge: "/static/notification-badge-96.png",
         tag: `rtchat:${url}`,
         renotify: false,
         data: {

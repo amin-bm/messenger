@@ -10,7 +10,13 @@ const CACHE_PREFIX = "pesk-messenger-";
 const CACHE_NAME = `${CACHE_PREFIX}${SW_VERSION}`;
 
 // حداکثر زمانی که منتظر شبکه می‌مانیم تا respondWith هیچ‌وقت برای همیشه معلق نماند.
-const NAV_TIMEOUT_MS = 8000;
+const NAV_TIMEOUT_MS = 5000;
+
+// حداکثر عمر مجاز برای HTML کش‌شده وقتی می‌خواهیم آن را به‌عنوان fallback سرو کنیم.
+// صفحه‌ی خانه‌ی یک کاربرِ لاگین‌شده اگر کهنه باشد، بعد از انقضای سشن یک اپ نیمه‌مرده می‌سازد.
+const MAX_HTML_FALLBACK_AGE_MS = 10 * 60 * 1000;
+
+const LOG_CACHE = "pesk-logs";
 
 // ── صفحات حساس به session/CSRF ───────────────────────────────────────────────
 // HTML این مسیرها شامل csrfmiddlewaretoken است که به کوکی csrftoken همان لحظه گره خورده.
@@ -111,16 +117,75 @@ function offlineFallbackResponse() {
 </head>
 <body>
   <div class="card">
-    <div class="spin"></div>
+    <div class="spin" id="spin"></div>
     <div style="font-size:16px;font-weight:700">در حال اتصال به پسک…</div>
-    <div style="font-size:13px;opacity:.85;margin-top:8px">اتصال شبکه هنوز آماده نشده است. خودکار دوباره تلاش می‌کنیم.</div>
-    <button onclick="location.reload()">تلاش دوباره</button>
+    <div id="msg" style="font-size:13px;opacity:.85;margin-top:8px">پاسخی از سرور نگرفتیم. در حال بررسی اتصال…</div>
+    <button id="retry" onclick="manualRetry()">تلاش دوباره</button>
+    <div style="margin-top:14px">
+      <a href="#" id="reset" style="color:#fff;font-size:12px;opacity:.9">پاک کردن کش و راه‌اندازی مجدد</a>
+    </div>
   </div>
   <script>
-    // به‌محض برقراری اتصال یا هر چند ثانیه یک‌بار، صفحه را دوباره لود کن.
-    function retry(){ location.reload(); }
-    window.addEventListener('online', retry);
-    setTimeout(retry, 3000);
+    var tries = 0;
+    function log(ev, extra){
+      try{
+        var d = {ev: ev, src: "fallback", t: Date.now(), url: location.href,
+          standalone: (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone || false,
+          online: navigator.onLine};
+        for (var k in (extra||{})) d[k] = extra[k];
+        navigator.sendBeacon("/pwa/log", new Blob([JSON.stringify(d)], {type:"application/json"}));
+      }catch(e){}
+    }
+    log("fallback_shown");
+
+    // فقط وقتی reload می‌کنیم که سرور واقعاً جواب داده باشد،
+    // وگرنه هر reload یک صفحه‌ی سفیدِ چندثانیه‌ای دیگر می‌سازد.
+    function ping(){
+      return fetch("/pwa/version?ts=" + Date.now(), {cache:"no-store", credentials:"include"})
+        .then(function(r){ return !!(r && r.ok); })
+        .catch(function(){ return false; });
+    }
+    function tick(){
+      tries++;
+      ping().then(function(ok){
+        if (ok){ log("fallback_server_up", {tries: tries}); location.reload(); return; }
+        document.getElementById("msg").textContent =
+          "سرور هنوز پاسخ نمی‌دهد (تلاش " + tries + "). می‌توانید دستی تلاش کنید.";
+        if (tries < 20) setTimeout(tick, 3000);
+        else document.getElementById("spin").style.display = "none";
+      });
+    }
+    setTimeout(tick, 1200);
+
+    function manualRetry(){
+      document.getElementById("msg").textContent = "در حال تلاش…";
+      log("fallback_manual_retry", {tries: tries});
+      ping().then(function(ok){
+        if (ok) location.reload();
+        else document.getElementById("msg").textContent = "هنوز به سرور نمی‌رسیم. اتصال اینترنت را بررسی کنید.";
+      });
+    }
+    window.addEventListener("online", manualRetry);
+
+    // خروج اضطراری: حذف کامل کش‌ها و سرویس‌ورکر، بعد لود مستقیم از سرور.
+    document.getElementById("reset").addEventListener("click", async function(e){
+      e.preventDefault();
+      document.getElementById("msg").textContent = "در حال پاک‌سازی…";
+      log("fallback_hard_reset");
+      try{
+        if (window.caches){
+          var keys = await caches.keys();
+          await Promise.all(keys.map(function(k){ return caches.delete(k); }));
+        }
+      }catch(err){}
+      try{
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
+          var regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(function(r){ return r.unregister(); }));
+        }
+      }catch(err){}
+      location.replace("/?fresh=" + Date.now());
+    });
   </script>
 </body>
 </html>`;
@@ -134,6 +199,42 @@ function offlineFallbackResponse() {
 }
 
 // لاگ تشخیصی سرویس‌ورکر → به /pwa/log می‌فرستد (این مسیر توسط fetch-handler رهگیری نمی‌شود).
+async function bufferLog(body) {
+  try {
+    const cache = await caches.open(LOG_CACHE);
+    const key = "/pwa/log-buffer/" + Date.now() + "-" + Math.random().toString(16).slice(2);
+    await cache.put(new Request(key), new Response(body));
+  } catch (e) {}
+}
+
+// لاگ‌هایی که آفلاین ثبت شده‌اند را در اولین فرصت به سرور می‌فرستد.
+async function flushLogs() {
+  try {
+    const cache = await caches.open(LOG_CACHE);
+    const keys = await cache.keys();
+    for (const k of keys) {
+      const stored = await cache.match(k);
+      if (!stored) {
+        await cache.delete(k);
+        continue;
+      }
+      const body = await stored.text();
+      try {
+        const res = await fetch("/pwa/log", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: body,
+        });
+        if (res && (res.ok || res.status === 204)) await cache.delete(k);
+        else break;
+      } catch (e) {
+        break; // هنوز شبکه نداریم؛ دفعه‌ی بعد.
+      }
+    }
+  } catch (e) {}
+}
+
 function swLog(ev, data) {
   try {
     const body = JSON.stringify(
@@ -145,7 +246,16 @@ function swLog(ev, data) {
       headers: { "Content-Type": "application/json" },
       body: body,
       keepalive: true,
-    }).catch(function () {});
+    })
+      .then(function (res) {
+        // اگر رسید، صف آفلاین را هم خالی کن.
+        if (res && (res.ok || res.status === 204)) flushLogs();
+        else bufferLog(body);
+      })
+      .catch(function () {
+        // مهم: لاگ لحظه‌ی خرابی نباید گم شود.
+        bufferLog(body);
+      });
   } catch (e) {}
 }
 
@@ -480,6 +590,12 @@ async function networkFirstNavigation(req) {
   let navPath = "?";
   try { navPath = new URL(req.url).pathname; } catch (e) {}
   const sensitive = isAuthSensitiveHtml(navPath);
+  swLog("nav_start", {
+    path: navPath,
+    mode: req.mode,
+    dest: req.headers.get("sec-fetch-dest") || "",
+    sensitive: sensitive,
+  });
   try {
     // مهم: درخواست را با redirect: "follow" بفرست. اگر درخواست ناوبری با
     // redirect: "manual" (پیش‌فرض) fetch شود و سرور 302 بدهد (مثلاً ریدایرکت به لاگین)،
@@ -501,10 +617,21 @@ async function networkFirstNavigation(req) {
     if (res && res.redirected && res.url) {
       const dest = res.url;
       swLog("nav_redirect", { path: navPath, dest: dest });
+      const destAttr = dest.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
       const html =
-        '<!DOCTYPE html><html><head><meta charset="utf-8">' +
-        "<script>location.replace(" + JSON.stringify(dest) + ");</script>" +
-        "</head><body></body></html>";
+        '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8">' +
+        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">' +
+        // اگر به هر دلیلی جاوااسکریپت اجرا نشد، meta refresh کار را تمام می‌کند.
+        '<meta http-equiv="refresh" content="0;url=' + destAttr + '">' +
+        '<style>html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;' +
+        'font-family:-apple-system,BlinkMacSystemFont,Tahoma,sans-serif;background:#0ea5e9;color:#fff;text-align:center;padding:24px}' +
+        'a{color:#fff}</style>' +
+        "<script>try{navigator.sendBeacon('/pwa/log',new Blob([JSON.stringify({ev:'redirect_shell',src:'shell',t:Date.now(),dest:" +
+        JSON.stringify(dest) +
+        ",standalone:(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone||false})],{type:'application/json'}))}catch(e){}" +
+        "location.replace(" + JSON.stringify(dest) + ");</script>" +
+        '</head><body><div><div style="font-size:16px;font-weight:700">در حال انتقال به صفحه ورود…</div>' +
+        '<div style="margin-top:14px"><a href="' + destAttr + '">اگر منتقل نشدید اینجا بزنید</a></div></div></body></html>';
       return new Response(html, {
         status: 200,
         headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
@@ -514,9 +641,17 @@ async function networkFirstNavigation(req) {
     // مهم: صفحات حساس (لاگین/ثبت‌نام/OTP) هرگز کش نمی‌شوند، چون csrf token داخلشان
     // فقط برای همان لحظه معتبر است.
     if (res && res.ok && !sensitive) {
-      const cache = await caches.open(CACHE_NAME);
-      // کش کردن نباید پاسخ‌دهی به صفحه را بلاک یا fail کند.
-      cache.put(req, res.clone()).catch(() => {});
+      // زمان کش شدن را نگه می‌داریم تا بعداً HTML کهنه را به‌عنوان fallback سرو نکنیم.
+      const stamped = res.clone();
+      stamped
+        .blob()
+        .then(async (body) => {
+          const headers = new Headers(stamped.headers);
+          headers.set("x-sw-cached-at", String(Date.now()));
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(req, new Response(body, { status: 200, headers: headers }));
+        })
+        .catch(() => {});
     }
     swLog("nav_net", {
       path: navPath,
@@ -537,16 +672,33 @@ async function networkFirstNavigation(req) {
       return offlineFallbackResponse();
     }
 
-    // ۱) اگر همین آدرس قبلاً کش شده بود.
+    // ۱) اگر همین آدرس قبلاً کش شده بود — فقط در صورتی که کهنه نباشد.
+    //    HTML کهنه‌ی یک کاربر لاگین‌شده بعد از انقضای سشن = اپ نیمه‌مرده/سفید.
     const cached = await caches.match(req);
-    if (cached) { swLog("nav_fallback", { path: navPath, kind: "cached", err: errStr }); return cached; }
+    if (cached) {
+      const cachedAt = Number(cached.headers.get("x-sw-cached-at") || 0);
+      const age = cachedAt ? Date.now() - cachedAt : Infinity;
+      if (age <= MAX_HTML_FALLBACK_AGE_MS) {
+        swLog("nav_fallback", { path: navPath, kind: "cached", ageMs: age, err: errStr });
+        return cached;
+      }
+      swLog("nav_fallback_stale", { path: navPath, ageMs: age === Infinity ? -1 : age, err: errStr });
+    }
 
     // ۲) ریشه‌ی سایت را بدون توجه به query/version برگردان.
     const root =
       (await caches.match("/", { ignoreSearch: true })) ||
       (await caches.match(versioned("/"))) ||
       (await caches.match("/"));
-    if (root) { swLog("nav_fallback", { path: navPath, kind: "root", err: errStr }); return root; }
+    if (root) {
+      const rootAt = Number(root.headers.get("x-sw-cached-at") || 0);
+      const rootAge = rootAt ? Date.now() - rootAt : Infinity;
+      if (rootAge <= MAX_HTML_FALLBACK_AGE_MS) {
+        swLog("nav_fallback", { path: navPath, kind: "root", ageMs: rootAge, err: errStr });
+        return root;
+      }
+      swLog("nav_fallback_stale_root", { path: navPath, ageMs: rootAge === Infinity ? -1 : rootAge, err: errStr });
+    }
 
     // ۳) هرگز پاسخ خالی نده — صفحه‌ی fallback که خودش دوباره تلاش می‌کند.
     swLog("nav_fallback", { path: navPath, kind: "offline", err: errStr });

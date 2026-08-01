@@ -1604,7 +1604,13 @@
         return result;
       }
 
+      // از localStorage استفاده می‌شود چون در iOS standalone وقتی اپ کامل بسته
+      // می‌شود sessionStorage پاک می‌شود و فلگ آپدیت معلق گم می‌شد.
       function markPwaUpdatePending() {
+        try {
+          localStorage.setItem("pwaUpdatePending", "1");
+        } catch (e) {
+        }
         try {
           sessionStorage.setItem("pwaUpdatePending", "1");
         } catch (e) {
@@ -1613,7 +1619,56 @@
 
       function clearPwaUpdatePending() {
         try {
+          localStorage.removeItem("pwaUpdatePending");
+        } catch (e) {
+        }
+        try {
           sessionStorage.removeItem("pwaUpdatePending");
+        } catch (e) {
+        }
+      }
+
+      function isPwaUpdatePending() {
+        try {
+          if (localStorage.getItem("pwaUpdatePending") === "1") return true;
+        } catch (e) {
+        }
+        try {
+          if (sessionStorage.getItem("pwaUpdatePending") === "1") return true;
+        } catch (e) {
+        }
+        return false;
+      }
+
+      // بعد از لاگین (یا هر زمانی که گارد اجازه دهد) آپدیت معلق را دوباره بررسی
+      // می‌کند. برخلاف نسخه قبلی، به مقدار از پیش پرشده‌ی pwaWaitingWorker وابسته
+      // نیست و در صورت نبود آن یک reg.update() می‌زند و منتظر می‌ماند.
+      async function resumePendingPwaUpdate(reg) {
+        try {
+          if (!isPwaUpdatePending()) return;
+          if (!canShowPwaUpdateModal()) return;
+
+          const registration = reg || pwaUpdateReg || swRegistration;
+          let waiting = pwaWaitingWorker || (registration && registration.waiting) || null;
+
+          if (!waiting && registration) {
+            try { await registration.update(); } catch (e) {}
+            for (let i = 0; i < 6 && !waiting; i++) {
+              await new Promise((r) => setTimeout(r, 500));
+              waiting = registration.waiting;
+            }
+          }
+
+          if (waiting) {
+            pwaWaitingWorker = waiting;
+            pwaPreparedOk = false;
+            pwaPrepareFailed = [];
+            pwaStatusText = "نسخه جدید آماده است.";
+            pwaStatusKind = "info";
+            showUpdateModal();
+          } else {
+            clearPwaUpdatePending();
+          }
         } catch (e) {
         }
       }
@@ -2464,18 +2519,20 @@
         hideInstallModal();
       });
 
+      // شبکه‌ی ایمنی: وقتی کاربر دوباره به اپ برمی‌گردد، آپدیت معلق را دوباره بررسی کن.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          resumePendingPwaUpdate(pwaUpdateReg || swRegistration);
+        }
+      });
+
       document.addEventListener("DOMContentLoaded", async () => {
         lastSnapshot = mergeSnapshots(loadSnapshot() || {}, readSnapshotFromDom());
         saveSnapshot(lastSnapshot);
         await cleanupSiteDataIfNeeded();
-        await registerServiceWorker();
-        try {
-          const pending = sessionStorage.getItem("pwaUpdatePending") === "1";
-          if (pending && canShowPwaUpdateModal() && pwaWaitingWorker) {
-            showUpdateModal();
-          }
-        } catch (e) {
-        }
+        const swReg = await registerServiceWorker();
+        // فوری بررسی کن؛ اگر هنوز waiting worker آماده نبود، خود تابع تا ۳ ثانیه صبر می‌کند.
+        resumePendingPwaUpdate(swReg);
         if (canNotify()) await ensurePushSubscription();
         if (!isStandaloneDisplay() && !pwaInstallPrompt) {
           try {

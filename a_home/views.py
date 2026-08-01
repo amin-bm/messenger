@@ -109,6 +109,10 @@ def pwa_service_worker(request):
         with open(path, "rb") as f:
             content = f.read()
 
+    # نسخه را داخل خود فایل تزریق کن تا بایت‌های پاسخ با هر دیپلوی عوض شود.
+    version = str(getattr(settings, "APP_VERSION", "dev"))
+    content = content.replace(b"__SW_APP_VERSION__", version.encode("utf-8"))
+
     response = HttpResponse(content, content_type="application/javascript")
     response["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response["Pragma"] = "no-cache"

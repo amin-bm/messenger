@@ -1,4 +1,9 @@
+// نسخه توسط Django در لحظه‌ی سرو شدن داخل فایل تزریق می‌شود.
+// در نتیجه URL اسکریپت همیشه /sw.js ثابت می‌ماند و مرورگر با
+// مقایسه‌ی بایتی متوجه تغییر می‌شود و ورکر جدید را در waiting نگه می‌دارد.
 const SW_VERSION = (() => {
+  const injected = "__SW_APP_VERSION__";
+  if (injected && injected.slice(0, 2) !== "__") return injected;
   try {
     return new URL(self.location.href).searchParams.get("v") || "dev";
   } catch (e) {
@@ -714,6 +719,13 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (url.pathname.startsWith("/ws/") || url.pathname.startsWith("/api/") || url.pathname.startsWith("/pwa/")) {
+    return;
+  }
+
+  // خود اسکریپت سرویس‌ورکر و منیفست هرگز نباید از سرویس‌ورکر عبور کنند.
+  // طبق استاندارد مرورگر خودش رد می‌کند، ولی این محافظ صریح باعث
+  // می‌شود هیچ حالت خاصی در WebKit باعث سرو شدن نسخه‌ی کش‌شده نشود.
+  if (url.pathname === "/sw.js" || url.pathname === "/manifest.webmanifest") {
     return;
   }
 
